@@ -30,7 +30,7 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: ENCRYPTION_KEY
-        value: g0QHqYT7vBvZPLKbao7OGWKBHvosZRSoK0vpzuV8_UY=
+        sync: false
       - key: ALGORITHM
         value: HS256
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
