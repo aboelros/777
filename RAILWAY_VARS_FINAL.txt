@@ -1,0 +1,213 @@
+===============================================================================
+          FINAL RAILWAY VARIABLES - EXTRACTED FROM YOUR PROJECT CODE
+===============================================================================
+
+Source: backend/app/core/config.py (your actual configuration file)
+
+===============================================================================
+           🔴 MINIMUM (7 Variables) - Add These to Deploy
+===============================================================================
+
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+SECRET_KEY=GENERATE_RANDOM_40_CHARS_HERE
+GEMINI_API_KEY=YOUR_GEMINI_KEY_HERE
+ENVIRONMENT=production
+DEBUG=false
+TESTING_MODE=false
+CORS_ORIGINS=https://your-frontend.railway.app
+
+
+===============================================================================
+       🟡 RECOMMENDED (5 More) - Add for Better Performance
+===============================================================================
+
+REDIS_URL=${{Redis.REDIS_URL}}
+GEMINI_API_KEY_1=YOUR_SECOND_KEY
+GEMINI_API_KEY_2=YOUR_THIRD_KEY
+GEMINI_API_KEY_3=YOUR_FOURTH_KEY
+GEMINI_API_KEY_4=YOUR_FIFTH_KEY
+
+
+===============================================================================
+         🚀 PERFORMANCE BOOST - Add More Gemini Keys (Up to 100!)
+===============================================================================
+
+GEMINI_API_KEY_5=KEY_6_HERE
+GEMINI_API_KEY_6=KEY_7_HERE
+GEMINI_API_KEY_7=KEY_8_HERE
+GEMINI_API_KEY_8=KEY_9_HERE
+GEMINI_API_KEY_9=KEY_10_HERE
+GEMINI_API_KEY_10=KEY_11_HERE
+
+# Your code supports up to GEMINI_API_KEY_100!
+
+
+===============================================================================
+         🟢 OPTIONAL - Advanced Settings (Add if Needed)
+===============================================================================
+
+# Gemini AI Settings
+GEMINI_MODEL=gemini-1.5-pro-latest
+GEMINI_MAX_TOKENS=8192
+GEMINI_TEMPERATURE=0.7
+
+# JWT Settings
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=1440
+REFRESH_TOKEN_EXPIRE_DAYS=7
+
+# Database
+DB_POOL_SIZE=20
+DB_MAX_OVERFLOW=0
+
+# Rate Limiting
+RATE_LIMIT_PER_MINUTE=60
+
+# Monitoring
+SENTRY_DSN=your_sentry_dsn
+
+# Email
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASSWORD=your_app_password
+FROM_EMAIL=noreply@yourdomain.com
+
+# Stripe
+STRIPE_SECRET_KEY=your_stripe_key
+STRIPE_WEBHOOK_SECRET=your_webhook_secret
+
+# AWS S3
+S3_BUCKET_NAME=your_bucket
+S3_REGION=us-east-1
+S3_ACCESS_KEY=your_key
+S3_SECRET_KEY=your_secret
+
+
+===============================================================================
+                  🔗 INTEGRATIONS (Only if Using)
+===============================================================================
+
+# Shopify
+SHOPIFY_API_KEY=your_key
+SHOPIFY_API_SECRET=your_secret
+
+# WhatsApp
+WHATSAPP_BUSINESS_ID=your_id
+WHATSAPP_ACCESS_TOKEN=your_token
+
+# Telegram
+TELEGRAM_BOT_TOKEN=your_token
+
+# Facebook
+FACEBOOK_APP_ID=your_id
+FACEBOOK_APP_SECRET=your_secret
+
+# Twilio
+TWILIO_ACCOUNT_SID=your_sid
+TWILIO_AUTH_TOKEN=your_token
+TWILIO_PHONE_NUMBER=your_number
+
+
+===============================================================================
+                          ⚠️ IMPORTANT NOTES
+===============================================================================
+
+1. SECRET_KEY:
+   - Must be 32+ characters
+   - Generate new random string
+   - PowerShell: -join ((65..90) + (97..122) + (48..57) | Get-Random -Count 40 | % {[char]$_})
+   - Or: https://randomkeygen.com/
+
+2. GEMINI_API_KEY:
+   - Get from: https://makersuite.google.com/app/apikey
+   - Each key = 60 requests/minute
+   - 10 keys = 600 requests/minute!
+
+3. DATABASE_URL:
+   - Use ${{Postgres.DATABASE_URL}} if Railway PostgreSQL
+   - Your code auto-converts postgres:// to postgresql+asyncpg://
+
+4. DUAL DATABASES:
+   - Your code supports AUTH_DATABASE_URL and APP_DATABASE_URL
+   - For Railway: Use DATABASE_URL for both (code auto-handles it)
+
+5. CORS_ORIGINS:
+   - Update AFTER frontend deploys
+   - Can be comma-separated: https://site1.com,https://site2.com
+
+
+===============================================================================
+                      🎯 QUICK START - COPY THIS
+===============================================================================
+
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+SECRET_KEY=[Generate with PowerShell or randomkeygen.com]
+GEMINI_API_KEY=[Get from makersuite.google.com]
+GEMINI_API_KEY_1=[Second key - optional but recommended]
+GEMINI_API_KEY_2=[Third key - optional but recommended]
+GEMINI_API_KEY_3=[Fourth key - optional but recommended]
+GEMINI_API_KEY_4=[Fifth key - optional but recommended]
+ENVIRONMENT=production
+DEBUG=false
+TESTING_MODE=false
+REDIS_URL=${{Redis.REDIS_URL}}
+CORS_ORIGINS=https://your-frontend.railway.app
+
+
+===============================================================================
+                      ✅ DEPLOYMENT CHECKLIST
+===============================================================================
+
+Before deploying:
+☐ Generated SECRET_KEY (40 random characters)
+☐ Got at least 1 GEMINI_API_KEY from Google
+☐ Added PostgreSQL database in Railway
+☐ (Optional) Added Redis database in Railway
+☐ Added 7 minimum variables to Railway
+☐ (Optional) Got 5-10 Gemini keys for performance
+
+After backend deploys:
+☐ Deploy frontend
+☐ Update CORS_ORIGINS with frontend URL
+☐ Test: https://your-backend.railway.app/health
+☐ Check API docs: https://your-backend.railway.app/docs
+
+
+===============================================================================
+                      🧪 TEST YOUR DEPLOYMENT
+===============================================================================
+
+curl https://your-backend.railway.app/health
+
+Expected:
+{
+  "status": "healthy",
+  "database": "connected",
+  "redis": "connected"
+}
+
+
+===============================================================================
+                      📊 VARIABLE COUNT SUMMARY
+===============================================================================
+
+Total variables in your code: 70+
+Required for deployment: 7
+Recommended for production: 12
+Optional advanced settings: 50+
+Gemini keys supported: 1-100
+
+
+===============================================================================
+                          END OF FILE
+===============================================================================
+
+✅ These are the ACTUAL variables from your project code!
+✅ Start with 7 minimum variables
+✅ Add more for better performance
+✅ All optional features clearly marked
+
+🚀 Ready to deploy!
+
+===============================================================================

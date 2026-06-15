@@ -1,0 +1,244 @@
+===============================================================================
+                    RAILWAY ENVIRONMENT VARIABLES
+                    Copy Each Line Manually to Railway
+===============================================================================
+
+INSTRUCTIONS:
+1. Go to Railway Dashboard
+2. Click your backend service
+3. Click "Variables" tab
+4. Click "New Variable" for each line below
+5. Copy the variable name (before =)
+6. Copy the value (after =)
+7. Replace YOUR_XXX_HERE with your actual values
+
+===============================================================================
+                        🔴 REQUIRED (6 Variables)
+===============================================================================
+
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+
+SECRET_KEY=GENERATE_NEW_RANDOM_32_CHAR_STRING_HERE
+
+GEMINI_API_KEY=YOUR_GEMINI_API_KEY_HERE
+
+ENVIRONMENT=production
+
+TESTING_MODE=false
+
+DEBUG=false
+
+
+===============================================================================
+                    🟡 RECOMMENDED (4 Variables)
+===============================================================================
+
+REDIS_URL=${{Redis.REDIS_URL}}
+
+CORS_ORIGINS=https://your-frontend-url.railway.app
+
+ENABLE_SUBSCRIPTION_LIMITS=true
+
+ENABLE_OVERAGE_BILLING=true
+
+
+===============================================================================
+            🚀 PERFORMANCE BOOST (Add 5-10 Gemini Keys)
+===============================================================================
+
+GEMINI_API_KEY_1=YOUR_SECOND_GEMINI_KEY_HERE
+
+GEMINI_API_KEY_2=YOUR_THIRD_GEMINI_KEY_HERE
+
+GEMINI_API_KEY_3=YOUR_FOURTH_GEMINI_KEY_HERE
+
+GEMINI_API_KEY_4=YOUR_FIFTH_GEMINI_KEY_HERE
+
+GEMINI_API_KEY_5=YOUR_SIXTH_GEMINI_KEY_HERE
+
+GEMINI_API_KEY_6=YOUR_SEVENTH_GEMINI_KEY_HERE
+
+GEMINI_API_KEY_7=YOUR_EIGHTH_GEMINI_KEY_HERE
+
+GEMINI_API_KEY_8=YOUR_NINTH_GEMINI_KEY_HERE
+
+GEMINI_API_KEY_9=YOUR_TENTH_GEMINI_KEY_HERE
+
+
+===============================================================================
+                    🟢 OPTIONAL (Nice to Have)
+===============================================================================
+
+LOG_LEVEL=INFO
+
+ALGORITHM=HS256
+
+ACCESS_TOKEN_EXPIRE_MINUTES=1440
+
+REFRESH_TOKEN_EXPIRE_DAYS=7
+
+APP_NAME=AI Sales Commander
+
+API_VERSION=v1
+
+DB_POOL_SIZE=20
+
+DB_MAX_OVERFLOW=10
+
+GEMINI_MODEL=gemini-1.5-pro-latest
+
+
+===============================================================================
+                    📧 EMAIL SETTINGS (Optional)
+===============================================================================
+
+SMTP_HOST=smtp.gmail.com
+
+SMTP_PORT=587
+
+SMTP_USER=your_email@gmail.com
+
+SMTP_PASSWORD=your_gmail_app_password
+
+SMTP_FROM_EMAIL=noreply@yourdomain.com
+
+
+===============================================================================
+                    👤 AUTO-CREATE ADMIN USER (Optional)
+===============================================================================
+
+FIRST_SUPERUSER_EMAIL=admin@example.com
+
+FIRST_SUPERUSER_PASSWORD=YourSecurePassword123!
+
+
+===============================================================================
+                            IMPORTANT NOTES
+===============================================================================
+
+1. SECRET_KEY:
+   - Generate a random 32-40 character string
+   - Use letters, numbers, and special characters
+   - PowerShell command to generate:
+     -join ((65..90) + (97..122) + (48..57) | Get-Random -Count 40 | % {[char]$_})
+   - Or use: https://randomkeygen.com/
+
+2. GEMINI_API_KEY:
+   - Get from: https://makersuite.google.com/app/apikey
+   - Create 5-10 Google accounts to get 5-10 keys for better performance
+   - Each key = 60 requests/minute
+   - 10 keys = 600 requests/minute!
+
+3. DATABASE_URL:
+   - If you added PostgreSQL in Railway, use: ${{Postgres.DATABASE_URL}}
+   - If using external database, use full connection string:
+     postgresql+asyncpg://user:password@host:5432/database
+
+4. REDIS_URL:
+   - If you added Redis in Railway, use: ${{Redis.REDIS_URL}}
+   - If using external Redis, use: redis://user:password@host:6379
+
+5. CORS_ORIGINS:
+   - Add this AFTER you deploy frontend
+   - Replace with your actual frontend URL
+   - Multiple origins: https://site1.com,https://site2.com
+
+6. SMTP Settings:
+   - Only needed if you want email notifications
+   - For Gmail, use "App Password" not regular password
+   - Get app password: https://myaccount.google.com/apppasswords
+
+
+===============================================================================
+                        MINIMUM TO START (6 ONLY)
+===============================================================================
+
+If you want to deploy quickly, just add these 6:
+
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+SECRET_KEY=[generate random 40 chars]
+GEMINI_API_KEY=[get from Google]
+ENVIRONMENT=production
+TESTING_MODE=false
+DEBUG=false
+
+Then add more variables later!
+
+
+===============================================================================
+                            QUICK CHECKLIST
+===============================================================================
+
+Before deploying:
+☐ Generated new SECRET_KEY (32-40 random characters)
+☐ Got at least 1 GEMINI_API_KEY from Google
+☐ Added PostgreSQL database in Railway
+☐ Set all 6 required variables
+☐ (Optional) Added Redis database in Railway
+☐ (Optional) Got 5-10 Gemini API keys for performance
+
+After backend deploys:
+☐ Deploy frontend
+☐ Update CORS_ORIGINS with frontend URL
+☐ Test health endpoint: https://your-backend.railway.app/health
+
+
+===============================================================================
+                        HOW TO ADD VARIABLES
+===============================================================================
+
+1. Go to: https://railway.app
+2. Click your project
+3. Click "backend" service
+4. Click "Variables" tab
+5. Click "New Variable" or "+" button
+6. For each variable:
+   - Variable Name: [copy from before =]
+   - Value: [copy from after =]
+   - Click "Add"
+7. Repeat for all variables
+8. Railway will auto-redeploy
+
+
+===============================================================================
+                            TESTING
+===============================================================================
+
+After deployment, test with:
+
+curl https://your-backend-url.railway.app/health
+
+Expected response:
+{
+  "status": "healthy",
+  "database": "connected",
+  "redis": "connected"
+}
+
+API Documentation:
+https://your-backend-url.railway.app/docs
+
+
+===============================================================================
+                        SUPPORT & RESOURCES
+===============================================================================
+
+- Railway Docs: https://docs.railway.app
+- Gemini API: https://makersuite.google.com/app/apikey
+- Random Key Generator: https://randomkeygen.com/
+- Railway Discord: https://discord.gg/railway
+
+
+===============================================================================
+                            END OF FILE
+===============================================================================
+
+✅ Copy variables one by one to Railway Dashboard
+✅ Replace YOUR_XXX_HERE with actual values
+✅ Generate new SECRET_KEY (don't use example!)
+✅ Get Gemini API keys from Google
+✅ Deploy and test!
+
+🚀 Your app will be LIVE!
+
+===============================================================================

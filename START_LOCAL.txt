@@ -1,0 +1,103 @@
+===============================================================================
+                    🏠 RUN LOCALLY - QUICK START
+===============================================================================
+
+EASIEST WAY (3 Steps):
+1. Double-click: setup.bat
+2. Edit backend\.env (add GEMINI_API_KEY)
+3. Double-click: run.bat
+4. Open: http://localhost:3000
+
+===============================================================================
+
+📚 DOCUMENTATION:
+- RUN_LOCALLY.md (Quick guide)
+- LOCAL_SETUP_DETAILED.md (Complete guide)
+
+===============================================================================
+
+🚀 3 METHODS:
+
+Method 1: DOCKER (Easiest)
+- Files: setup.bat → run.bat
+- Best for: First-time users, testing
+- Needs: Docker Desktop
+
+Method 2: DEVELOPMENT MODE (Fastest)
+- File: run-dev.bat
+- Best for: Active development
+- Needs: Python 3.11+, Node.js 20+, Docker
+
+Method 3: MANUAL (Full Control)
+- See: LOCAL_SETUP_DETAILED.md
+- Best for: Advanced users
+- Needs: Python 3.11+, Node.js 20+, Redis
+
+===============================================================================
+
+🔑 REQUIRED SETUP:
+
+1. Get Gemini API Key:
+   https://makersuite.google.com/app/apikey
+
+2. Edit backend\.env:
+   - SECRET_KEY (from backend\secret_key.txt after setup.bat)
+   - GEMINI_API_KEY (from step 1)
+
+===============================================================================
+
+🌐 ACCESS:
+
+Frontend:  http://localhost:3000
+Backend:   http://localhost:8000
+API Docs:  http://localhost:8000/docs
+
+===============================================================================
+
+✅ CHECKLIST:
+
+[ ] Docker Desktop installed and running
+[ ] Run setup.bat
+[ ] Got GEMINI_API_KEY from Google
+[ ] Added GEMINI_API_KEY to backend\.env
+[ ] Run run.bat
+[ ] Open http://localhost:3000
+
+===============================================================================
+
+🎯 LOGIN:
+
+Email:    test@aisales.local
+Password: AiSales2024!Demo
+
+(Auto-created on first startup)
+
+===============================================================================
+
+🐛 ISSUES?
+
+1. Docker not running → Start Docker Desktop
+2. Port in use → netstat -ano | findstr :8000
+3. Database error → Check internet connection (Supabase cloud)
+4. API error → Check GEMINI_API_KEY in backend\.env
+
+===============================================================================
+
+💡 TIPS:
+
+- Use run-dev.bat for faster reload during development
+- Check logs: docker-compose logs -f
+- Stop: docker-compose down
+- Rebuild: docker-compose up --build
+
+===============================================================================
+
+📖 FULL GUIDES:
+
+Quick:     RUN_LOCALLY.md
+Detailed:  LOCAL_SETUP_DETAILED.md
+Docker:    docker-compose.yml
+
+===============================================================================
+
+Ready to start? Run setup.bat now! 🚀

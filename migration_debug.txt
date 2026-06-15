@@ -1,0 +1,126 @@
+DEBUG: GEMINI_API_KEY loaded (len=39)
+DEBUG: Using database at postgresql+asyncpg://postgres:***@db.vjdbthhdyemeugyhucoq.supabase.co:5432/postgres
+Starting message provider standardization...
+Fixing Instagram messages...
+Traceback (most recent call last):
+  File "C:\Users\ARKAN STOER\Desktop\777\backend\scripts\fix_message_providers.py", line 61, in <module>
+    asyncio.run(fix_message_providers())
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\asyncio\runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py", line 650, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\Desktop\777\backend\scripts\fix_message_providers.py", line 31, in fix_message_providers
+    result = await db.execute(stmt)
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\ext\asyncio\session.py", line 455, in execute
+    result = await greenlet_spawn(
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 200, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py", line 2308, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py", line 2180, in _execute_internal
+    conn = self._connection_for_bind(bind)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py", line 2047, in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 2, in _connection_for_bind
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\state_changes.py", line 139, in _go
+    ret_value = fn(self, *arg, **kw)
+                ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py", line 1143, in _connection_for_bind
+    conn = bind.connect()
+           ^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py", line 3269, in connect
+    return self._connection_cls(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py", line 145, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py", line 3293, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py", line 452, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py", line 1269, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py", line 716, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\impl.py", line 169, in _do_get
+    with util.safe_reraise():
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\impl.py", line 167, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py", line 393, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py", line 678, in __init__
+    self.__connect()
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py", line 902, in __connect
+    with util.safe_reraise():
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py", line 898, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\create.py", line 645, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py", line 616, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py", line 941, in connect
+    await_only(creator_fn(*arg, **kw)),
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 130, in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 195, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connection.py", line 2329, in connect
+    return await connect_utils._connect(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connect_utils.py", line 1017, in _connect
+    raise last_error or exceptions.TargetServerAttributeNotMatched(
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connect_utils.py", line 991, in _connect
+    conn = await _connect_addr(
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connect_utils.py", line 828, in _connect_addr
+    return await __connect_addr(params, True, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connect_utils.py", line 873, in __connect_addr
+    tr, pr = await connector
+             ^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connect_utils.py", line 744, in _create_ssl_connection
+    tr, pr = await loop.create_connection(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py", line 1034, in create_connection
+    infos = await self._ensure_resolved(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py", line 1405, in _ensure_resolved
+    return await loop.getaddrinfo(host, port, family=family, type=type,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py", line 864, in getaddrinfo
+    return await self.run_in_executor(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ARKAN STOER\AppData\Local\Programs\Python\Python311\Lib\socket.py", line 961, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+socket.gaierror: [Errno 11001] getaddrinfo failed

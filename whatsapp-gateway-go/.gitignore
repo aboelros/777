@@ -1,0 +1,4 @@
+sessions/
+*.db
+*.log
+.env

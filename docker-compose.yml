@@ -1,0 +1,167 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database - Using Supabase Cloud Databases
+  # Local postgres service disabled - using Supabase from .env file
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: aisales-postgres
+  #   environment:
+  #     POSTGRES_USER: aisales
+  #     POSTGRES_PASSWORD: changeme
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #     - ./backend/scripts/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh
+  #   networks:
+  #     - aisales-network
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U aisales"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+  # Redis Cache & Message Broker
+  redis:
+    image: redis:7-alpine
+    container_name: aisales-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - aisales-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: aisales-backend
+    env_file:
+      - ./backend/.env
+    environment:
+      # Database URLs loaded from .env file (Supabase)
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - /app/__pycache__
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - aisales-network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Celery Worker
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: aisales-celery-worker
+    env_file:
+      - ./backend/.env
+    environment:
+      # Database URLs loaded from .env file (Supabase)
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - redis
+      - backend
+    networks:
+      - aisales-network
+    command: celery -A app.workers.celery_app worker --loglevel=info
+
+  # Celery Beat (Scheduler)
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: aisales-celery-beat
+    env_file:
+      - ./backend/.env
+    environment:
+      # Database URLs loaded from .env file (Supabase)
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - redis
+      - backend
+    networks:
+      - aisales-network
+    command: celery -A app.workers.celery_app beat --loglevel=info
+
+  # Flower (Celery Monitoring) - Disabled due to version incompatibility
+  # Uncomment if you need Celery monitoring UI
+  # flower:
+  #   build:
+  #     context: ./backend
+  #     dockerfile: Dockerfile
+  #     target: development
+  #   container_name: aisales-flower
+  #   env_file:
+  #     - ./backend/.env
+  #   environment:
+  #     - CELERY_BROKER_URL=redis://redis:6379/1
+  #     - CELERY_RESULT_BACKEND=redis://redis:6379/2
+  #   ports:
+  #     - "5555:5555"
+  #   depends_on:
+  #     - redis
+  #     - celery-worker
+  #   networks:
+  #     - aisales-network
+  #   command: celery -A app.workers.celery_app flower --port=5555
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: build
+    container_name: aisales-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    networks:
+      - aisales-network
+    stdin_open: true
+    tty: true
+    command: npm run dev -- --host 0.0.0.0 --port 3000
+
+volumes:
+  # postgres_data:  # Not used - using Supabase cloud databases
+  #   driver: local
+  redis_data:
+    driver: local
+
+networks:
+  aisales-network:
+    driver: bridge

@@ -1,0 +1,15 @@
+[phases.setup]
+nixPkgs = ["python311", "postgresql", "gcc", "stdenv.cc.cc.lib"]
+
+[phases.install]
+cmds = [
+    "python -m venv /app/venv",
+    "/app/venv/bin/pip install --upgrade pip",
+    "cd backend && /app/venv/bin/pip install -r requirements.txt"
+]
+
+[phases.build]
+cmds = []
+
+[start]
+cmd = "SCRIPT=start.sh; if [ -f backend/start.sh ]; then SCRIPT=backend/start.sh; fi; tr -d '\\r' < $SCRIPT > start_clean.sh && sh start_clean.sh"

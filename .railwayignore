@@ -1,0 +1,85 @@
+# Railway Ignore File
+
+# Development files
+*.log
+*.md
+.git
+.gitignore
+.env.example
+*.bat
+*.ps1
+
+# Documentation
+docs/
+*.MD
+AI_*.md
+ANDROID_*.md
+ALL_*.md
+BACKEND_*.md
+BOT_*.md
+CHAT_*.md
+COMPLETE_*.md
+DATABASE_*.md
+DEPLOY_*.md
+FIX_*.md
+IMPLEMENTATION_*.md
+INTEGRATION_*.md
+LOGIN_*.md
+NEW_*.md
+PLATFORM_*.md
+PRODUCTION_*.md
+PROJECT_*.md
+QUICK_*.md
+READY_*.md
+RESPONSE_*.md
+RETRY_*.md
+SCRIPTS_*.md
+SETUP_*.md
+SUPABASE_*.md
+SYSTEM_*.md
+TESTING_*.md
+TEST_*.md
+UI_*.md
+URGENT_*.md
+USER_*.md
+WHITE_*.md
+WORKING_*.md
+
+# Node modules
+node_modules/
+frontend/node_modules/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+backend/venv/
+env/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+tests/
+pytest.ini
+.pytest_cache/
+
+# Docker
+docker-compose.yml
+Dockerfile
+
+# Logs
+logs/
+*.log

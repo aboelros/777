@@ -1,0 +1,68 @@
+# ============================================================================
+#                  COPY-PASTE VARIABLES FOR RAILWAY
+#            Add each line to Railway Dashboard → Variables
+# ============================================================================
+
+# 🔴 REQUIRED (7 variables - START HERE):
+
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+SECRET_KEY=CHANGE_THIS_TO_40_RANDOM_CHARACTERS
+GEMINI_API_KEY=YOUR_GEMINI_KEY_HERE
+ENVIRONMENT=production
+DEBUG=false
+TESTING_MODE=false
+CORS_ORIGINS=https://your-frontend.railway.app
+
+
+# 🟡 RECOMMENDED (Add these for performance):
+
+REDIS_URL=${{Redis.REDIS_URL}}
+GEMINI_API_KEY_1=YOUR_SECOND_KEY
+GEMINI_API_KEY_2=YOUR_THIRD_KEY
+GEMINI_API_KEY_3=YOUR_FOURTH_KEY
+GEMINI_API_KEY_4=YOUR_FIFTH_KEY
+
+
+# 🚀 BOOST (Add 5-10 more Gemini keys for 10x speed):
+
+GEMINI_API_KEY_5=KEY_6
+GEMINI_API_KEY_6=KEY_7
+GEMINI_API_KEY_7=KEY_8
+GEMINI_API_KEY_8=KEY_9
+GEMINI_API_KEY_9=KEY_10
+
+
+# 🟢 OPTIONAL (Only if needed):
+
+GEMINI_MODEL=gemini-1.5-pro-latest
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=1440
+REFRESH_TOKEN_EXPIRE_DAYS=7
+DB_POOL_SIZE=20
+DB_MAX_OVERFLOW=0
+RATE_LIMIT_PER_MINUTE=60
+
+
+# 📧 EMAIL (If you need email notifications):
+
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASSWORD=your_gmail_app_password
+FROM_EMAIL=noreply@yourdomain.com
+
+
+# 💳 STRIPE (If you need payments):
+
+STRIPE_SECRET_KEY=your_stripe_secret_key
+STRIPE_WEBHOOK_SECRET=your_webhook_secret
+
+
+# ============================================================================
+# GENERATE SECRET_KEY:
+# PowerShell: -join ((65..90) + (97..122) + (48..57) | Get-Random -Count 40 | % {[char]$_})
+# Online: https://randomkeygen.com/
+#
+# GET GEMINI_API_KEY:
+# https://makersuite.google.com/app/apikey
+# ============================================================================

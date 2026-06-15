@@ -1,0 +1,71 @@
+===============================================================================
+                    RAILWAY VARIABLES - SIMPLE LIST
+                    Copy-paste to Railway Dashboard one by one
+===============================================================================
+
+🔴 REQUIRED (Add these 6 first):
+
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+SECRET_KEY=CHANGE_ME_TO_RANDOM_40_CHARACTERS
+GEMINI_API_KEY=YOUR_KEY_HERE
+ENVIRONMENT=production
+TESTING_MODE=false
+DEBUG=false
+
+🟡 RECOMMENDED:
+
+REDIS_URL=${{Redis.REDIS_URL}}
+CORS_ORIGINS=https://your-frontend.railway.app
+ENABLE_SUBSCRIPTION_LIMITS=true
+ENABLE_OVERAGE_BILLING=true
+
+🚀 PERFORMANCE (5-10 keys):
+
+GEMINI_API_KEY_1=KEY_2_HERE
+GEMINI_API_KEY_2=KEY_3_HERE
+GEMINI_API_KEY_3=KEY_4_HERE
+GEMINI_API_KEY_4=KEY_5_HERE
+GEMINI_API_KEY_5=KEY_6_HERE
+GEMINI_API_KEY_6=KEY_7_HERE
+GEMINI_API_KEY_7=KEY_8_HERE
+GEMINI_API_KEY_8=KEY_9_HERE
+GEMINI_API_KEY_9=KEY_10_HERE
+
+🟢 OPTIONAL:
+
+LOG_LEVEL=INFO
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=1440
+REFRESH_TOKEN_EXPIRE_DAYS=7
+APP_NAME=AI Sales Commander
+API_VERSION=v1
+DB_POOL_SIZE=20
+DB_MAX_OVERFLOW=10
+GEMINI_MODEL=gemini-1.5-pro-latest
+
+📧 EMAIL (if needed):
+
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASSWORD=your_app_password
+SMTP_FROM_EMAIL=noreply@yourdomain.com
+
+👤 ADMIN:
+
+FIRST_SUPERUSER_EMAIL=admin@example.com
+FIRST_SUPERUSER_PASSWORD=YourSecurePassword123!
+
+===============================================================================
+NOTES:
+
+1. SECRET_KEY: Generate random 40 chars
+   PowerShell: -join ((65..90) + (97..122) + (48..57) | Get-Random -Count 40 | % {[char]$_})
+
+2. GEMINI_API_KEY: Get from https://makersuite.google.com/app/apikey
+
+3. DATABASE_URL: Use ${{Postgres.DATABASE_URL}} if you added PostgreSQL in Railway
+
+4. CORS_ORIGINS: Update after frontend deploys
+
+===============================================================================

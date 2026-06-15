@@ -1,0 +1,76 @@
+# ============================================================================
+#                     RAILWAY VARIABLES - CLEAN FORMAT
+#                     Copy each line manually to Railway
+# ============================================================================
+
+# 🔴 REQUIRED - Must add these 6 variables first:
+
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+SECRET_KEY=CHANGE_THIS_TO_RANDOM_40_CHARACTERS
+GEMINI_API_KEY=YOUR_GEMINI_KEY_HERE
+ENVIRONMENT=production
+TESTING_MODE=false
+DEBUG=false
+
+
+# 🟡 RECOMMENDED - Add these for full functionality:
+
+REDIS_URL=${{Redis.REDIS_URL}}
+CORS_ORIGINS=https://your-frontend.railway.app
+ENABLE_SUBSCRIPTION_LIMITS=true
+ENABLE_OVERAGE_BILLING=true
+
+
+# 🚀 PERFORMANCE - Add 5-10 Gemini keys for 10x speed:
+
+GEMINI_API_KEY_1=YOUR_SECOND_KEY_HERE
+GEMINI_API_KEY_2=YOUR_THIRD_KEY_HERE
+GEMINI_API_KEY_3=YOUR_FOURTH_KEY_HERE
+GEMINI_API_KEY_4=YOUR_FIFTH_KEY_HERE
+GEMINI_API_KEY_5=YOUR_SIXTH_KEY_HERE
+GEMINI_API_KEY_6=YOUR_SEVENTH_KEY_HERE
+GEMINI_API_KEY_7=YOUR_EIGHTH_KEY_HERE
+GEMINI_API_KEY_8=YOUR_NINTH_KEY_HERE
+GEMINI_API_KEY_9=YOUR_TENTH_KEY_HERE
+
+
+# 🟢 OPTIONAL - Nice to have:
+
+LOG_LEVEL=INFO
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=1440
+REFRESH_TOKEN_EXPIRE_DAYS=7
+APP_NAME=AI Sales Commander
+API_VERSION=v1
+DB_POOL_SIZE=20
+DB_MAX_OVERFLOW=10
+GEMINI_MODEL=gemini-1.5-pro-latest
+
+
+# 📧 EMAIL - Only if you need email notifications:
+
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASSWORD=your_gmail_app_password
+SMTP_FROM_EMAIL=noreply@yourdomain.com
+
+
+# 👤 ADMIN - Auto-create first admin user:
+
+FIRST_SUPERUSER_EMAIL=admin@example.com
+FIRST_SUPERUSER_PASSWORD=YourSecurePassword123!
+
+
+# ============================================================================
+# HOW TO USE:
+# 1. Open Railway Dashboard
+# 2. Click backend service
+# 3. Click Variables tab
+# 4. Click "New Variable"
+# 5. Copy variable name (left of =)
+# 6. Copy value (right of =)
+# 7. Replace YOUR_XXX with real values
+# 8. Click Add
+# 9. Repeat for all variables
+# ============================================================================

@@ -1,0 +1,74 @@
+# ================================================================
+#           FRONTEND ENVIRONMENT VARIABLES - COPY THESE
+# ================================================================
+
+# Add these when deploying frontend to Vercel or Railway
+
+# ================================================================
+#                    VARIABLE 1: API URL
+# ================================================================
+
+Variable Name:
+VITE_API_URL
+
+Variable Value (UPDATE WITH YOUR BACKEND URL):
+https://your-backend-url.railway.app
+
+# How to get YOUR backend URL:
+# 1. Go to Railway Dashboard
+# 2. Click your backend service
+# 3. Settings → Domains → Copy the URL
+# 4. Paste it above (replace the example)
+
+# ================================================================
+#                    VARIABLE 2: TESTING MODE
+# ================================================================
+
+Variable Name:
+VITE_TESTING_MODE
+
+Variable Value:
+false
+
+# ================================================================
+#                    OPTIONAL: WEBSOCKET URL
+# ================================================================
+
+Variable Name:
+VITE_WS_URL
+
+Variable Value (UPDATE WITH YOUR BACKEND URL):
+wss://your-backend-url.railway.app
+
+# Note: Same as VITE_API_URL but use wss:// instead of https://
+
+# ================================================================
+#           AFTER DEPLOYING: UPDATE BACKEND CORS!
+# ================================================================
+
+# Go to Railway → Backend Service → Variables
+
+# Find: CORS_ORIGINS
+
+# Update to include your frontend URL:
+
+If using Vercel:
+https://your-app-name.vercel.app,http://localhost:3000
+
+If using Railway frontend:
+https://your-frontend-name.railway.app,http://localhost:3000
+
+# ================================================================
+#                    DEPLOYMENT CHECKLIST
+# ================================================================
+
+1. [ ] Deploy frontend to Vercel or Railway
+2. [ ] Add VITE_API_URL (your backend Railway URL)
+3. [ ] Add VITE_TESTING_MODE = false
+4. [ ] Get frontend URL after deployment
+5. [ ] Update backend CORS_ORIGINS with frontend URL
+6. [ ] Test frontend URL in browser
+7. [ ] Login with test@aisales.local / AiSales2024!Demo
+8. [ ] ✅ Working!
+
+# ================================================================

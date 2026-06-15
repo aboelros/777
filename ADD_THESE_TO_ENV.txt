@@ -1,0 +1,39 @@
+# ================================================================
+# ADD THESE 12 GEMINI API KEYS TO YOUR backend/.env FILE
+# ================================================================
+# 
+# INSTRUCTIONS:
+# 1. Open: backend/.env
+# 2. Find the line: GEMINI_API_KEY=...
+# 3. Replace/Add these lines:
+# ================================================================
+
+# Primary Gemini API Key
+GEMINI_API_KEY=AIzaSyBG5xvEO2APM2UFNgKsmrvECylnRsYnDpg
+
+# Additional API Keys (12 keys total = 720 requests/minute!)
+GEMINI_API_KEY_1=AIzaSyCHgELRACD-xYeI6q_UJNy7OKaZUq52lWM
+GEMINI_API_KEY_2=AIzaSyCph-7MtU2XDeVS6AdmSZ_zot0tY__8Nag
+GEMINI_API_KEY_3=AIzaSyBwwE2E9y4XkzoPqEZI7btEBO9UpM5PCCk
+GEMINI_API_KEY_4=AIzaSyCCmePVW8xWpNJ4up17TKopTY-U3yRs4mc
+GEMINI_API_KEY_5=AIzaSyD2ofs2bp0YijCJKdPld6-qkBxwpaxkBAY
+GEMINI_API_KEY_6=AIzaSyDnqNvIXqjsT9If1x5-DPeJ7oDMzmrF3iE
+GEMINI_API_KEY_7=AIzaSyBIxJ0BOsjRAHRs9mLfvaLfdde3lfjY5w8
+GEMINI_API_KEY_8=AIzaSyATwKEiuLLme0OGyegsKmuupyNiLQNYoqU
+GEMINI_API_KEY_9=AIzaSyAGe4YoIxS2hBCgGvta7SubR2aKqExbNQE
+GEMINI_API_KEY_10=AIzaSyC6hg_lsmnmHt0NvbiyD-TsEq2aEOtdAxw
+GEMINI_API_KEY_11=AIzaSyDcKyWxZwA7cdD1ob5LzsDY3FXgB4IBJXM
+
+# ================================================================
+# WHAT THIS GIVES YOU:
+# ================================================================
+# - 12 API Keys total
+# - 60 requests/min per key × 12 = 720 requests/minute!
+# - 43,200 requests per hour
+# - 1,036,800 requests per day
+# - Automatic rotation and failover
+# - Virtually no rate limits
+# ================================================================
+
+# After adding these to backend/.env, restart backend:
+# docker-compose restart backend

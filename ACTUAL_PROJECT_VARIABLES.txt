@@ -1,0 +1,356 @@
+===============================================================================
+                    ACTUAL PROJECT ENVIRONMENT VARIABLES
+                    Extracted from Backend Code (config.py)
+                    These are ALL variables your project actually uses
+===============================================================================
+
+SOURCE: backend/app/core/config.py
+This file contains the REAL variables used in your application code.
+
+===============================================================================
+                        🔴 REQUIRED VARIABLES (MUST ADD)
+===============================================================================
+
+# Core Application Settings
+APP_NAME=AI Sales Commander
+ENVIRONMENT=production
+DEBUG=false
+API_VERSION=v1
+TESTING_MODE=false
+
+# Server (Railway auto-handles these, but can be set)
+HOST=0.0.0.0
+PORT=8000
+
+# Security (REQUIRED - Generate random 32+ characters!)
+SECRET_KEY=GENERATE_NEW_RANDOM_STRING_32_CHARS_MINIMUM
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=1440
+REFRESH_TOKEN_EXPIRE_DAYS=7
+
+# Database - Dual Database Architecture
+# Your code uses TWO databases: Auth DB and App DB
+AUTH_DATABASE_URL=postgresql+asyncpg://user:pass@host:5432/aisales_auth
+APP_DATABASE_URL=postgresql+asyncpg://user:pass@host:5432/aisales_app
+
+# OR use single database (legacy support)
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+
+# Database Pool Settings
+DB_POOL_SIZE=20
+DB_MAX_OVERFLOW=0
+DB_ECHO=false
+
+
+===============================================================================
+                    🟡 RECOMMENDED VARIABLES (IMPORTANT)
+===============================================================================
+
+# Redis (Used for caching and Celery)
+REDIS_URL=${{Redis.REDIS_URL}}
+REDIS_PASSWORD=
+
+# Celery (Background Tasks)
+CELERY_BROKER_URL=redis://redis:6379/1
+CELERY_RESULT_BACKEND=redis://redis:6379/2
+
+# CORS (Add your frontend URL after it deploys)
+CORS_ORIGINS=https://your-frontend.railway.app,http://localhost:3000
+
+
+===============================================================================
+                🚀 GEMINI API KEYS (Up to 100 keys supported!)
+===============================================================================
+
+# Your code supports 1-100 Gemini API keys for load balancing!
+# The more keys you add, the more requests per minute you can handle.
+
+# Primary key (REQUIRED)
+GEMINI_API_KEY=YOUR_GEMINI_KEY_HERE
+
+# Additional keys for performance (OPTIONAL - Add as many as you want!)
+GEMINI_API_KEY_1=YOUR_SECOND_KEY
+GEMINI_API_KEY_2=YOUR_THIRD_KEY
+GEMINI_API_KEY_3=YOUR_FOURTH_KEY
+GEMINI_API_KEY_4=YOUR_FIFTH_KEY
+GEMINI_API_KEY_5=YOUR_SIXTH_KEY
+GEMINI_API_KEY_6=YOUR_SEVENTH_KEY
+GEMINI_API_KEY_7=YOUR_EIGHTH_KEY
+GEMINI_API_KEY_8=YOUR_NINTH_KEY
+GEMINI_API_KEY_9=YOUR_TENTH_KEY
+GEMINI_API_KEY_10=YOUR_11TH_KEY
+
+# Your code supports up to GEMINI_API_KEY_100!
+# 1 key = 60 req/min
+# 10 keys = 600 req/min
+# 100 keys = 6,000 req/min!
+
+# Gemini Settings
+GEMINI_MODEL=gemini-1.5-pro-latest
+GEMINI_MAX_TOKENS=8192
+GEMINI_TEMPERATURE=0.7
+
+
+===============================================================================
+                    🌐 GOOGLE CLOUD (OPTIONAL - Alternative to API Keys)
+===============================================================================
+
+# If using Vertex AI instead of direct API keys
+GOOGLE_CLOUD_PROJECT=your-gcp-project-id
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
+VERTEX_AI_LOCATION=us-central1
+
+
+===============================================================================
+                    🔗 INTEGRATIONS (OPTIONAL - Add if needed)
+===============================================================================
+
+# Shopify
+SHOPIFY_API_KEY=your-shopify-api-key
+SHOPIFY_API_SECRET=your-shopify-api-secret
+
+# WhatsApp
+WHATSAPP_BUSINESS_ID=your-whatsapp-business-id
+WHATSAPP_ACCESS_TOKEN=your-whatsapp-token
+
+# Telegram
+TELEGRAM_BOT_TOKEN=your-telegram-bot-token
+
+# Facebook
+FACEBOOK_APP_ID=your-facebook-app-id
+FACEBOOK_APP_SECRET=your-facebook-app-secret
+
+# Twilio (WhatsApp alternative)
+TWILIO_ACCOUNT_SID=your-twilio-account-sid
+TWILIO_AUTH_TOKEN=your-twilio-auth-token
+TWILIO_PHONE_NUMBER=your-twilio-number
+
+
+===============================================================================
+                    ⚙️ OPTIONAL SETTINGS
+===============================================================================
+
+# Rate Limiting
+RATE_LIMIT_PER_MINUTE=60
+
+# Monitoring (Sentry for error tracking)
+SENTRY_DSN=your-sentry-dsn
+
+# AWS S3 Storage (for file uploads)
+S3_BUCKET_NAME=your-bucket-name
+S3_REGION=us-east-1
+S3_ACCESS_KEY=your-aws-access-key
+S3_SECRET_KEY=your-aws-secret-key
+
+# Email (SMTP)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASSWORD=your_gmail_app_password
+FROM_EMAIL=noreply@aisalescommander.com
+
+# Stripe Billing
+STRIPE_SECRET_KEY=your-stripe-secret-key
+STRIPE_WEBHOOK_SECRET=your-stripe-webhook-secret
+
+
+===============================================================================
+                        ⚠️ VARIABLES NOT IN CODE
+===============================================================================
+
+These variables were in my previous files but are NOT actually used in code:
+
+❌ ENABLE_SUBSCRIPTION_LIMITS (not found in code)
+❌ ENABLE_OVERAGE_BILLING (not found in code)
+❌ FIRST_SUPERUSER_EMAIL (not found in config)
+❌ FIRST_SUPERUSER_PASSWORD (not found in config)
+
+Your subscription limits are defined in:
+backend/app/core/subscription_plans.py (hardcoded in Python, not env vars)
+
+
+===============================================================================
+                        📊 RAILWAY DEPLOYMENT GUIDE
+===============================================================================
+
+MINIMUM TO DEPLOY (7 variables):
+---------------------------------
+1. DATABASE_URL = ${{Postgres.DATABASE_URL}}
+2. SECRET_KEY = [generate 40 random characters]
+3. GEMINI_API_KEY = [get from Google]
+4. ENVIRONMENT = production
+5. DEBUG = false
+6. TESTING_MODE = false
+7. CORS_ORIGINS = https://your-frontend.railway.app
+
+
+RECOMMENDED (Add these too):
+----------------------------
+8. REDIS_URL = ${{Redis.REDIS_URL}}
+9. GEMINI_API_KEY_1 = [second key]
+10. GEMINI_API_KEY_2 = [third key]
+11. GEMINI_API_KEY_3 = [fourth key]
+12. GEMINI_API_KEY_4 = [fifth key]
+
+
+OPTIONAL (Add if you need the features):
+-----------------------------------------
+- SMTP_* (for email notifications)
+- S3_* (for file storage)
+- STRIPE_* (for payments)
+- Integration keys (WhatsApp, Telegram, etc.)
+- SENTRY_DSN (for error tracking)
+
+
+===============================================================================
+                        🔑 HOW TO GET VALUES
+===============================================================================
+
+1. SECRET_KEY:
+   PowerShell command:
+   -join ((65..90) + (97..122) + (48..57) | Get-Random -Count 40 | % {[char]$_})
+   
+   Or use: https://randomkeygen.com/
+
+2. GEMINI_API_KEY:
+   Go to: https://makersuite.google.com/app/apikey
+   Sign in with Google
+   Click "Create API Key"
+   Copy the key (starts with AIzaSy...)
+   
+   For performance: Create 5-10 keys from different Google accounts!
+
+3. DATABASE_URL:
+   If Railway PostgreSQL: ${{Postgres.DATABASE_URL}}
+   If external: postgresql+asyncpg://user:password@host:5432/database
+
+4. REDIS_URL:
+   If Railway Redis: ${{Redis.REDIS_URL}}
+   If external: redis://host:6379/0
+
+
+===============================================================================
+                        🎯 SPECIAL NOTES
+===============================================================================
+
+1. DUAL DATABASE ARCHITECTURE:
+   Your code uses TWO separate databases:
+   - AUTH_DATABASE_URL (for users/authentication)
+   - APP_DATABASE_URL (for projects/orders/messages)
+   
+   For Railway: Use same database for both:
+   AUTH_DATABASE_URL=${{Postgres.DATABASE_URL}}
+   APP_DATABASE_URL=${{Postgres.DATABASE_URL}}
+   
+   Or just set:
+   DATABASE_URL=${{Postgres.DATABASE_URL}}
+   (Your code will auto-use it for both)
+
+2. CORS_ORIGINS:
+   Your code converts comma-separated string to list:
+   CORS_ORIGINS=https://site1.com,https://site2.com,http://localhost:3000
+   
+   Default if not set:
+   http://localhost:3000, http://127.0.0.1:3000, http://localhost:5173
+
+3. GEMINI MULTI-KEY SUPPORT:
+   Your code automatically detects all GEMINI_API_KEY_* variables!
+   It loads them dynamically and rotates between them.
+   You can add up to GEMINI_API_KEY_100!
+
+4. DATABASE URL CONVERSION:
+   Your code automatically converts:
+   postgres:// → postgresql+asyncpg://
+   (So Render/Railway URLs work automatically)
+
+
+===============================================================================
+                        ✅ COPY-PASTE FOR RAILWAY
+===============================================================================
+
+MINIMUM SETUP (7 variables):
+
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+SECRET_KEY=CHANGE_ME_40_RANDOM_CHARACTERS_HERE
+GEMINI_API_KEY=YOUR_GEMINI_KEY_HERE
+ENVIRONMENT=production
+DEBUG=false
+TESTING_MODE=false
+CORS_ORIGINS=https://your-frontend.railway.app
+
+
+RECOMMENDED SETUP (Add 5 more keys for 6x performance):
+
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+REDIS_URL=${{Redis.REDIS_URL}}
+SECRET_KEY=CHANGE_ME_40_RANDOM_CHARACTERS_HERE
+GEMINI_API_KEY=YOUR_KEY_1_HERE
+GEMINI_API_KEY_1=YOUR_KEY_2_HERE
+GEMINI_API_KEY_2=YOUR_KEY_3_HERE
+GEMINI_API_KEY_3=YOUR_KEY_4_HERE
+GEMINI_API_KEY_4=YOUR_KEY_5_HERE
+GEMINI_API_KEY_5=YOUR_KEY_6_HERE
+ENVIRONMENT=production
+DEBUG=false
+TESTING_MODE=false
+CORS_ORIGINS=https://your-frontend.railway.app
+
+
+===============================================================================
+                        🧪 TESTING YOUR DEPLOYMENT
+===============================================================================
+
+After adding variables and deploying, test:
+
+curl https://your-backend.railway.app/health
+
+Expected response:
+{
+  "status": "healthy",
+  "database": "connected",
+  "redis": "connected"
+}
+
+Check logs for:
+✓ Environment: production
+✓ Debug mode: False
+✓ Gemini API configured with N API keys
+✓ Database connected
+✓ Redis connected
+
+
+===============================================================================
+                        📚 VARIABLE SOURCES
+===============================================================================
+
+All variables extracted from:
+- backend/app/core/config.py (lines 12-244)
+- backend/.env.example (reference file)
+- backend/app/core/subscription_plans.py (hardcoded limits)
+
+Total variables in code: 70+
+Required for Railway: 7
+Recommended for Railway: 12
+Optional: 50+
+
+
+===============================================================================
+                        🎉 YOU'RE READY!
+===============================================================================
+
+1. Copy the 7 MINIMUM variables above
+2. Replace CHANGE_ME and YOUR_XXX with real values
+3. Add to Railway Dashboard → Variables
+4. Deploy!
+
+For better performance:
+5. Add 5-10 Gemini API keys
+6. Add Redis
+7. Update CORS after frontend deploys
+
+Your app will be LIVE! 🚀
+
+
+===============================================================================
+                        END OF FILE
+===============================================================================

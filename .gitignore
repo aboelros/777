@@ -1,0 +1,67 @@
+# Root .gitignore for AI Sales Commander
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+backend/venv/
+
+# Node
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Railway
+.railway/
+
+# Testing
+.pytest_cache/
+coverage/
+htmlcov/
+.coverage
+
+# Build artifacts
+*.egg-info/
+build/
+dist/

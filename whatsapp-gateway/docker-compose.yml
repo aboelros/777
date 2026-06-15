@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  whatsapp-gateway:
+    build: .
+    container_name: whatsapp-gateway
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - API_KEY=${API_KEY}
+      - CALLBACK_SECRET=${CALLBACK_SECRET}
+      - BACKEND_URL=${BACKEND_URL}
+      - SESSION_DIR=/app/sessions
+      - LOG_LEVEL=info
+    volumes:
+      - ./sessions:/app/sessions
+      - ./src:/app/src
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
