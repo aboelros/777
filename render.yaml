@@ -60,7 +60,7 @@ services:
         sync: false
       # ── CORS — update with your actual Vercel URL after deploy ──
       - key: CORS_ORIGINS
-        value: https://ai-sales-bot.vercel.app
+        value: https://frontend-beryl-eta-37.vercel.app
       # ── Feature Flags ──
       - key: ENABLE_SUBSCRIPTION_LIMITS
         value: true
