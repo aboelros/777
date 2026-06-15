@@ -1,6 +1,8 @@
 services:
   # ─────────────────────────────────────────────
-  # 1. Backend API (FastAPI)
+  # 1. Backend API (FastAPI + Celery in one process)
+  # Workers not available on free plan — Celery runs
+  # as a background thread inside the web dyno.
   # ─────────────────────────────────────────────
   - type: web
     name: ai-sales-bot-api
@@ -10,9 +12,9 @@ services:
     branch: main
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
-    # Use the production stage of the multi-stage Dockerfile
     dockerCommand: >
       sh -c "python -m alembic upgrade head &&
+             celery -A app.workers.celery_app worker --loglevel=info --concurrency=1 --detach &&
              python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1"
     healthCheckPath: /health
     envVars:
@@ -23,7 +25,6 @@ services:
       - key: TESTING_MODE
         value: false
       # ── Databases (Supabase) ──
-      # Set these manually in the Render dashboard
       - key: AUTH_DATABASE_URL
         sync: false
       - key: APP_DATABASE_URL
@@ -73,85 +74,7 @@ services:
       # are stored in the database per project/user — NOT as env vars here.
 
   # ─────────────────────────────────────────────
-  # 2. Celery Worker (background task processor)
-  # ─────────────────────────────────────────────
-  - type: worker
-    name: ai-sales-bot-celery-worker
-    runtime: docker
-    region: oregon
-    plan: free
-    branch: main
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
-    dockerCommand: >
-      sh -c "celery -A app.workers.celery_app worker --loglevel=info --concurrency=2"
-    envVars:
-      - key: ENVIRONMENT
-        value: production
-      - key: AUTH_DATABASE_URL
-        sync: false
-      - key: APP_DATABASE_URL
-        sync: false
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: ai-sales-bot-redis
-          property: connectionString
-      - key: CELERY_BROKER_URL
-        fromService:
-          type: redis
-          name: ai-sales-bot-redis
-          property: connectionString
-      - key: CELERY_RESULT_BACKEND
-        fromService:
-          type: redis
-          name: ai-sales-bot-redis
-          property: connectionString
-      - key: GEMINI_API_KEY
-        sync: false
-      - key: SECRET_KEY
-        sync: false
-
-  # ─────────────────────────────────────────────
-  # 3. Celery Beat (scheduled task runner)
-  # ─────────────────────────────────────────────
-  - type: worker
-    name: ai-sales-bot-celery-beat
-    runtime: docker
-    region: oregon
-    plan: free
-    branch: main
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
-    dockerCommand: >
-      sh -c "celery -A app.workers.celery_app beat --loglevel=info"
-    envVars:
-      - key: ENVIRONMENT
-        value: production
-      - key: AUTH_DATABASE_URL
-        sync: false
-      - key: APP_DATABASE_URL
-        sync: false
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: ai-sales-bot-redis
-          property: connectionString
-      - key: CELERY_BROKER_URL
-        fromService:
-          type: redis
-          name: ai-sales-bot-redis
-          property: connectionString
-      - key: CELERY_RESULT_BACKEND
-        fromService:
-          type: redis
-          name: ai-sales-bot-redis
-          property: connectionString
-      - key: SECRET_KEY
-        sync: false
-
-  # ─────────────────────────────────────────────
-  # 4. Frontend (React/Vite via Nginx Docker)
+  # 2. Frontend (React/Vite via Nginx Docker)
   # ─────────────────────────────────────────────
   - type: web
     name: ai-sales-bot
@@ -168,11 +91,11 @@ services:
         value: false
 
   # ─────────────────────────────────────────────
-  # 5. Redis Cache & Celery Broker
+  # 3. Redis Cache & Celery Broker
   # ─────────────────────────────────────────────
   - type: redis
     name: ai-sales-bot-redis
     region: oregon
     plan: free
     maxmemoryPolicy: allkeys-lru
-    ipAllowList: []  # Empty list = allow all connections (required by Render)
+    ipAllowList: []
