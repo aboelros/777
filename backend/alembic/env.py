@@ -70,21 +70,18 @@ async def run_async_migrations() -> None:
     configuration = config.get_section(config.config_ini_section)
     configuration["sqlalchemy.url"] = settings.DATABASE_URL
     
-    # SSL configuration for Railway PostgreSQL
-    connect_args = {}
-    
-    # Only enable SSL for external Railway connections
-    # Internal Railway network (postgres.railway.internal) doesn't need SSL
+    # statement_cache_size=0 is REQUIRED for Supabase PgBouncer transaction pooler (port 6543)
+    # Without this, asyncpg throws DuplicatePreparedStatementError
+    connect_args = {"statement_cache_size": 0}
+
+    # SSL configuration for Railway PostgreSQL (legacy, kept for compatibility)
     if settings.ENVIRONMENT in ["production", "staging"]:
         if "railway" in settings.DATABASE_URL.lower() and "railway.internal" not in settings.DATABASE_URL.lower():
-            # External Railway connection - use SSL
+            import ssl
             ssl_context = ssl.create_default_context()
             ssl_context.check_hostname = False
             ssl_context.verify_mode = ssl.CERT_NONE
             connect_args["ssl"] = ssl_context
-        elif "railway.internal" in settings.DATABASE_URL.lower():
-            # Internal Railway connection - disable SSL (already secure private network)
-            connect_args["ssl"] = False
     
     connectable = async_engine_from_config(
         configuration,
