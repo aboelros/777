@@ -188,3 +188,4 @@ services:
     region: oregon
     plan: free
     maxmemoryPolicy: allkeys-lru
+    ipAllowList: []  # Empty list = allow all connections (required by Render)
