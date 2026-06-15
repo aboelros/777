@@ -51,6 +51,7 @@ engine = create_async_engine(
     pool_pre_ping=True,
     poolclass=NullPool if settings.ENVIRONMENT == "serverless" else None,
     connect_args=get_connect_args(),
+    prepared_statement_cache_size=0,
 )
 
 # Create async session factory
