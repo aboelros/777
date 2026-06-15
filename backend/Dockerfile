@@ -40,9 +40,12 @@ COPY --chown=appuser:appuser . .
 # Switch to non-root user
 USER appuser
 
+# Copy startup script and make it executable
+COPY --chown=appuser:appuser render_start.sh .
+RUN chmod +x render_start.sh
+
 # Expose port (Render uses PORT env var)
 EXPOSE 8000
 
-# Run migrations and start server
-# PORT is injected by Render at runtime
-CMD ["sh", "-c", "python -m alembic upgrade head && python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1"]
+# Run via render_start.sh (migrations + celery bg + uvicorn)
+CMD ["bash", "render_start.sh"]

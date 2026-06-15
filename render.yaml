@@ -12,10 +12,7 @@ services:
     branch: main
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
-    dockerCommand: >
-      sh -c "python -m alembic upgrade head &&
-             celery -A app.workers.celery_app worker --loglevel=info --concurrency=1 --detach &&
-             python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1"
+    dockerCommand: "bash render_start.sh"
     healthCheckPath: /health
     envVars:
       - key: ENVIRONMENT
