@@ -72,7 +72,11 @@ async def run_async_migrations() -> None:
     
     # statement_cache_size=0 is REQUIRED for Supabase PgBouncer transaction pooler (port 6543)
     # Without this, asyncpg throws DuplicatePreparedStatementError
-    connect_args = {"statement_cache_size": 0}
+    import uuid
+    connect_args = {
+        "statement_cache_size": 0,
+        "prepared_statement_name_func": lambda: f"__asyncpg_{uuid.uuid4()}__",
+    }
 
     # SSL configuration for Railway PostgreSQL (legacy, kept for compatibility)
     if settings.ENVIRONMENT in ["production", "staging"]:
@@ -88,7 +92,6 @@ async def run_async_migrations() -> None:
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
         connect_args=connect_args,
-        prepared_statement_cache_size=0,
     )
 
     async with connectable.connect() as connection:

@@ -38,7 +38,9 @@ def get_connect_args():
         
     # Supabase/pgbouncer compatibility: Disable prepared statement caching
     # pgbouncer in transaction mode does not support prepared statements properly
+    import uuid
     connect_args["statement_cache_size"] = 0
+    connect_args["prepared_statement_name_func"] = lambda: f"__asyncpg_{uuid.uuid4()}__"
     
     return connect_args
 
@@ -51,7 +53,6 @@ engine = create_async_engine(
     pool_pre_ping=True,
     poolclass=NullPool if settings.ENVIRONMENT == "serverless" else None,
     connect_args=get_connect_args(),
-    prepared_statement_cache_size=0,
 )
 
 # Create async session factory
