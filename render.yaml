@@ -59,9 +59,9 @@ services:
         sync: false
       - key: GROQ_API_KEY
         sync: false
-      # ── CORS ──
+      # ── CORS — update with your actual Vercel URL after deploy ──
       - key: CORS_ORIGINS
-        value: https://ai-sales-bot.onrender.com
+        value: https://ai-sales-bot.vercel.app
       # ── Feature Flags ──
       - key: ENABLE_SUBSCRIPTION_LIMITS
         value: true
@@ -73,25 +73,10 @@ services:
       # NOTE: Per-user integrations (Telegram, WhatsApp, Shopify, etc.)
       # are stored in the database per project/user — NOT as env vars here.
 
-  # ─────────────────────────────────────────────
-  # 2. Frontend (React/Vite via Nginx Docker)
-  # ─────────────────────────────────────────────
-  - type: web
-    name: ai-sales-bot
-    runtime: docker
-    region: oregon
-    plan: free
-    branch: main
-    dockerfilePath: ./frontend/Dockerfile
-    dockerContext: ./frontend
-    envVars:
-      - key: VITE_API_URL
-        value: https://ai-sales-bot-api.onrender.com
-      - key: VITE_TESTING_MODE
-        value: false
+  # Frontend is deployed separately on Vercel (not Render)
 
   # ─────────────────────────────────────────────
-  # 3. Redis Cache & Celery Broker
+  # 2. Redis Cache & Celery Broker
   # ─────────────────────────────────────────────
   - type: redis
     name: ai-sales-bot-redis
