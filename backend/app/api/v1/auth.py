@@ -89,7 +89,7 @@ async def seed_admin(db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/login", response_model=TokenResponse)
-@limiter.limit("5/15minutes") # Strict rate limit for login attempts
+@limiter.limit("50/15minutes") # Relaxed rate limit for login attempts
 async def login(
     request: Request,
     credentials: UserLogin,

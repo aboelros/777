@@ -15,7 +15,7 @@ from decimal import Decimal
 import random
 
 from sqlalchemy import select
-from app.core.database import async_session_maker
+from app.core.database import AsyncSessionLocal as async_session_maker
 from app.db.models import (
     User, Project, Order, Message, Integration,
     OrderStatus, MessageDirection, IntegrationProvider

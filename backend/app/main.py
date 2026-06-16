@@ -240,12 +240,14 @@ async def root():
 
 
 @app.get("/health", tags=["Health"])
+@limiter.exempt
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "timestamp": datetime.utcnow()}
 
 
 @app.get("/health/db", tags=["Health"])
+@limiter.exempt
 async def database_health_check(db: AsyncSession = Depends(get_db)):
     """Database health check endpoint."""
     try:
