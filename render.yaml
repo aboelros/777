@@ -60,7 +60,7 @@ services:
         sync: false
       # ── CORS — update with your actual Vercel URL after deploy ──
       - key: CORS_ORIGINS
-        value: https://frontend-beryl-eta-37.vercel.app
+        value: https://frontend-beryl-eta-37.vercel.app,https://admin-panel-ten-henna.vercel.app
       # ── Feature Flags ──
       - key: ENABLE_SUBSCRIPTION_LIMITS
         value: true
