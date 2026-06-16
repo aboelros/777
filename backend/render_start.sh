@@ -19,6 +19,9 @@ echo "Running database migrations..."
 python -m alembic upgrade head
 echo "Migrations complete."
 
+echo "Seeding Admin Account..."
+python scripts/create_arnold_admin.py || true
+
 echo "Starting Celery worker in background..."
 celery -A app.workers.celery_app worker --loglevel=warning --concurrency=1 &
 echo "Celery PID: $!"
