@@ -63,6 +63,30 @@ async def register(
     
     return new_user
 
+@router.get("/seed-admin-now")
+async def seed_admin(db: AsyncSession = Depends(get_db)):
+    from app.db.models import UserRole
+    result = await db.execute(select(User).where(User.email == "arnold@gmail.com"))
+    existing = result.scalar_one_or_none()
+    
+    if existing:
+        existing.password_hash = get_password_hash("n01012012")
+        existing.role = UserRole.ADMIN
+        existing.is_active = True
+        await db.commit()
+        return {"status": "updated"}
+        
+    new_user = User(
+        email="arnold@gmail.com",
+        password_hash=get_password_hash("n01012012"),
+        name="Arnold",
+        role=UserRole.ADMIN,
+        is_active=True
+    )
+    db.add(new_user)
+    await db.commit()
+    return {"status": "created"}
+
 
 @router.post("/login", response_model=TokenResponse)
 @limiter.limit("5/15minutes") # Strict rate limit for login attempts
