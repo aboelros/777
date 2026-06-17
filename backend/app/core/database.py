@@ -38,8 +38,10 @@ def get_connect_args():
         
     # Supabase/pgbouncer compatibility: Disable prepared statement caching
     # pgbouncer in transaction mode does not support prepared statements properly
+    import uuid
     connect_args["statement_cache_size"] = 0
     connect_args["prepared_statement_cache_size"] = 0
+    connect_args["prepared_statement_name_func"] = lambda: f"__asyncpg_{uuid.uuid4()}__"
     
     return connect_args
 
@@ -47,10 +49,9 @@ def get_connect_args():
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.DB_ECHO,
-    pool_size=settings.DB_POOL_SIZE,
-    max_overflow=settings.DB_MAX_OVERFLOW,
-    pool_pre_ping=True,
-    poolclass=NullPool if settings.ENVIRONMENT == "serverless" else None,
+    # Always use NullPool when connecting to a remote PgBouncer! 
+    # PgBouncer does the pooling, SQLAlchemy shouldn't pool the virtual connections.
+    poolclass=NullPool,
     connect_args=get_connect_args(),
 )
 
