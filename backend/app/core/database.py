@@ -38,9 +38,8 @@ def get_connect_args():
         
     # Supabase/pgbouncer compatibility: Disable prepared statement caching
     # pgbouncer in transaction mode does not support prepared statements properly
-    import uuid
     connect_args["statement_cache_size"] = 0
-    connect_args["prepared_statement_name_func"] = lambda: f"__asyncpg_{uuid.uuid4()}__"
+    connect_args["prepared_statement_cache_size"] = 0
     
     return connect_args
 
