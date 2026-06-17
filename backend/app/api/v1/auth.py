@@ -103,12 +103,37 @@ async def login(
     clean_email = credentials.email.lower().strip()
     clean_password = credentials.password.strip()
     
+    # DEBUG: Log exactly what we received
+    logger.info("LOGIN DEBUG", 
+        raw_email=repr(credentials.email),
+        clean_email=repr(clean_email),
+        raw_password_len=len(credentials.password),
+        clean_password_len=len(clean_password),
+        password_repr=repr(clean_password),
+    )
+    
     # Find user by email
     result = await db.execute(select(User).where(User.email == clean_email))
     user = result.scalar_one_or_none()
+    
+    # DEBUG: Log user lookup result
+    logger.info("LOGIN DEBUG user lookup",
+        user_found=user is not None,
+        user_email=user.email if user else "N/A",
+        user_hash_prefix=user.password_hash[:20] if user else "N/A",
+    )
 
     # Verify user and password
     if not user or not verify_password(clean_password, user.password_hash):
+        # DEBUG: If user exists, test password separately
+        if user:
+            verify_result = verify_password(clean_password, user.password_hash)
+            logger.warning("LOGIN DEBUG password mismatch",
+                email=clean_email,
+                verify_result=verify_result,
+                password_tried=repr(clean_password),
+                hash_used=user.password_hash[:30],
+            )
         logger.warning("Failed login attempt", email=credentials.email)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
