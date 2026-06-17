@@ -99,11 +99,16 @@ async def login(
     """
     Authenticate user and get JWT tokens.
     """
-    # Find user by email
-    result = await db.execute(select(User).where(User.email == credentials.email))
-    user = result.scalar_one_or_none()
+    # Sanitize inputs to prevent trailing space/case errors
+    clean_email = credentials.email.lower().strip()
+    clean_password = credentials.password.strip()
     
-    if not user or not verify_password(credentials.password, user.password_hash):
+    # Find user by email
+    result = await db.execute(select(User).where(User.email == clean_email))
+    user = result.scalar_one_or_none()
+
+    # Verify user and password
+    if not user or not verify_password(clean_password, user.password_hash):
         logger.warning("Failed login attempt", email=credentials.email)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
