@@ -155,7 +155,7 @@ async def login(
         secure=is_production,  # Only send over HTTPS in production
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         expires=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        samesite="strict",  # Prevent CSRF attacks
+        samesite="none",  # Allow cross-domain cookies (Vercel -> Render)
         path="/"  # Available across entire site
     )
     
@@ -166,7 +166,7 @@ async def login(
         secure=is_production,  # Only send over HTTPS in production
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
         expires=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-        samesite="strict",  # Prevent CSRF attacks
+        samesite="none",  # Allow cross-domain cookies (Vercel -> Render)
         path="/"  # Available across entire site
     )
     
@@ -273,7 +273,7 @@ async def refresh_access_token(
         secure=is_production,  # Only send over HTTPS in production
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         expires=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        samesite="strict",  # Prevent CSRF attacks
+        samesite="none",  # Allow cross-domain cookies (Vercel -> Render)
         path="/"  # Available across entire site
     )
     
@@ -284,7 +284,7 @@ async def refresh_access_token(
         secure=is_production,  # Only send over HTTPS in production
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
         expires=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-        samesite="strict",  # Prevent CSRF attacks
+        samesite="none",  # Allow cross-domain cookies (Vercel -> Render)
         path="/"  # Available across entire site
     )
     
