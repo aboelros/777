@@ -302,14 +302,14 @@ export default function Dashboard() {
                       <AreaChart data={stat.label.includes('Revenue') ? salesData : stat.label.includes('Messages') ? messageData : salesData}>
                         <defs>
                           <linearGradient id={`grad-${index}`} x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.5} />
-                            <stop offset="100%" stopColor="#f59e0b" stopOpacity={0} />
+                            <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.5} />
+                            <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0} />
                           </linearGradient>
                         </defs>
                         <Area
                           type="monotone"
                           dataKey={stat.label.includes('Revenue') ? 'revenue' : stat.label.includes('Messages') ? 'messages' : 'orders'}
-                          stroke="#f59e0b"
+                          stroke="#0ea5e9"
                           strokeWidth={2}
                           fill={`url(#grad-${index})`}
                         />
@@ -345,8 +345,8 @@ export default function Dashboard() {
                 <AreaChart data={salesData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} opacity={0.3} />
@@ -374,12 +374,12 @@ export default function Dashboard() {
                       boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
                       color: '#fff'
                     }}
-                    itemStyle={{ color: '#f59e0b' }}
+                    itemStyle={{ color: '#0ea5e9' }}
                   />
                   <Area
                     type="monotone"
                     dataKey="revenue"
-                    stroke="#f59e0b"
+                    stroke="#0ea5e9"
                     fillOpacity={1}
                     fill="url(#colorRevenue)"
                     strokeWidth={2}
@@ -437,11 +437,11 @@ export default function Dashboard() {
                   />
                   <Bar
                     dataKey="messages"
-                    fill="#f59e0b"
+                    fill="#0ea5e9"
                     radius={[4, 4, 0, 0]}
                     barSize={40}
                     opacity={0.8}
-                    activeBar={{ opacity: 1, fill: '#fbbf24' }}
+                    activeBar={{ opacity: 1, fill: '#38bdf8' }}
                   />
                 </BarChart>
               </ResponsiveContainer>

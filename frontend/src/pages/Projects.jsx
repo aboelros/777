@@ -91,7 +91,7 @@ export default function Projects() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.1 }}
                         >
-                            <GlassCard className={`p-0 h-full flex flex-col relative group transition-all duration-500 overflow-visible ${isActive ? 'shadow-[0_0_30px_-5px_rgba(212,175,55,0.15)] scale-[1.02]' : 'hover:scale-[1.01]'}`}>
+                            <GlassCard className={`p-0 h-full flex flex-col relative group transition-all duration-500 overflow-visible ${isActive ? 'shadow-[0_0_30px_-5px_rgba(14,165,233,0.15)] scale-[1.02]' : 'hover:scale-[1.01]'}`}>
                                 {/* Active Border Gradient */}
                                 {isActive && (
                                     <div className="absolute inset-0 rounded-2xl p-[1px] bg-gradient-to-br from-[#D4AF37] via-[#FCF6BA] to-[#AA771C] -z-10 opacity-70" />
@@ -105,7 +105,7 @@ export default function Projects() {
 
                                     <div className="flex items-start justify-between mb-6 relative z-10">
                                         <div className="flex items-center gap-4">
-                                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border border-white/5 shadow-2xl transition-all duration-500 group-hover:shadow-[0_0_20px_-5px_rgba(212,175,55,0.3)] ${isActive ? 'bg-gradient-to-br from-[#D4AF37] to-[#AA771C] text-black border-none' : 'bg-white/5 text-gray-500 group-hover:text-[#D4AF37]'}`}>
+                                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border border-white/5 shadow-2xl transition-all duration-500 group-hover:shadow-[0_0_20px_-5px_rgba(14,165,233,0.3)] ${isActive ? 'bg-gradient-to-br from-[#D4AF37] to-[#AA771C] text-black border-none' : 'bg-white/5 text-gray-500 group-hover:text-[#D4AF37]'}`}>
                                                 <Building className={`w-6 h-6 ${isActive ? 'drop-shadow-[0_2px_4px_rgba(0,0,0,0.2)]' : ''}`} />
                                             </div>
                                             <div>
@@ -121,7 +121,7 @@ export default function Projects() {
                                             <motion.div
                                                 initial={{ scale: 0 }}
                                                 animate={{ scale: 1 }}
-                                                className="px-3 py-1 rounded-full bg-accent-primary/10 border border-accent-primary/20 text-[#D4AF37] text-[10px] font-bold tracking-widest uppercase flex items-center gap-1.5 shadow-[0_0_10px_rgba(212,175,55,0.2)] shadow-glow"
+                                                className="px-3 py-1 rounded-full bg-accent-primary/10 border border-accent-primary/20 text-[#D4AF37] text-[10px] font-bold tracking-widest uppercase flex items-center gap-1.5 shadow-[0_0_10px_rgba(14,165,233,0.2)] shadow-glow"
                                             >
                                                 <div className="w-1.5 h-1.5 rounded-full bg-[#D4AF37] animate-pulse" />
                                                 Active

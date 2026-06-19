@@ -383,7 +383,7 @@ export default function Messages() {
                         className={cn(
                           "transition-all border",
                           isActive
-                            ? "bg-accent-primary/10 text-accent-primary border-accent-primary/20 shadow-[0_0_10px_rgba(212,175,55,0.1)]"
+                            ? "bg-accent-primary/10 text-accent-primary border-accent-primary/20 shadow-[0_0_10px_rgba(14,165,233,0.1)]"
                             : "bg-transparent border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/5 hover:border-white/5"
                         )}
                       >
@@ -430,7 +430,7 @@ export default function Messages() {
                           {isActive && (
                             <motion.div
                               layoutId="active-indicator"
-                              className="absolute left-0 top-0 bottom-0 w-[2px] bg-accent-primary shadow-[0_0_15px_rgba(212,175,55,0.5)]"
+                              className="absolute left-0 top-0 bottom-0 w-[2px] bg-accent-primary shadow-[0_0_15px_rgba(14,165,233,0.5)]"
                             />
                           )}
                           <div className="flex items-start gap-4">
@@ -482,7 +482,7 @@ export default function Messages() {
                                 </span>
                                 <div className="flex items-center gap-2">
                                   {conv.unread_count > 0 && (
-                                    <span className="px-1.5 py-0.5 bg-accent-primary text-black text-[10px] font-bold rounded shadow-[0_0_10px_rgba(212,175,55,0.4)]">
+                                    <span className="px-1.5 py-0.5 bg-accent-primary text-black text-[10px] font-bold rounded shadow-[0_0_10px_rgba(14,165,233,0.4)]">
                                       {conv.unread_count}
                                     </span>
                                   )}
@@ -598,7 +598,7 @@ export default function Messages() {
                           variant="secondary"
                           className={`
                             border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-bold uppercase tracking-widest
-                            ${selectedConversation.ai_enabled ? 'text-accent-primary border-accent-primary/20 shadow-[0_0_15px_rgba(212,175,55,0.1)]' : 'text-gray-400'}
+                            ${selectedConversation.ai_enabled ? 'text-accent-primary border-accent-primary/20 shadow-[0_0_15px_rgba(14,165,233,0.1)]' : 'text-gray-400'}
                           `}
                         >
                           {selectedConversation.ai_enabled ? t('inbox.chat.disable_ai') : t('inbox.chat.enable_ai')}
@@ -608,7 +608,7 @@ export default function Messages() {
                           onClick={handleAIReply}
                           disabled={aiReplyMutation.isLoading}
                           variant="primary"
-                          className="bg-gradient-to-r from-accent-primary to-accent-dark hover:shadow-[0_0_20px_rgba(212,175,55,0.3)] text-black border-none font-bold tracking-wide"
+                          className="bg-gradient-to-r from-accent-primary to-accent-dark hover:shadow-[0_0_20px_rgba(14,165,233,0.3)] text-black border-none font-bold tracking-wide"
                           isLoading={aiReplyMutation.isLoading}
                           leftIcon={Sparkles}
                         >
@@ -658,7 +658,7 @@ export default function Messages() {
                             >
                               {(msg.content_type === 'event_order' || msg.content_type === 'event_customer' || msg.content.startsWith('System Event:')) ? (
                                 <div className="w-full flex justify-center my-6">
-                                  <div className="bg-accent-primary/5 border border-accent-primary/20 px-5 py-2.5 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-accent-primary flex items-center gap-3 backdrop-blur-md shadow-[0_0_15px_rgba(212,175,55,0.1)]">
+                                  <div className="bg-accent-primary/5 border border-accent-primary/20 px-5 py-2.5 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-accent-primary flex items-center gap-3 backdrop-blur-md shadow-[0_0_15px_rgba(14,165,233,0.1)]">
                                     <div className="w-1.5 h-1.5 rounded-full bg-accent-primary animate-pulse" />
                                     {msg.content.replace('System Event:', t('inbox.chat.system_event') + ':').trim()}
                                   </div>
@@ -719,7 +719,7 @@ export default function Messages() {
                                     {isOutbound && (
                                       <div className="flex items-center">
                                         {msg.status === 'sent' ? (
-                                          <CheckCheck className="w-3.5 h-3.5 text-accent-primary shadow-[0_0_5px_rgba(212,175,55,0.5)]" />
+                                          <CheckCheck className="w-3.5 h-3.5 text-accent-primary shadow-[0_0_5px_rgba(14,165,233,0.5)]" />
                                         ) : (
                                           <Clock className="w-3.5 h-3.5 text-gray-600" />
                                         )}
@@ -777,7 +777,7 @@ export default function Messages() {
                     animate={{
                       y: [0, -10, 0],
                       scale: [1, 1.05, 1],
-                      filter: ["drop-shadow(0 0 0px rgba(212,175,55,0))", "drop-shadow(0 0 20px rgba(212,175,55,0.2))", "drop-shadow(0 0 0px rgba(212,175,55,0))"]
+                      filter: ["drop-shadow(0 0 0px rgba(14,165,233,0))", "drop-shadow(0 0 20px rgba(14,165,233,0.2))", "drop-shadow(0 0 0px rgba(14,165,233,0))"]
                     }}
                     transition={{ repeat: Infinity, duration: 4 }}
                     className="w-24 h-24 rounded-3xl bg-[#0A0A0A] flex items-center justify-center border border-accent-primary/20 shadow-lg group-hover:border-accent-primary/40 transition-colors"

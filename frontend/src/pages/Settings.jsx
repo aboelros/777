@@ -126,7 +126,7 @@ export default function Settings() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`w-full text-left p-4 rounded-xl transition-all duration-300 border group ${activeTab === tab.id
-                ? 'bg-accent-500/10 border-accent-500/50 shadow-[0_0_20px_rgba(212,175,55,0.1)]'
+                ? 'bg-accent-500/10 border-accent-500/50 shadow-[0_0_20px_rgba(14,165,233,0.1)]'
                 : 'bg-transparent border-transparent hover:bg-white/5 hover:border-white/10'
                 }`}
             >

@@ -120,7 +120,7 @@ export default function Header() {
               }}
               className="glass-panel px-4 py-2 rounded-xl flex items-center gap-3 border-white/5 hover:border-accent-500/20 transition-all duration-300 bg-black/40 shadow-sm"
             >
-              <div className={`w-2 h-2 rounded-full ${currentProject ? 'bg-accent-500 shadow-[0_0_8px_rgba(212,175,55,0.6)]' : 'bg-gray-600'}`} />
+              <div className={`w-2 h-2 rounded-full ${currentProject ? 'bg-accent-500 shadow-[0_0_8px_rgba(14,165,233,0.6)]' : 'bg-gray-600'}`} />
               <span className="text-sm font-semibold tracking-wide text-gray-200">
                 {currentProject ? currentProject.name : t('projects.select_project')}
               </span>
@@ -178,7 +178,7 @@ export default function Header() {
                 setShowNotifications(!showNotifications);
                 setShowProjectMenu(false);
               }}
-              className={`relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${showNotifications ? 'bg-accent-500 text-black shadow-[0_0_15px_rgba(212,175,55,0.4)]' : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'}`}
+              className={`relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${showNotifications ? 'bg-accent-500 text-black shadow-[0_0_15px_rgba(14,165,233,0.4)]' : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'}`}
             >
               <Bell className="w-4.5 h-4.5" />
               {unreadCount > 0 && (

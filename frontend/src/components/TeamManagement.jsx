@@ -91,7 +91,7 @@ export default function TeamManagement() {
                             <tr key={member.user_id} className="hover:bg-white/5 transition-colors">
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-gradient-gold flex items-center justify-center text-xs font-bold text-black border border-white/20">
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-500 to-cyan-600 flex items-center justify-center text-xs font-bold text-black border border-white/20">
                                             {member.name?.[0] || member.email[0]}
                                         </div>
                                         <div>
