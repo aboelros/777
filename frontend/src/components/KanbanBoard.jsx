@@ -116,7 +116,7 @@ function KanbanColumn({ stage, deals, onAddDeal }) {
 
                 <button
                     onClick={onAddDeal}
-                    className="w-full py-2 flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-purple-400 hover:bg-white/5 rounded-lg border border-dashed border-white/10 transition-colors"
+                    className="w-full py-2 flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-sky-400 hover:bg-white/5 rounded-lg border border-dashed border-white/10 transition-colors"
                 >
                     <Plus className="w-4 h-4" /> {t('deals.add_deal')}
                 </button>
@@ -153,9 +153,9 @@ function SortableDealCard({ deal }) {
 function DealCard({ deal }) {
     const { t } = useTranslation();
     return (
-        <div className="bg-dark-800 p-4 rounded-xl border border-white/5 shadow-sm hover:border-purple-500/30 group cursor-grab active:cursor-grabbing">
+        <div className="bg-dark-800 p-4 rounded-xl border border-white/5 shadow-sm hover:border-sky-500/30 group cursor-grab active:cursor-grabbing">
             <div className="flex justify-between items-start mb-2">
-                <span className="text-xs text-purple-400 font-medium px-2 py-0.5 bg-purple-500/10 rounded">
+                <span className="text-xs text-sky-400 font-medium px-2 py-0.5 bg-sky-500/10 rounded">
                     {deal.company || t('deals.lead')}
                 </span>
                 <button className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-white transition-opacity">

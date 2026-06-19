@@ -299,7 +299,7 @@ function ProductCard({ product, onEdit, onDelete, onViewStorage, isSelected }) {
           {product.tags.slice(0, 3).map((tag, i) => (
             <span
               key={i}
-              className="px-2 py-1 bg-purple-500/20 text-purple-300 rounded-lg text-xs"
+              className="px-2 py-1 bg-sky-500/20 text-sky-300 rounded-lg text-xs"
             >
               {tag}
             </span>
@@ -375,7 +375,7 @@ function StorageSection({ products, selectedProduct, onSelect, allProducts }) {
                 type="button"
                 onClick={() => onSelect(product.id)}
                 className={`w-full text-left px-4 py-3 rounded-lg transition-colors border ${isActive
-                  ? 'border-purple-500/70 bg-purple-500/10 text-white'
+                  ? 'border-sky-500/70 bg-sky-500/10 text-white'
                   : 'border-white/10 bg-white/5 text-gray-300 hover:bg-white/10'
                   }`}
               >
@@ -469,7 +469,7 @@ function StorageDetails({ product }) {
                 href={attachment}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3 py-1 rounded-full text-xs bg-purple-500/20 text-purple-200 hover:bg-purple-500/30 transition"
+                className="px-3 py-1 rounded-full text-xs bg-sky-500/20 text-sky-200 hover:bg-sky-500/30 transition"
               >
                 Attachment {idx + 1}
               </a>
@@ -805,7 +805,7 @@ function UploadModal({ show, onClose, onUpload }) {
           </code>
           <a
             href="/sample-products.csv"
-            className="text-purple-400 hover:text-purple-300 text-sm"
+            className="text-sky-400 hover:text-sky-300 text-sm"
           >
             Download sample CSV template
           </a>

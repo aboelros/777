@@ -33,7 +33,7 @@ export default function SourceAttribution({ sources, attribution }) {
                 onClick={() => setExpanded(!expanded)}
             >
                 <div className="flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-purple-400" />
+                    <BookOpen className="w-4 h-4 text-sky-400" />
                     <span className="text-sm font-medium">
                         {citation_count} Source{citation_count !== 1 ? 's' : ''} Used
                     </span>
@@ -68,8 +68,8 @@ export default function SourceAttribution({ sources, attribution }) {
                                     className="p-3 bg-dark-800/50 rounded-lg border border-white/5"
                                 >
                                     <div className="flex items-start gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
-                                            <Icon className="w-4 h-4 text-purple-400" />
+                                        <div className="w-8 h-8 rounded-lg bg-sky-500/10 flex items-center justify-center flex-shrink-0">
+                                            <Icon className="w-4 h-4 text-sky-400" />
                                         </div>
 
                                         <div className="flex-1 min-w-0">
@@ -98,7 +98,7 @@ export default function SourceAttribution({ sources, attribution }) {
                                                         href={source.url}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors"
+                                                        className="text-xs text-sky-400 hover:text-sky-300 flex items-center gap-1 transition-colors"
                                                     >
                                                         View Source
                                                         <ExternalLink className="w-3 h-3" />
@@ -116,7 +116,7 @@ export default function SourceAttribution({ sources, attribution }) {
                             <div className="flex items-center gap-2 flex-wrap">
                                 <span className="text-xs text-gray-400">Source Types:</span>
                                 {Object.entries(source_types).map(([type, count]) => (
-                                    <span key={type} className="text-xs px-2 py-1 rounded bg-purple-500/10 text-purple-400">
+                                    <span key={type} className="text-xs px-2 py-1 rounded bg-sky-500/10 text-sky-400">
                                         {type}: {count}
                                     </span>
                                 ))}

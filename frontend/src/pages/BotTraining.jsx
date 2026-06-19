@@ -174,7 +174,7 @@ export default function BotTraining() {
             <button
               onClick={() => seedMutation.mutate()}
               disabled={seedMutation.isPending}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-lg hover:bg-purple-500/20 transition-all font-medium"
+              className="flex items-center gap-2 px-4 py-2 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded-lg hover:bg-sky-500/20 transition-all font-medium"
             >
               <Zap className="w-4 h-4" />
               {t('bot_training.buttons.auto_train')}
@@ -359,7 +359,7 @@ function InstructionCard({ instruction, onEdit, onDelete }) {
     product_knowledge: 'from-green-500 to-emerald-600',
     response_style: 'from-indigo-500 to-blue-600',
     promotions: 'from-yellow-500 to-orange-600',
-    service: 'from-red-500 to-pink-600',
+    service: 'from-red-500 to-sky-600',
   };
 
   const categoryColor = categoryColors[instruction.category] || 'from-gray-500 to-gray-600';

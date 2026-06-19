@@ -84,7 +84,7 @@ export default function PostDetailDrawer({ isOpen, onClose, post, projectId }) {
                         {/* Header */}
                         <div className="p-6 border-b border-white/10 flex items-center justify-between">
                             <h2 className="text-xl font-bold flex items-center gap-2">
-                                <MessageSquare className="w-5 h-5 text-purple-400" />
+                                <MessageSquare className="w-5 h-5 text-sky-400" />
                                 {t('social.drawer.title')}
                             </h2>
                             <button
@@ -123,7 +123,7 @@ export default function PostDetailDrawer({ isOpen, onClose, post, projectId }) {
                                                     href={post.permalink_url}
                                                     target="_blank"
                                                     rel="noreferrer"
-                                                    className="flex items-center gap-1 hover:text-purple-400 transition-colors"
+                                                    className="flex items-center gap-1 hover:text-sky-400 transition-colors"
                                                 >
                                                     {t('social.drawer.view_original')} <ExternalLink className="w-3 h-3" />
                                                 </a>
@@ -142,7 +142,7 @@ export default function PostDetailDrawer({ isOpen, onClose, post, projectId }) {
                                             </div>
                                         </div>
                                         <div className="glass-card p-4 rounded-lg flex items-center gap-3">
-                                            <MessageSquare className="w-5 h-5 text-purple-400" />
+                                            <MessageSquare className="w-5 h-5 text-sky-400" />
                                             <div>
                                                 <p className="text-sm text-gray-400">{t('social.drawer.comments')}</p>
                                                 <p className="text-xl font-bold">{post.comments_count || 0}</p>
@@ -169,7 +169,7 @@ export default function PostDetailDrawer({ isOpen, onClose, post, projectId }) {
                                             comments.map((comment) => (
                                                 <div key={comment.id} className="glass-card p-3 rounded-lg border border-white/5">
                                                     <div className="flex justify-between items-start mb-2">
-                                                        <span className="font-medium text-purple-300">{comment.author_username || "User"}</span>
+                                                        <span className="font-medium text-sky-300">{comment.author_username || "User"}</span>
                                                         <span className="text-xs text-gray-500">
                                                             {comment.created_at ? new Date(comment.created_at).toLocaleDateString() : ''}
                                                         </span>
@@ -186,7 +186,7 @@ export default function PostDetailDrawer({ isOpen, onClose, post, projectId }) {
                                                         <button
                                                             onClick={() => generateMutation.mutate(comment.id)}
                                                             disabled={generatingFor === comment.id}
-                                                            className="text-xs flex items-center gap-1 text-purple-400 hover:text-purple-300 transition-colors"
+                                                            className="text-xs flex items-center gap-1 text-sky-400 hover:text-sky-300 transition-colors"
                                                         >
                                                             <Sparkles className="w-3 h-3" />
                                                             {generatingFor === comment.id ? t('social.drawer.thinking') : t('social.drawer.generate_reply')}

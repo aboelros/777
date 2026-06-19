@@ -273,7 +273,7 @@ export default function Header() {
               className="glass-card p-8 max-w-md w-full rounded-2xl border border-white/10 shadow-2xl"
             >
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-accent-400 to-purple-400 bg-clip-text text-transparent">
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-accent-400 to-sky-400 bg-clip-text text-transparent">
                   {t('projects.add')}
                 </h2>
                 <button
@@ -315,7 +315,7 @@ export default function Header() {
                   <button
                     type="submit"
                     disabled={createProjectMutation.isLoading || !newProjectName.trim()}
-                    className="flex-1 bg-gradient-to-r from-accent-500 to-purple-600 px-6 py-3 rounded-xl hover:from-accent-600 hover:to-purple-700 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-accent-500/30"
+                    className="flex-1 bg-gradient-to-r from-accent-500 to-sky-600 px-6 py-3 rounded-xl hover:from-accent-600 hover:to-sky-700 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-accent-500/30"
                   >
                     {createProjectMutation.isLoading ? (
                       <span className="flex items-center justify-center gap-2">

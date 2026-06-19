@@ -67,7 +67,7 @@ export default function Projects() {
         <div className="p-6 space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-4xl font-bold font-serif text-white tracking-tight">{t('projects.title')}</h1>
+                    <h1 className="text-4xl font-bold text-white tracking-tight">{t('projects.title')}</h1>
                     <p className="text-gray-400 mt-2 text-lg font-light tracking-wide">{t('projects.description')}</p>
                 </div>
                 <motion.button
@@ -109,7 +109,7 @@ export default function Projects() {
                                                 <Building className={`w-6 h-6 ${isActive ? 'drop-shadow-[0_2px_4px_rgba(0,0,0,0.2)]' : ''}`} />
                                             </div>
                                             <div>
-                                                <h3 className={`font-bold font-serif text-xl tracking-tight transition-colors ${isActive ? 'text-gradient-gold' : 'text-gray-200 group-hover:text-white'}`}>
+                                                <h3 className={`font-bold text-xl tracking-tight transition-colors ${isActive ? 'text-gradient-neon' : 'text-gray-200 group-hover:text-white'}`}>
                                                     {project.name}
                                                 </h3>
                                                 <p className="text-[10px] text-gray-500 font-mono mt-1 tracking-widest uppercase">

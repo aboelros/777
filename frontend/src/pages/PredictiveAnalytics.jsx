@@ -64,7 +64,7 @@ export default function PredictiveAnalytics() {
                 className="flex items-center justify-between relative z-10"
             >
                 <div>
-                    <h1 className="text-4xl font-bold font-serif mb-2 flex items-center gap-3 text-white">
+                    <h1 className="text-4xl font-bold mb-2 flex items-center gap-3 text-white">
                         <div className="p-2 rounded-xl bg-gradient-to-br from-accent-primary to-accent-dark shadow-lg shadow-accent-primary/20">
                             <Brain className="w-8 h-8 text-black" />
                         </div>
@@ -111,7 +111,7 @@ export default function PredictiveAnalytics() {
                                     </div>
                                     <span className="text-sm text-gray-400 font-medium tracking-wide uppercase">{stat.label}</span>
                                 </div>
-                                <div className="text-4xl font-bold text-white mb-2 font-serif tracking-tight">{stat.value}</div>
+                                <div className="text-4xl font-bold text-white mb-2 tracking-tight">{stat.value}</div>
                                 <div className={`text-xs font-mono font-bold px-2 py-1 rounded inline-block ${stat.change.startsWith('+') ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
                                     {stat.change} <span className="text-gray-500 font-light">{t('predictive.metrics.vs_baseline')}</span>
                                 </div>
@@ -126,7 +126,7 @@ export default function PredictiveAnalytics() {
                 <div className="lg:col-span-2">
                     <GlassCard className="p-8 h-full border-white/5 bg-black/40">
                         <div className="flex items-center justify-between mb-8">
-                            <h2 className="text-xl font-bold text-white flex items-center gap-3 font-serif">
+                            <h2 className="text-xl font-bold text-white flex items-center gap-3 ">
                                 <Activity className="w-5 h-5 text-accent-primary" />
                                 {t('predictive.charts.revenue')}
                             </h2>
@@ -172,7 +172,7 @@ export default function PredictiveAnalytics() {
                 <div className="space-y-6">
                     {/* Churn Risk */}
                     <GlassCard className="p-6 border-white/5">
-                        <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2 font-serif">
+                        <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2 ">
                             <AlertTriangle className="w-4 h-4 text-accent-primary" />
                             {t('predictive.risks.title')}
                         </h2>
@@ -209,22 +209,22 @@ export default function PredictiveAnalytics() {
                     </GlassCard>
 
                     {/* AI Recommendations */}
-                    <GlassCard className="p-6 border-white/5 bg-gradient-to-br from-purple-900/10 to-transparent">
-                        <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2 font-serif">
-                            <Zap className="w-4 h-4 text-purple-400" />
+                    <GlassCard className="p-6 border-white/5 bg-gradient-to-br from-sky-900/10 to-transparent">
+                        <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2 ">
+                            <Zap className="w-4 h-4 text-sky-400" />
                             {t('predictive.recommendations.title')}
                         </h2>
-                        <div className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/20 mb-4">
+                        <div className="p-4 rounded-xl bg-sky-500/5 border border-sky-500/20 mb-4">
                             <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-bold text-purple-400 uppercase tracking-widest">{t('predictive.recommendations.top_opportunity')}</span>
-                                <ArrowUpRight className="w-4 h-4 text-purple-400" />
+                                <span className="text-xs font-bold text-sky-400 uppercase tracking-widest">{t('predictive.recommendations.top_opportunity')}</span>
+                                <ArrowUpRight className="w-4 h-4 text-sky-400" />
                             </div>
                             <p className="text-sm text-gray-300 leading-relaxed">
                                 Upsell <span className="text-white font-bold">"Enterprise Plan"</span> to
                                 <span className="text-white font-bold"> TechCorp Intl</span> to reduce churn risk by 45%.
                             </p>
                         </div>
-                        <button className="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-900/20 text-xs font-bold uppercase tracking-widest transition-all">
+                        <button className="w-full py-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white shadow-lg shadow-sky-900/20 text-xs font-bold uppercase tracking-widest transition-all">
                             {t('predictive.recommendations.execute')}
                         </button>
                     </GlassCard>

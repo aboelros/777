@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import Button from './Button';
 
 const ROLES = {
-    owner: { label: 'Owner', color: 'text-amber-400', badge: 'bg-amber-400/10 border-amber-400/20' },
+    owner: { label: 'Owner', color: 'text-cyan-400', badge: 'bg-cyan-400/10 border-cyan-400/20' },
     moderator: { label: 'Moderator', color: 'text-blue-400', badge: 'bg-blue-400/10 border-blue-400/20' },
     worker: { label: 'Worker', color: 'text-gray-400', badge: 'bg-gray-400/10 border-gray-400/20' }
 };
@@ -65,7 +65,7 @@ export default function TeamManagement() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-xl font-bold text-white font-serif">Team Members</h2>
+                    <h2 className="text-xl font-bold text-white ">Team Members</h2>
                     <p className="text-gray-400 text-sm">Manage access and roles for your project.</p>
                 </div>
                 <Button
@@ -107,7 +107,7 @@ export default function TeamManagement() {
                                         className={`text-xs px-2 py-1 rounded-md border ${ROLES[member.role]?.badge || ROLES.worker.badge} ${ROLES[member.role]?.color || ROLES.worker.color} bg-transparent outline-none cursor-pointer hover:bg-white/5 disabled:opacity-50`}
                                         disabled={updateRoleMutation.isPending}
                                     >
-                                        <option value="owner" className="bg-dark-900 text-amber-400">Owner</option>
+                                        <option value="owner" className="bg-dark-900 text-cyan-400">Owner</option>
                                         <option value="moderator" className="bg-dark-900 text-blue-400">Moderator</option>
                                         <option value="worker" className="bg-dark-900 text-gray-400">Worker</option>
                                     </select>
@@ -144,7 +144,7 @@ export default function TeamManagement() {
                             className="glass-card w-full max-w-md p-6"
                         >
                             <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-lg font-serif font-bold text-white">Invite Team Member</h3>
+                                <h3 className="text-lg font-bold text-white">Invite Team Member</h3>
                                 <button onClick={() => setShowInviteModal(false)} className="text-gray-400 hover:text-white">
                                     <X className="w-5 h-5" />
                                 </button>
@@ -174,7 +174,7 @@ export default function TeamManagement() {
                                                 type="button"
                                                 onClick={() => setInviteRole(key)}
                                                 className={`px-3 py-2 rounded-lg text-sm transition-all border ${inviteRole === key
-                                                    ? 'bg-accent-500/20 border-accent-500 text-white shadow-gold-glow'
+                                                    ? 'bg-accent-500/20 border-accent-500 text-white shadow-neon-glow'
                                                     : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
                                                     }`}
                                             >

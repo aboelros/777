@@ -39,7 +39,7 @@ export default function EventMonitor() {
             {/* Header */}
             <div>
                 <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-                    <Activity className="w-10 h-10 text-purple-400" />
+                    <Activity className="w-10 h-10 text-sky-400" />
                     Event Bus Monitor
                 </h1>
                 <p className="text-gray-400">Real-time event processing and worker status</p>
@@ -96,7 +96,7 @@ export default function EventMonitor() {
             <GlassCard>
                 <div className="p-6">
                     <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                        <TrendingUp className="w-5 h-5 text-purple-400" />
+                        <TrendingUp className="w-5 h-5 text-sky-400" />
                         Recent Events
                     </h2>
 
@@ -127,7 +127,7 @@ export default function EventMonitor() {
             <GlassCard>
                 <div className="p-6">
                     <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                        <Activity className="w-5 h-5 text-purple-400" />
+                        <Activity className="w-5 h-5 text-sky-400" />
                         Worker Status
                     </h2>
 

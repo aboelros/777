@@ -44,7 +44,7 @@ export default function WebhookTerminal({ onClose }) {
 
     const getStatusColor = (status) => {
         if (status >= 200 && status < 300) return 'text-green-400';
-        if (status >= 400 && status < 500) return 'text-amber-400';
+        if (status >= 400 && status < 500) return 'text-cyan-400';
         if (status >= 500) return 'text-red-400';
         return 'text-gray-400';
     };
@@ -88,7 +88,7 @@ export default function WebhookTerminal({ onClose }) {
                             className={cn(
                                 "p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-mono border",
                                 isPaused
-                                    ? "bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/20"
+                                    ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20 hover:bg-cyan-500/20"
                                     : "bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20"
                             )}
                         >
@@ -122,7 +122,7 @@ export default function WebhookTerminal({ onClose }) {
                                     </span>
                                     <span className={cn(
                                         "font-bold px-1.5 py-0.5 rounded text-[10px]",
-                                        log.method === 'POST' ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'
+                                        log.method === 'POST' ? 'bg-blue-500/10 text-blue-400' : 'bg-sky-500/10 text-sky-400'
                                     )}>
                                         {log.method}
                                     </span>

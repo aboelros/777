@@ -15,7 +15,7 @@ export default function TenantManagement() {
         { name: 'Free', price: 0, users: 1, projects: 1, messages: '50', ai: '500', color: 'from-gray-500 to-gray-600' },
         { name: 'Starter', price: 29, users: 1, projects: 3, messages: '1K', ai: '10K', color: 'from-blue-500 to-cyan-600' },
         { name: 'Growth', price: 59, users: 2, projects: 5, messages: '5K', ai: '50K', color: 'from-green-500 to-emerald-600' },
-        { name: 'Professional', price: 119, users: 3, projects: 10, messages: '10K', ai: '100K', color: 'from-purple-500 to-pink-600' },
+        { name: 'Professional', price: 119, users: 3, projects: 10, messages: '10K', ai: '100K', color: 'from-sky-500 to-sky-600' },
         { name: 'Scale', price: 199, users: 4, projects: 15, messages: '25K', ai: '250K', color: 'from-orange-500 to-red-600' },
         { name: 'Business', price: 349, users: 10, projects: 30, messages: '100K', ai: '1M', color: 'from-indigo-500 to-blue-600' },
         { name: 'Enterprise', price: 799, users: 'Unlimited', projects: 'Unlimited', messages: 'Unlimited', ai: 'Unlimited', color: 'from-yellow-500 to-orange-600' }
@@ -26,7 +26,7 @@ export default function TenantManagement() {
             {/* Header */}
             <div>
                 <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-                    <Building2 className="w-10 h-10 text-purple-400" />
+                    <Building2 className="w-10 h-10 text-sky-400" />
                     Tenant Management
                 </h1>
                 <p className="text-gray-400">Manage multi-tenant organizations and quotas</p>
@@ -49,7 +49,7 @@ export default function TenantManagement() {
                     <div className="p-6">
                         <div className="flex items-center justify-between mb-2">
                             <span className="text-sm text-gray-400">Total Users</span>
-                            <Users className="w-5 h-5 text-purple-400" />
+                            <Users className="w-5 h-5 text-sky-400" />
                         </div>
                         <div className="text-3xl font-bold">342</div>
                         <div className="text-xs text-gray-400 mt-1">Across all tenants</div>
@@ -124,7 +124,7 @@ export default function TenantManagement() {
                             >
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-sky-500 to-sky-600 flex items-center justify-center">
                                             <Building2 className="w-6 h-6 text-white" />
                                         </div>
                                         <div>

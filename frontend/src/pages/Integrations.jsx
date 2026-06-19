@@ -73,7 +73,7 @@ export default function Integrations() {
       name: t('integrations.providers.instagram.name'),
       icon: Instagram,
       description: t('integrations.providers.instagram.description'),
-      color: 'from-pink-500 to-purple-600',
+      color: 'from-sky-500 to-sky-600',
       instructions: t('integrations.providers.instagram.instructions'),
     },
     {
@@ -89,7 +89,7 @@ export default function Integrations() {
       name: t('integrations.providers.discord.name'),
       icon: MessageSquare,
       description: t('integrations.providers.discord.description'),
-      color: 'from-indigo-500 to-purple-600',
+      color: 'from-indigo-500 to-sky-600',
       instructions: t('integrations.providers.discord.instructions'),
     },
     {
@@ -97,7 +97,7 @@ export default function Integrations() {
       name: t('integrations.providers.tiktok.name'),
       icon: Video,
       description: t('integrations.providers.tiktok.description'),
-      color: 'from-black via-purple-500 to-cyan-400',
+      color: 'from-black via-sky-500 to-cyan-400',
       instructions: t('integrations.providers.tiktok.instructions'),
     },
   ];
@@ -619,7 +619,7 @@ export default function Integrations() {
             onClick={() => refreshIdentitiesMutation.mutate()}
             disabled={refreshIdentitiesMutation.isPending}
             variant="ghost"
-            className="text-purple-400 hover:bg-purple-500/10 border-purple-500/20"
+            className="text-sky-400 hover:bg-sky-500/10 border-sky-500/20"
             isLoading={refreshIdentitiesMutation.isPending}
             leftIcon={RefreshCw}
           >
@@ -673,7 +673,7 @@ export default function Integrations() {
                 {connectedIntegrations?.data?.filter(i => i.status === 'error').length || 0}
               </p>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-sky-600 flex items-center justify-center">
               <X className="w-6 h-6 text-white" />
             </div>
           </div>

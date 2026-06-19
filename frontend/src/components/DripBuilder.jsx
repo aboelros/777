@@ -123,7 +123,7 @@ export default function DripBuilder({ campaign, onClose }) {
 
                             {steps.map((step, idx) => (
                                 <div key={step.id || idx} className="flex gap-4">
-                                    <div className="w-8 h-8 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center border border-purple-500/30 font-mono text-sm">
+                                    <div className="w-8 h-8 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center border border-sky-500/30 font-mono text-sm">
                                         {idx + 1}
                                     </div>
                                     <div className="flex-1 glass-card p-4 rounded-lg">

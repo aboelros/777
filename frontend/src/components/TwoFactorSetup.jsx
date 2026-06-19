@@ -183,7 +183,7 @@ export default function TwoFactorSetup({ onComplete, onCancel }) {
                                 value={verificationCode}
                                 onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
                                 placeholder="000000"
-                                className="w-full px-4 py-3 bg-dark-800 rounded-lg text-center text-2xl tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                className="w-full px-4 py-3 bg-dark-800 rounded-lg text-center text-2xl tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-sky-500"
                             />
                         </div>
 

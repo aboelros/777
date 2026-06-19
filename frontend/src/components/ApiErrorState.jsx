@@ -67,7 +67,7 @@ export default function ApiErrorState({
             {onRetry && (
                 <button
                     onClick={onRetry}
-                    className="flex items-center gap-2 px-4 py-2 bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/30 text-violet-400 rounded-xl transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 rounded-xl transition-colors"
                 >
                     <RefreshCw className="w-4 h-4" />
                     <span className="font-medium">Try Again</span>

@@ -32,9 +32,9 @@ const getMockSignals = (t) => [
         id: 3,
         type: 'opportunity',
         icon: Sparkles,
-        color: 'text-purple-400',
-        borderColor: 'border-purple-500/20',
-        bgGradient: 'from-purple-500/10 to-transparent',
+        color: 'text-sky-400',
+        borderColor: 'border-sky-500/20',
+        bgGradient: 'from-sky-500/10 to-transparent',
         title: t('smart_signals.signals.conversion.title') || 'Conversion Signal',
         message: t('smart_signals.signals.conversion.message') || '"Premium" intent detected in 8 active sessions. Auto-engage?',
         time: '1h ago'
@@ -89,7 +89,7 @@ export default function SmartSignals() {
                         />
                     </div>
                     <div>
-                        <h3 className="font-bold text-sm tracking-wide text-gray-100 font-serif">
+                        <h3 className="font-bold text-sm tracking-wide text-gray-100 ">
                             {t('smart_signals.title') || 'SMART SIGNALS'}
                         </h3>
                         <div className="flex items-center gap-1.5">

@@ -172,7 +172,7 @@ export default function ProductImageUpload({ productId, images = [], onImagesCha
                                     </div>
                                 ) : (
                                     <div
-                                        className="text-xs text-white truncate cursor-pointer hover:text-purple-300 flex items-center gap-1"
+                                        className="text-xs text-white truncate cursor-pointer hover:text-sky-300 flex items-center gap-1"
                                         onClick={() => {
                                             setEditingIndex(index);
                                             setEditDescription(image.description || '');
@@ -208,7 +208,7 @@ export default function ProductImageUpload({ productId, images = [], onImagesCha
                 ))}
 
                 {/* Upload Button */}
-                <div className="aspect-square rounded-lg border-2 border-dashed border-white/10 hover:border-purple-500/50 hover:bg-purple-500/5 transition-all flex flex-col items-center justify-center cursor-pointer relative">
+                <div className="aspect-square rounded-lg border-2 border-dashed border-white/10 hover:border-sky-500/50 hover:bg-sky-500/5 transition-all flex flex-col items-center justify-center cursor-pointer relative">
                     <input
                         ref={fileInputRef}
                         type="file"
@@ -219,7 +219,7 @@ export default function ProductImageUpload({ productId, images = [], onImagesCha
                         disabled={!productId || uploading}
                     />
                     {uploading ? (
-                        <div className="loading-spinner w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                        <div className="loading-spinner w-6 h-6 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
                     ) : (
                         <>
                             <Upload className="w-6 h-6 text-slate-400 mb-2" />
@@ -230,8 +230,8 @@ export default function ProductImageUpload({ productId, images = [], onImagesCha
             </div>
 
             {!productId && (
-                <p className="text-xs text-amber-400 flex items-center gap-1">
-                    <span className="w-1 h-1 rounded-full bg-amber-400" />
+                <p className="text-xs text-cyan-400 flex items-center gap-1">
+                    <span className="w-1 h-1 rounded-full bg-cyan-400" />
                     Save product first to upload images
                 </p>
             )}

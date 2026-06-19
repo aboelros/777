@@ -170,7 +170,7 @@ export default function MetaCallback() {
             <GlassCard className="max-w-2xl w-full p-8">
                 <div className="flex items-center gap-4 mb-6">
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${activeTab === 'facebook' ? 'bg-blue-600' :
-                        activeTab === 'instagram' ? 'bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500' :
+                        activeTab === 'instagram' ? 'bg-gradient-to-tr from-yellow-400 via-red-500 to-sky-500' :
                             'bg-green-500'
                         }`}>
                         {activeTab === 'facebook' && <Facebook className="w-6 h-6 text-white" />}
@@ -196,7 +196,7 @@ export default function MetaCallback() {
                     </button>
                     <button
                         onClick={() => { setActiveTab('instagram'); setSelectedAccount(null); }}
-                        className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md transition-all whitespace-nowrap ${activeTab === 'instagram' ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md transition-all whitespace-nowrap ${activeTab === 'instagram' ? 'bg-gradient-to-r from-sky-500 to-sky-500 text-white shadow-lg' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
                     >
                         <Instagram className="w-4 h-4" />
                         Instagram
@@ -234,7 +234,7 @@ export default function MetaCallback() {
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${activeTab === 'facebook' ? 'bg-blue-500/20 text-blue-400' :
-                                            activeTab === 'instagram' ? 'bg-pink-500/20 text-pink-400' :
+                                            activeTab === 'instagram' ? 'bg-sky-500/20 text-sky-400' :
                                                 'bg-green-500/20 text-green-400'
                                             }`}>
                                             {activeTab === 'whatsapp' ? <MessageCircle className="w-5 h-5" /> : account.name.charAt(0)}
@@ -254,7 +254,7 @@ export default function MetaCallback() {
                                                     <>
                                                         Page ID: {account.id}
                                                         {activeTab === 'instagram' && account.instagram_business_account && (
-                                                            <span className="ml-2 px-2 py-0.5 bg-pink-500/20 text-pink-400 rounded text-[10px]">
+                                                            <span className="ml-2 px-2 py-0.5 bg-sky-500/20 text-sky-400 rounded text-[10px]">
                                                                 IG: {account.instagram_business_account.id}
                                                             </span>
                                                         )}

@@ -164,7 +164,7 @@ export default function SocialMedia() {
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all text-sm font-medium ${activeTab === tab.key
-              ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/20'
+              ? 'bg-gradient-to-r from-sky-600 to-sky-600 text-white shadow-lg shadow-sky-500/20'
               : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
               }`}
           >
@@ -198,7 +198,7 @@ export default function SocialMedia() {
           title={t('social.stats.rate')}
           value={`${stats.response_rate || 0}%`}
           icon={Sparkles}
-          color="from-purple-500 to-pink-600"
+          color="from-sky-500 to-sky-600"
         />
       </div>
 
@@ -249,7 +249,7 @@ export default function SocialMedia() {
                 <button
                   onClick={() => setSelectedAccount(null)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm whitespace-nowrap transition-all ${!selectedAccount
-                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
+                      ? 'bg-gradient-to-r from-sky-600 to-sky-600 text-white'
                       : 'bg-white/5 text-gray-400 hover:bg-white/10'
                     }`}
                 >
@@ -262,7 +262,7 @@ export default function SocialMedia() {
                       key={acc.id}
                       onClick={() => setSelectedAccount(acc)}
                       className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm whitespace-nowrap transition-all ${selectedAccount?.id === acc.id
-                          ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
+                          ? 'bg-gradient-to-r from-sky-600 to-sky-600 text-white'
                           : 'bg-white/5 text-gray-400 hover:bg-white/10'
                         }`}
                     >
@@ -318,7 +318,7 @@ export default function SocialMedia() {
                   <select
                     value={platformFilter}
                     onChange={(e) => setPlatformFilter(e.target.value)}
-                    className="w-full bg-dark-800/50 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full bg-dark-800/50 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
                   >
                     <option value="all">{t('social.filters.all_platforms')}</option>
                     <option value="instagram">Instagram</option>
@@ -331,7 +331,7 @@ export default function SocialMedia() {
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-full bg-dark-800/50 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full bg-dark-800/50 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
                   >
                     <option value="all">{t('social.filters.all_status')}</option>
                     <option value="pending">{t('social.filters.pending')}</option>
@@ -397,11 +397,11 @@ function getPlatformIcon(platform) {
 function getPlatformGradient(platform) {
   switch (platform) {
     case 'facebook': return 'from-blue-600 to-blue-700';
-    case 'instagram': return 'from-pink-500 via-purple-500 to-orange-400';
+    case 'instagram': return 'from-sky-500 via-sky-500 to-orange-400';
     case 'whatsapp': return 'from-green-500 to-emerald-600';
     case 'tiktok': return 'from-slate-800 to-black';
     case 'telegram': return 'from-sky-400 to-blue-500';
-    case 'discord': return 'from-indigo-500 to-purple-600';
+    case 'discord': return 'from-indigo-500 to-sky-600';
     default: return 'from-gray-600 to-gray-700';
   }
 }
@@ -526,8 +526,8 @@ function IntegrationDetailCard({ integration, account }) {
         )}
 
         {integration.provider === 'instagram' && config.instagram_username && (
-          <div className="flex items-center gap-2 p-3 rounded-xl bg-pink-500/5 border border-pink-500/10">
-            <Instagram className="w-4 h-4 text-pink-400" />
+          <div className="flex items-center gap-2 p-3 rounded-xl bg-sky-500/5 border border-sky-500/10">
+            <Instagram className="w-4 h-4 text-sky-400" />
             <span className="text-sm text-gray-300">@{config.instagram_username}</span>
           </div>
         )}
@@ -568,13 +568,13 @@ function formatTimeAgo(date) {
 
 function FeedCard({ item, onViewDetails, t }) {
   const PlatformIcon = item.platform === 'facebook' ? Facebook : Instagram;
-  const platformColor = item.platform === 'facebook' ? 'from-blue-600 to-blue-700' : 'from-purple-600 to-pink-600';
+  const platformColor = item.platform === 'facebook' ? 'from-blue-600 to-blue-700' : 'from-sky-600 to-sky-600';
 
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="glass-card overflow-hidden rounded-2xl border border-white/10 hover:border-purple-500/30 transition-all group flex flex-col h-full"
+      className="glass-card overflow-hidden rounded-2xl border border-white/10 hover:border-sky-500/30 transition-all group flex flex-col h-full"
     >
       <div className="relative aspect-square overflow-hidden bg-dark-900 group-cursor-pointer" onClick={onViewDetails}>
         {item.full_picture ? (
@@ -650,7 +650,7 @@ function CommentCard({ comment, onGenerateResponse, isGenerating, t }) {
   };
 
   const platformColors = {
-    instagram: 'from-pink-500 to-purple-600',
+    instagram: 'from-sky-500 to-sky-600',
     facebook: 'from-blue-500 to-blue-600',
     tiktok: 'from-cyan-500 to-blue-600',
   };

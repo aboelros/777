@@ -194,7 +194,7 @@ export default function IntegrationsManagement() {
           className="mb-8 flex items-center justify-between"
         >
           <div>
-            <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 mb-2">
+            <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-sky-400 to-sky-400 mb-2">
               Integrations Manager
             </h1>
             <p className="text-slate-400">Manage your platform integrations and API connections</p>
@@ -204,7 +204,7 @@ export default function IntegrationsManagement() {
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowAddModal(true)}
             disabled={!currentProject}
-            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-medium flex items-center gap-2 hover:shadow-lg hover:shadow-blue-500/50 transition-all disabled:opacity-50"
+            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-sky-500 text-white rounded-lg font-medium flex items-center gap-2 hover:shadow-lg hover:shadow-blue-500/50 transition-all disabled:opacity-50"
           >
             <Plus className="w-5 h-5" />
             Add Integration
@@ -214,7 +214,7 @@ export default function IntegrationsManagement() {
         {/* Integrations List */}
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
-            <div className="animate-spin w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full" />
+            <div className="animate-spin w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full" />
           </div>
         ) : integrations.length === 0 ? (
           <GlassCard className="p-12 text-center">
@@ -225,7 +225,7 @@ export default function IntegrationsManagement() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setShowAddModal(true)}
-              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-medium"
+              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-sky-500 text-white rounded-lg font-medium"
             >
               <Plus className="w-5 h-5 inline mr-2" />
               Add Integration
@@ -242,10 +242,10 @@ export default function IntegrationsManagement() {
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ delay: index * 0.1 }}
                 >
-                  <GlassCard className="p-6 hover:shadow-lg hover:shadow-purple-500/20 transition-all">
+                  <GlassCard className="p-6 hover:shadow-lg hover:shadow-sky-500/20 transition-all">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-sky-600 flex items-center justify-center">
                           <LinkIcon className="w-6 h-6 text-white" />
                         </div>
                         <div>
@@ -353,7 +353,7 @@ export default function IntegrationsManagement() {
                     <select
                       value={formData.provider}
                       onChange={(e) => setFormData({ ...formData, provider: e.target.value })}
-                      className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                      className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500/50"
                       required
                     >
                       <option value="">Select provider</option>
@@ -377,7 +377,7 @@ export default function IntegrationsManagement() {
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="My Integration"
-                      className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                      className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/50"
                     />
                   </div>
                 </div>
@@ -391,7 +391,7 @@ export default function IntegrationsManagement() {
                     value={formData.apiKey}
                     onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
                     placeholder="Enter your API key"
-                    className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                    className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/50"
                     required
                   />
                 </div>
@@ -405,7 +405,7 @@ export default function IntegrationsManagement() {
                     value={formData.apiSecret}
                     onChange={(e) => setFormData({ ...formData, apiSecret: e.target.value })}
                     placeholder="Enter your API secret"
-                    className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                    className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/50"
                   />
                 </div>
 
@@ -418,7 +418,7 @@ export default function IntegrationsManagement() {
                     value={formData.webhookUrl}
                     onChange={(e) => setFormData({ ...formData, webhookUrl: e.target.value })}
                     placeholder="https://your-domain.com/webhook"
-                    className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                    className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/50"
                   />
                 </div>
 
@@ -436,7 +436,7 @@ export default function IntegrationsManagement() {
                         config: { ...formData.config, guild_id: e.target.value }
                       })}
                       placeholder="Enter Discord Server ID"
-                      className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                      className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/50"
                       required
                     />
                   </div>
@@ -456,7 +456,7 @@ export default function IntegrationsManagement() {
                           config: { ...formData.config, shop_id: e.target.value }
                         })}
                         placeholder="Enter TikTok Shop ID"
-                        className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                        className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/50"
                         required
                       />
                     </div>
@@ -472,7 +472,7 @@ export default function IntegrationsManagement() {
                           config: { ...formData.config, access_token: e.target.value }
                         })}
                         placeholder="Enter Access Token"
-                        className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                        className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/50"
                       />
                     </div>
                   </>
@@ -493,7 +493,7 @@ export default function IntegrationsManagement() {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     disabled={createMutation.isPending || updateMutation.isPending}
-                    className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-medium hover:shadow-lg hover:shadow-purple-500/50 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-sky-500 text-white rounded-lg font-medium hover:shadow-lg hover:shadow-sky-500/50 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {(createMutation.isPending || updateMutation.isPending) ? (
                       <>

@@ -88,7 +88,7 @@ export default function Sidebar() {
             </div>
           </div>
           <div>
-            <h1 className="text-xl font-serif font-bold text-white tracking-tight">AI Sales</h1>
+            <h1 className="text-xl font-bold text-white tracking-tight">AI Sales</h1>
             <p className="text-[10px] text-accent-400/80 font-bold tracking-[0.2em] uppercase">Enterprise</p>
           </div>
         </div>

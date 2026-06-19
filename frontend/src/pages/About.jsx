@@ -88,7 +88,7 @@ const About = () => {
         className="text-center space-y-4 py-12"
       >
         <motion.h1
-          className="text-6xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent"
+          className="text-6xl font-bold bg-gradient-to-r from-blue-400 via-sky-400 to-sky-400 bg-clip-text text-transparent"
           initial={{ scale: 0.9 }}
           animate={{ scale: 1 }}
           transition={{ duration: 0.5 }}
@@ -116,7 +116,7 @@ const About = () => {
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2 + index * 0.1 }}
               >
-                <div className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                <div className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-sky-400 bg-clip-text text-transparent">
                   {stat.number}
                 </div>
                 <div className="text-gray-400 mt-2">{stat.label}</div>
@@ -139,7 +139,7 @@ const About = () => {
           </div>
           <div className="space-y-4 text-gray-300 text-lg leading-relaxed">
             <p>
-              Launched in <span className="text-blue-400 font-semibold">October 2025</span>, <span className="text-purple-400 font-semibold">AI Sales Commander</span> represents
+              Launched in <span className="text-blue-400 font-semibold">October 2025</span>, <span className="text-sky-400 font-semibold">AI Sales Commander</span> represents
               a bold new chapter in sales automation. Born from late-night brainstorming sessions and fueled by an unwavering belief
               that AI can revolutionize how businesses connect with their customers.
             </p>
@@ -153,7 +153,7 @@ const About = () => {
               every business—regardless of size—deserves access to enterprise-level AI tools. We're not just building software;
               we're crafting a movement.
             </p>
-            <p className="text-purple-400 font-semibold italic">
+            <p className="text-sky-400 font-semibold italic">
               "We're not here to follow the market—we're here to redefine it."
             </p>
             <p className="text-blue-400 font-semibold">
@@ -171,14 +171,14 @@ const About = () => {
       >
         <GlassCard className="p-8">
           <div className="flex items-center gap-3 mb-6">
-            <Award className="w-8 h-8 text-purple-400" />
+            <Award className="w-8 h-8 text-sky-400" />
             <h2 className="text-3xl font-bold text-white">Our Values</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {values.map((value, index) => (
               <motion.div
                 key={index}
-                className="p-6 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-purple-500/50 transition-all duration-300"
+                className="p-6 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-sky-500/50 transition-all duration-300"
                 whileHover={{ scale: 1.05, y: -5 }}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -241,7 +241,7 @@ const About = () => {
       >
         <GlassCard className="p-8">
           <div className="flex items-center gap-3 mb-6">
-            <Users className="w-8 h-8 text-pink-400" />
+            <Users className="w-8 h-8 text-sky-400" />
             <h2 className="text-3xl font-bold text-white">Meet Our Co-Founders</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -253,21 +253,21 @@ const About = () => {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.5 + index * 0.1 }}
               >
-                <div className="p-6 rounded-xl bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10 backdrop-blur-sm border border-white/10 hover:border-purple-500/50 transition-all duration-300">
+                <div className="p-6 rounded-xl bg-gradient-to-br from-blue-500/10 via-sky-500/10 to-sky-500/10 backdrop-blur-sm border border-white/10 hover:border-sky-500/50 transition-all duration-300">
                   <div className="text-center space-y-4">
                     {/* Avatar */}
                     <motion.div
-                      className="mx-auto h-32 w-32 overflow-hidden rounded-full border-4 border-purple-500/30 shadow-lg shadow-purple-500/20 flex items-center justify-center bg-purple-500/10"
+                      className="mx-auto h-32 w-32 overflow-hidden rounded-full border-4 border-sky-500/30 shadow-lg shadow-sky-500/20 flex items-center justify-center bg-sky-500/10"
                       whileHover={{ scale: 1.05 }}
                       transition={{ duration: 0.4 }}
                     >
-                      <User className="h-16 w-16 text-purple-400" />
+                      <User className="h-16 w-16 text-sky-400" />
                     </motion.div>
 
                     {/* Info */}
                     <div>
                       <h3 className="text-2xl font-bold text-white">{cofounder.name}</h3>
-                      <p className="text-purple-400 font-semibold">{cofounder.role}</p>
+                      <p className="text-sky-400 font-semibold">{cofounder.role}</p>
                       <p className="text-gray-400 mt-2 text-sm">{cofounder.bio}</p>
                     </div>
                   </div>
@@ -298,16 +298,16 @@ const About = () => {
               </a>
             </div>
             <div className="p-6 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10">
-              <Mail className="w-8 h-8 text-purple-400 mx-auto mb-3" />
+              <Mail className="w-8 h-8 text-sky-400 mx-auto mb-3" />
               <h3 className="text-lg font-bold text-white mb-2">Support</h3>
-              <a href="mailto:support@aisalescommander.com" className="text-purple-400 hover:text-purple-300">
+              <a href="mailto:support@aisalescommander.com" className="text-sky-400 hover:text-sky-300">
                 support@aisalescommander.com
               </a>
             </div>
             <div className="p-6 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10">
-              <Mail className="w-8 h-8 text-pink-400 mx-auto mb-3" />
+              <Mail className="w-8 h-8 text-sky-400 mx-auto mb-3" />
               <h3 className="text-lg font-bold text-white mb-2">Sales</h3>
-              <a href="mailto:sales@aisalescommander.com" className="text-pink-400 hover:text-pink-300">
+              <a href="mailto:sales@aisalescommander.com" className="text-sky-400 hover:text-sky-300">
                 sales@aisalescommander.com
               </a>
             </div>
@@ -321,9 +321,9 @@ const About = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
       >
-        <GlassCard className="p-8 bg-gradient-to-br from-purple-500/10 via-pink-500/10 to-blue-500/10 border-purple-500/30">
+        <GlassCard className="p-8 bg-gradient-to-br from-sky-500/10 via-sky-500/10 to-blue-500/10 border-sky-500/30">
           <div className="text-center space-y-4">
-            <Heart className="w-16 h-16 text-pink-400 mx-auto animate-pulse" />
+            <Heart className="w-16 h-16 text-sky-400 mx-auto animate-pulse" />
             <h2 className="text-4xl font-bold text-white mb-6">Dedication</h2>
             <div className="max-w-4xl mx-auto space-y-6 text-gray-300 text-lg leading-relaxed">
               <p>

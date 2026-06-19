@@ -136,7 +136,7 @@ export default function UsageDashboard() {
       free: 'from-gray-400 to-gray-600',
       starter: 'from-blue-400 to-blue-600',
       growth: 'from-orange-400 to-orange-600',
-      professional: 'from-purple-400 to-purple-600',
+      professional: 'from-sky-400 to-sky-600',
       scale: 'from-green-400 to-green-600',
       business: 'from-indigo-400 to-indigo-600',
       enterprise: 'from-yellow-400 to-yellow-600',

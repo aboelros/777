@@ -163,7 +163,7 @@ export default function Dashboard() {
       value: USE_DEMO_DATA ? '$147,832' : `$${totalRevenue.toFixed(2)}`,
       change: '+245%',
       icon: DollarSign,
-      color: 'from-accent-500 to-amber-600',
+      color: 'from-accent-500 to-cyan-600',
       trend: 'up',
     },
     {
@@ -209,7 +209,7 @@ export default function Dashboard() {
             ? `${summaryData.social_engagement.instagram.username} (IG)`
             : t('dashboard.no_social'),
       icon: Hash,
-      color: 'from-pink-500 to-rose-600',
+      color: 'from-sky-500 to-rose-600',
       trend: 'up',
       change: '+12%',
     },
@@ -236,7 +236,7 @@ export default function Dashboard() {
         className="flex items-center justify-between"
       >
         <div>
-          <h1 className="text-4xl font-serif font-bold text-white mb-2">{t('dashboard.title')}</h1>
+          <h1 className="text-4xl font-bold text-white mb-2">{t('dashboard.title')}</h1>
           <p className="text-gray-400 font-light tracking-wide">{t('dashboard.welcome_subtitle')}</p>
         </div>
         <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/5 text-xs font-mono text-accent-primary">
@@ -328,7 +328,7 @@ export default function Dashboard() {
         <GlassCard className="p-8">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h3 className="text-xl font-serif font-bold text-white mb-1">{t('dashboard.revenue_overview')}</h3>
+              <h3 className="text-xl font-bold text-white mb-1">{t('dashboard.revenue_overview')}</h3>
               <p className="text-xs text-gray-500 uppercase tracking-widest">{t('dashboard.last_7_days')}</p>
             </div>
             <div className="p-2 rounded-lg bg-accent-primary/10">
@@ -369,7 +369,7 @@ export default function Dashboard() {
                   <Tooltip
                     contentStyle={{
                       backgroundColor: '#0a0a0a',
-                      border: '1px solid rgba(245, 158, 11, 0.2)',
+                      border: '1px solid rgba(14, 165, 233, 0.2)',
                       borderRadius: '8px',
                       boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
                       color: '#fff'
@@ -394,7 +394,7 @@ export default function Dashboard() {
         <GlassCard className="p-8">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h3 className="text-xl font-serif font-bold text-white mb-1">{t('dashboard.message_activity')}</h3>
+              <h3 className="text-xl font-bold text-white mb-1">{t('dashboard.message_activity')}</h3>
               <p className="text-xs text-gray-500 uppercase tracking-widest">{t('dashboard.last_7_days')}</p>
             </div>
             <div className="p-2 rounded-lg bg-accent-primary/10">
@@ -429,7 +429,7 @@ export default function Dashboard() {
                     cursor={{ fill: 'rgba(255,255,255,0.03)' }}
                     contentStyle={{
                       backgroundColor: '#0a0a0a',
-                      border: '1px solid rgba(245, 158, 11, 0.2)',
+                      border: '1px solid rgba(14, 165, 233, 0.2)',
                       borderRadius: '8px',
                       boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
                       color: '#fff'
@@ -458,7 +458,7 @@ export default function Dashboard() {
       {/* Platform Stats Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <GlassCard className="p-8">
-          <h3 className="text-xl font-serif font-bold text-white mb-6">{t('dashboard.integration_status')}</h3>
+          <h3 className="text-xl font-bold text-white mb-6">{t('dashboard.integration_status')}</h3>
           <div className="space-y-3">
             {(USE_DEMO_DATA ? [
               { id: 1, provider: 'shopify', is_active: true },
@@ -499,7 +499,7 @@ export default function Dashboard() {
         </GlassCard>
 
         <GlassCard className="p-8">
-          <h3 className="text-xl font-serif font-bold text-white mb-6">{t('dashboard.product_inventory')}</h3>
+          <h3 className="text-xl font-bold text-white mb-6">{t('dashboard.product_inventory')}</h3>
           <div className="space-y-6">
             <div className="flex items-center justify-between p-4 rounded-xl bg-white/5">
               <span className="text-gray-400 font-medium">{t('dashboard.products')}</span>

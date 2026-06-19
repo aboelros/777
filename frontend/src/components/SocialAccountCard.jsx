@@ -18,7 +18,7 @@ export default function SocialAccountCard({ account, isSelected, onClick }) {
     const getGradient = (platform) => {
         switch (platform) {
             case 'facebook': return 'from-blue-600 to-blue-700';
-            case 'instagram': return 'from-pink-500 to-purple-600';
+            case 'instagram': return 'from-sky-500 to-sky-600';
             case 'whatsapp': return 'from-green-500 to-emerald-600';
             case 'tiktok': return 'from-slate-800 to-black';
             default: return 'from-gray-600 to-gray-700';
@@ -34,7 +34,7 @@ export default function SocialAccountCard({ account, isSelected, onClick }) {
             whileTap={{ scale: 0.98 }}
             onClick={onClick}
             className={`relative min-w-[200px] p-4 rounded-xl text-left transition-all overflow-hidden ${isSelected
-                ? 'ring-2 ring-purple-500 ring-offset-2 ring-offset-dark-950 bg-white/10'
+                ? 'ring-2 ring-sky-500 ring-offset-2 ring-offset-dark-950 bg-white/10'
                 : 'bg-white/5 hover:bg-white/10'
                 }`}
         >

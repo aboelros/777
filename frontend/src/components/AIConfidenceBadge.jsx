@@ -75,7 +75,7 @@ export default function AIConfidenceBadge({ confidence }) {
                     className="absolute top-full left-0 mt-2 w-64 glass-card p-4 rounded-xl border border-white/10 z-50"
                 >
                     <div className="flex items-center gap-2 mb-3">
-                        <Info className="w-4 h-4 text-purple-400" />
+                        <Info className="w-4 h-4 text-sky-400" />
                         <h4 className="text-sm font-semibold">{t('reports.insights.title')}</h4>
                     </div>
 

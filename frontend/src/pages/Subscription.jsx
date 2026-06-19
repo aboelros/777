@@ -104,7 +104,7 @@ export default function Subscription() {
     const colors = {
       free: 'from-gray-400 to-gray-600',
       starter: 'from-blue-400 to-blue-600',
-      professional: 'from-purple-400 to-purple-600',
+      professional: 'from-sky-400 to-sky-600',
       business: 'from-orange-400 to-orange-600',
       enterprise: 'from-yellow-400 to-yellow-600',
     };

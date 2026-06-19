@@ -52,9 +52,9 @@ const STATUS_CONFIG = {
   },
   shipped: {
     icon: Truck,
-    color: 'text-purple-400',
-    bg: 'bg-purple-500/20',
-    border: 'border-purple-500/50',
+    color: 'text-sky-400',
+    bg: 'bg-sky-500/20',
+    border: 'border-sky-500/50',
     label: 'Shipped'
   },
   cancelled: {
@@ -155,7 +155,7 @@ export default function Orders() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-blue-400 to-purple-400 mb-2 flex items-center gap-3">
+          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-blue-400 to-sky-400 mb-2 flex items-center gap-3">
             <ShoppingCart className="w-10 h-10 text-green-400" />
             {t('orders.title')}
           </h1>
@@ -191,7 +191,7 @@ export default function Orders() {
               value: `${stats?.fulfillment_rate || 0}%`,
               change: '+3.1%',
               icon: TrendingUp,
-              color: 'from-purple-500 to-pink-500'
+              color: 'from-sky-500 to-sky-500'
             }
           ].map((stat, index) => (
             <motion.div
@@ -237,7 +237,7 @@ export default function Orders() {
                   placeholder={t('orders.search_placeholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition-all"
                 />
               </div>
 
@@ -254,7 +254,7 @@ export default function Orders() {
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setStatusFilter(status)}
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${isActive
-                        ? 'bg-purple-500/20 text-purple-300 ring-1 ring-purple-500/50'
+                        ? 'bg-sky-500/20 text-sky-300 ring-1 ring-sky-500/50'
                         : 'bg-white/5 text-slate-400 hover:bg-white/10'
                         }`}
                     >
@@ -277,7 +277,7 @@ export default function Orders() {
           <GlassCard className="overflow-hidden">
             {isLoading ? (
               <div className="flex items-center justify-center h-64">
-                <div className="animate-spin w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full" />
+                <div className="animate-spin w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full" />
               </div>
             ) : filteredOrders.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-slate-400">
@@ -371,7 +371,7 @@ export default function Orders() {
                                   whileTap={{ scale: 0.9 }}
                                   onClick={() => handleAIProcess(order.id)}
                                   disabled={aiProcessMutation.isLoading}
-                                  className="p-2 bg-purple-500/20 text-purple-400 rounded-lg hover:bg-purple-500/30 transition-colors disabled:opacity-50"
+                                  className="p-2 bg-sky-500/20 text-sky-400 rounded-lg hover:bg-sky-500/30 transition-colors disabled:opacity-50"
                                   title={t('orders.actions.ai_process')}
                                 >
                                   <Sparkles className="w-4 h-4" />
@@ -476,7 +476,7 @@ export default function Orders() {
                     {selectedOrder.customer?.address && (
                       <div className="border-t border-white/10 pt-6">
                         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                          <Truck className="w-5 h-5 text-purple-400" />
+                          <Truck className="w-5 h-5 text-sky-400" />
                           {t('orders.details.delivery_address')}
                         </h3>
                         <div className="bg-white/5 rounded-lg p-4 space-y-1">

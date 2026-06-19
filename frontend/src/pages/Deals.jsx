@@ -120,7 +120,7 @@ export default function Deals() {
                 ) : stages.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-gray-500">
                         <p>{t('deals.no_stages')}</p>
-                        <button className="mt-4 text-purple-400 hover:underline">{t('deals.configure_pipeline')}</button>
+                        <button className="mt-4 text-sky-400 hover:underline">{t('deals.configure_pipeline')}</button>
                     </div>
                 ) : (
                     <KanbanBoard

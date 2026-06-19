@@ -204,7 +204,7 @@ export default function Assistant() {
   const suggestedActions = [
     { icon: TrendingUp, text: t('assistant.suggestions.show_sales'), color: 'from-green-500 to-emerald-600' },
     { icon: Package, text: t('assistant.suggestions.list_orders'), color: 'from-blue-500 to-cyan-600' },
-    { icon: MessageCircle, text: t('assistant.suggestions.summarize_unread'), color: 'from-purple-500 to-pink-600' },
+    { icon: MessageCircle, text: t('assistant.suggestions.summarize_unread'), color: 'from-sky-500 to-sky-600' },
     { icon: BarChart3, text: t('assistant.suggestions.generate_report'), color: 'from-orange-500 to-red-600' },
   ];
 
@@ -265,7 +265,7 @@ export default function Assistant() {
                 {/* Avatar */}
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg ${message.role === 'user'
                   ? 'bg-gradient-to-br from-blue-500 to-cyan-600'
-                  : 'bg-gradient-to-br from-accent-500 to-purple-600'
+                  : 'bg-gradient-to-br from-accent-500 to-sky-600'
                   }`}>
                   {message.role === 'user' ? (
                     <User className="w-5 h-5 text-white" />
@@ -305,7 +305,7 @@ export default function Assistant() {
                               'User': User,
                             };
                             const IconComponent = iconMap[suggestion.icon] || Sparkles;
-                            const suggestionColor = suggestion.color || 'from-violet-500 to-purple-600';
+                            const suggestionColor = suggestion.color || 'from-cyan-500 to-sky-600';
                             const suggestionText = suggestion.text || 'Action';
 
                             return (
@@ -314,7 +314,7 @@ export default function Assistant() {
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => handleQuickAction(suggestionText)}
-                                className="glass-card p-3 rounded-lg text-left hover:bg-white/10 transition-all group border border-white/5 hover:border-violet-500/30"
+                                className="glass-card p-3 rounded-lg text-left hover:bg-white/10 transition-all group border border-white/5 hover:border-cyan-500/30"
                               >
                                 <div className="flex items-center gap-2">
                                   <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${suggestionColor} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform`}>
@@ -356,7 +356,7 @@ export default function Assistant() {
               animate={{ opacity: 1 }}
               className="flex gap-3 max-w-[80%]"
             >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-500 to-sky-600 flex items-center justify-center flex-shrink-0">
                 <Bot className="w-5 h-5 text-white animate-pulse" />
               </div>
               <div className="glass-card p-4 rounded-2xl border-accent-500/30 bg-accent-500/5 w-full">
@@ -512,7 +512,7 @@ export default function Assistant() {
                       100
                     )}%`
                   }}
-                  className="h-full bg-gradient-to-r from-accent-500 to-purple-500"
+                  className="h-full bg-gradient-to-r from-accent-500 to-sky-500"
                 />
               </div>
             </div>

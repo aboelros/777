@@ -18,7 +18,7 @@ export default function EmptyState({
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ delay: 0.2 }}
-        className="w-20 h-20 bg-gradient-to-br from-accent-500/20 to-purple-600/20 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-white/5 shadow-neon"
+        className="w-20 h-20 bg-gradient-to-br from-accent-500/20 to-sky-600/20 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-white/5 shadow-neon"
       >
         <Icon className="w-10 h-10 text-accent-400" />
       </motion.div>

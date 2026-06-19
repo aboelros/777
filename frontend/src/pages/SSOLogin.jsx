@@ -49,7 +49,7 @@ export default function SSOLogin({ onSuccess }) {
                 <GlassCard>
                     <div className="p-8">
                         <div className="flex items-center justify-center mb-8">
-                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-500 to-sky-600 flex items-center justify-center">
                                 <Shield className="w-8 h-8 text-white" />
                             </div>
                         </div>
@@ -91,11 +91,11 @@ export default function SSOLogin({ onSuccess }) {
                         <div className="mt-8 pt-6 border-t border-white/10">
                             <p className="text-sm text-gray-400 text-center">
                                 By continuing, you agree to our{' '}
-                                <a href="/terms" className="text-purple-400 hover:text-purple-300">
+                                <a href="/terms" className="text-sky-400 hover:text-sky-300">
                                     Terms of Service
                                 </a>{' '}
                                 and{' '}
-                                <a href="/privacy" className="text-purple-400 hover:text-purple-300">
+                                <a href="/privacy" className="text-sky-400 hover:text-sky-300">
                                     Privacy Policy
                                 </a>
                             </p>

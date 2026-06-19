@@ -36,7 +36,7 @@ export default function CustomerDetailSidebar({ customer, onClose, onToggleAI })
             {/* Header */}
             <div className="flex flex-col items-center text-center space-y-4 pt-4">
                 <div className="relative group">
-                    <div className="absolute -inset-1 bg-gradient-to-r from-accent-500 to-purple-600 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                    <div className="absolute -inset-1 bg-gradient-to-r from-accent-500 to-sky-600 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
                     <div className="relative w-24 h-24 rounded-full border-2 border-white/10 overflow-hidden bg-slate-800">
                         {customer.avatar_url ? (
                             <img
@@ -51,7 +51,7 @@ export default function CustomerDetailSidebar({ customer, onClose, onToggleAI })
                         )}
                     </div>
                     {customer.is_vip && (
-                        <div className="absolute -bottom-1 -right-1 p-1 bg-amber-500 rounded-full border-2 border-slate-900 shadow-lg">
+                        <div className="absolute -bottom-1 -right-1 p-1 bg-cyan-500 rounded-full border-2 border-slate-900 shadow-lg">
                             <Star className="w-4 h-4 text-white fill-white" />
                         </div>
                     )}
@@ -104,7 +104,7 @@ export default function CustomerDetailSidebar({ customer, onClose, onToggleAI })
                                 className={cn(
                                     "px-2 py-1 rounded text-[9px] font-bold uppercase tracking-widest border transition-all",
                                     customer.ai_enabled
-                                        ? "bg-purple-500/20 text-purple-400 border-purple-500/30 animate-pulse"
+                                        ? "bg-sky-500/20 text-sky-400 border-sky-500/30 animate-pulse"
                                         : "bg-slate-500/10 text-slate-500 border-slate-500/20"
                                 )}
                             >

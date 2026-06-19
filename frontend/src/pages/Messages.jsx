@@ -56,9 +56,9 @@ const CHANNEL_ICONS = {
 const CHANNEL_COLORS = {
   whatsapp: 'text-green-400',
   telegram: 'text-blue-400',
-  instagram: 'text-pink-400',
+  instagram: 'text-sky-400',
   facebook: 'text-indigo-400',
-  sms: 'text-purple-400',
+  sms: 'text-sky-400',
   email: 'text-gray-400'
 };
 
@@ -337,7 +337,7 @@ export default function Messages() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h1 className="text-4xl font-bold font-serif text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-gray-400 mb-2 flex items-center gap-3">
+          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-gray-400 mb-2 flex items-center gap-3">
             <div className="p-2 rounded-xl bg-gradient-to-br from-accent-primary to-accent-dark shadow-lg shadow-accent-primary/20">
               <MessageSquare className="w-6 h-6 text-black" />
             </div>
@@ -537,7 +537,7 @@ export default function Messages() {
 
                         <div>
                           <div className="flex items-center gap-3">
-                            <h2 className="text-lg font-bold text-white leading-tight font-serif tracking-tight">
+                            <h2 className="text-lg font-bold text-white leading-tight tracking-tight">
                               {selectedConversation.customer_name || t('social.accounts.unnamed')}
                             </h2>
                             {selectedConversation.overall_sentiment && (
@@ -785,7 +785,7 @@ export default function Messages() {
                     <MessageSquare className="w-12 h-12 text-accent-primary opacity-50" />
                   </motion.div>
                   <div className="text-center space-y-2">
-                    <p className="text-2xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-br from-white to-gray-500">
+                    <p className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-white to-gray-500">
                       {t('inbox.empty.select')}
                     </p>
                     <p className="text-sm font-light tracking-wide max-w-xs mx-auto">

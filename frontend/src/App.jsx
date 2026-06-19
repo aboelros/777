@@ -97,7 +97,7 @@ function MainLayout({ children }) {
         {(!currentProject || projects.length === 0) && (
           <button
             onClick={() => setShowCreateProject(true)}
-            className="fixed bottom-10 right-10 w-16 h-16 bg-gradient-to-r from-accent-500 to-accent-600 hover:from-accent-600 hover:to-accent-700 text-white rounded-full shadow-neon hover:shadow-[0_0_30px_rgba(112,0,255,0.6)] transition-all duration-300 flex items-center justify-center z-40 group border border-white/20"
+            className="fixed bottom-10 right-10 w-16 h-16 bg-gradient-to-r from-accent-500 to-accent-600 hover:from-accent-600 hover:to-accent-700 text-white rounded-full shadow-neon-glow hover:shadow-[0_0_30px_rgba(14,165,233,0.6)] transition-all duration-300 flex items-center justify-center z-40 group border border-white/20"
             title="Create New Project"
           >
             <Plus className="w-8 h-8 group-hover:rotate-90 transition-transform duration-300" />
@@ -180,8 +180,8 @@ function App() {
         position="top-right"
         toastOptions={{
           style: {
-            background: 'rgba(26, 26, 46, 0.95)',
-            border: '1px solid rgba(139, 92, 246, 0.3)',
+            background: 'rgba(15, 23, 42, 0.95)',
+            border: '1px solid rgba(14, 165, 233, 0.3)',
             backdropFilter: 'blur(20px)',
             color: '#fff',
           },

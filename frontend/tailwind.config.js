@@ -8,7 +8,6 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        serif: ['"Playfair Display"', 'serif'],
         sans: ['"Inter Tight"', 'sans-serif'],
       },
       colors: {
@@ -26,16 +25,16 @@ export default {
         border: 'rgba(var(--border-color), var(--border-opacity))',
       },
       backgroundImage: {
-        'gradient-gold': 'linear-gradient(135deg, rgba(var(--accent-primary), 0.1), rgba(var(--accent-secondary), 0.05))',
+        'gradient-neon': 'linear-gradient(135deg, rgba(var(--accent-primary), 0.1), rgba(var(--accent-dark), 0.05))',
       },
       boxShadow: {
         'glass-sm': '0 4px 16px rgba(0, 0, 0, 0.4)',
         'glass-md': '0 8px 32px rgba(0, 0, 0, 0.5)',
-        'gold-glow': '0 0 20px rgba(var(--accent-primary), 0.2)',
+        'neon-glow': '0 0 20px rgba(var(--accent-primary), 0.2)',
       },
       animation: {
         'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'gold-shift': 'gold-shift 8s ease infinite alternate',
+        'neon-shift': 'neon-shift 8s ease infinite alternate',
       },
     },
   },

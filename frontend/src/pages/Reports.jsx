@@ -61,7 +61,7 @@ const REPORT_TYPES = [
   {
     id: 'customers',
     icon: Users,
-    color: 'from-purple-500 to-pink-500'
+    color: 'from-sky-500 to-sky-500'
   },
   {
     id: 'performance',
@@ -71,7 +71,7 @@ const REPORT_TYPES = [
   {
     id: 'roi',
     icon: Target,
-    color: 'from-indigo-500 to-purple-500'
+    color: 'from-indigo-500 to-sky-500'
   }
 ];
 
@@ -153,8 +153,8 @@ export default function Reports() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-red-400 mb-2 flex items-center gap-3">
-            <BarChart3 className="w-10 h-10 text-purple-400" />
+          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-sky-400 to-red-400 mb-2 flex items-center gap-3">
+            <BarChart3 className="w-10 h-10 text-sky-400" />
             {t('reports.title')}
           </h1>
           <p className="text-slate-400">{t('reports.subtitle')}</p>
@@ -247,7 +247,7 @@ export default function Reports() {
                 </div>
                 <div className="p-4 bg-white/5 rounded-xl">
                   <p className="text-slate-400 text-xs mb-1">{t('reports.cards.month_revenue')}</p>
-                  <p className="text-xl font-bold text-purple-400">{formatCurrency(dashboardSummary.this_month?.revenue || 0)}</p>
+                  <p className="text-xl font-bold text-sky-400">{formatCurrency(dashboardSummary.this_month?.revenue || 0)}</p>
                 </div>
                 <div className="p-4 bg-white/5 rounded-xl">
                   <p className="text-slate-400 text-xs mb-1">{t('reports.cards.month_escalations')}</p>
@@ -273,12 +273,12 @@ export default function Reports() {
               className="cursor-pointer"
             >
               <GlassCard className={`relative overflow-hidden transition-all ${selectedReportType === type.id
-                ? 'ring-2 ring-purple-500 shadow-lg shadow-purple-500/50'
+                ? 'ring-2 ring-sky-500 shadow-lg shadow-sky-500/50'
                 : 'hover:ring-1 hover:ring-white/20'
                 }`}>
                 <div className={`absolute inset-0 bg-gradient-to-br ${type.color} opacity-${selectedReportType === type.id ? '20' : '10'} transition-opacity`} />
                 <div className="relative p-4">
-                  <type.icon className={`w-8 h-8 mb-3 ${selectedReportType === type.id ? 'text-purple-400' : 'text-slate-400'}`} />
+                  <type.icon className={`w-8 h-8 mb-3 ${selectedReportType === type.id ? 'text-sky-400' : 'text-slate-400'}`} />
                   <h3 className="font-semibold text-white mb-1">{t(`reports.types.${type.id}`)}</h3>
                   <p className="text-xs text-slate-400">{t(`reports.types.${type.id}_desc`)}</p>
                 </div>
@@ -302,7 +302,7 @@ export default function Reports() {
                   <select
                     value={dateRange}
                     onChange={(e) => setDateRange(e.target.value)}
-                    className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
+                    className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition-all"
                   >
                     <option value="last_7_days">{t('reports.controls.ranges.last_7')}</option>
                     <option value="last_30_days">{t('reports.controls.ranges.last_30')}</option>
@@ -460,7 +460,7 @@ export default function Reports() {
                 >
                   <GlassCard className="p-6">
                     <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                      <MessageSquare className="w-5 h-5 text-purple-400" />
+                      <MessageSquare className="w-5 h-5 text-sky-400" />
                       {t('reports.charts.channel')}
                     </h3>
                     <ResponsiveContainer width="100%" height={300}>
@@ -495,7 +495,7 @@ export default function Reports() {
                 >
                   <GlassCard className="p-6">
                     <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                      <Brain className="w-5 h-5 text-pink-400" />
+                      <Brain className="w-5 h-5 text-sky-400" />
                       {t('reports.charts.ai')}
                     </h3>
                     <div className="space-y-4">
@@ -533,7 +533,7 @@ export default function Reports() {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {reportData.ai_insights.trends && (
                       <div className="space-y-3">
-                        <h4 className="font-semibold text-purple-400 flex items-center gap-2">
+                        <h4 className="font-semibold text-sky-400 flex items-center gap-2">
                           <TrendingUp className="w-5 h-5" />
                           {t('reports.insights.trends')}
                         </h4>
@@ -542,7 +542,7 @@ export default function Reports() {
                             ? reportData.ai_insights.trends
                             : [reportData.ai_insights.trends]
                           ).map((trend, index) => (
-                            <li key={index} className="text-slate-300 pl-4 border-l-2 border-purple-500/50">
+                            <li key={index} className="text-slate-300 pl-4 border-l-2 border-sky-500/50">
                               {trend}
                             </li>
                           ))}
