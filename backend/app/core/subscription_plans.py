@@ -4,7 +4,7 @@ Subscription tier definitions with pricing and limits.
 """
 
 from typing import Dict, Any
-from app.db.models import SubscriptionTier
+from app.domains.billing.models import SubscriptionTier
 
 
 # Tier Pricing (Monthly)

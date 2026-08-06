@@ -9,10 +9,11 @@ from celery import Task
 
 from app.workers.celery_app import celery_app
 from app.core.database import AsyncSessionLocal
-from app.db.models import (
-    Integration, IntegrationStatus, Order, Message, 
-    MessageDirection, Project, Report, APILog
-)
+from app.domains.integrations.models import Integration, IntegrationStatus
+from app.domains.orders.models import Order
+from app.domains.messages.models import Message, MessageDirection
+from app.domains.projects.models import Project
+from app.domains.analytics.models import Report, APILog
 from app.services.integrations.shopify import ShopifyService
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -427,7 +428,7 @@ def generate_ai_response(self, message_id: str, auto_send: bool = False):
     logger.info("Generating AI response", message_id=message_id)
     
     import asyncio
-    from app.services.gemini_client import GeminiClient
+    from app.domains.ai.providers.gemini import GeminiClient
     
     async def _generate():
         # 1. Load message

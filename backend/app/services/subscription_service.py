@@ -10,11 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, func
 import structlog
 
-from app.db.models import (
-    User, Subscription, UsageTracking,
-    SubscriptionTier, SubscriptionStatus,
-    Message, Order, Project
-)
+from app.domains.auth.models import User
+from app.domains.billing.models import Subscription, UsageTracking, SubscriptionTier, SubscriptionStatus
+from app.domains.messages.models import Message
+from app.domains.orders.models import Order
+from app.domains.projects.models import Project
 from app.core.subscription_plans import (
     TIER_LIMITS, TIER_PRICING, 
     get_tier_info, check_limit, check_feature_access
@@ -210,7 +210,9 @@ class SubscriptionService:
     
     async def get_current_usage(self, user_id: UUID) -> Dict[str, int]:
         """Get current month usage for user."""
-        from app.db.models import Message, Order, Project
+        from app.domains.messages.models import Message
+        from app.domains.orders.models import Order
+        from app.domains.projects.models import Project
         
         # Get current month start
         now = datetime.utcnow()

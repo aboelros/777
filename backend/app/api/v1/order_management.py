@@ -13,7 +13,8 @@ import structlog
 
 from app.core.database import get_db
 from app.core.security import get_current_user_id
-from app.db.models import Project, OrderStatus
+from app.domains.projects.models import Project
+from app.domains.orders.models import OrderStatus
 from app.services.order_manager_service import OrderManagerService
 
 router = APIRouter()
@@ -431,7 +432,8 @@ async def get_order_statistics(
     """
     await verify_project_access(project_id, user_id, db)
     
-    from app.db.models import Order, Message
+    from app.domains.orders.models import Order
+    from app.domains.messages.models import Message
     from sqlalchemy import func, select
     from datetime import datetime, timedelta
     

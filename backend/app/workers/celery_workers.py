@@ -72,7 +72,7 @@ def process_ai_response(self, message_id: int, project_id: int):
         project_id: Project ID
     """
     try:
-        from app.services.ai_orchestrator import AIOrchestrator
+        from app.domains.ai.orchestrator import AIOrchestrator
         from app.core.database import get_db
         
         # Get database session

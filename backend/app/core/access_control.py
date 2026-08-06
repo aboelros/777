@@ -37,7 +37,7 @@ async def verify_project_access(
         HTTPException: 404 if project not found or access denied
         HTTPException: 403 if user lacks required role
     """
-    from app.db.models import Project, ProjectMember
+    from app.domains.projects.models import Project, ProjectMember
     
     try:
         # 1. Check if user is the global owner of the project
@@ -130,7 +130,11 @@ async def verify_resource_access(
     Raises:
         HTTPException: 404 if resource not found or user doesn't own it
     """
-    from app.db.models import Project, Message, Order, Integration, CustomerProfile
+    from app.domains.projects.models import Project
+    from app.domains.messages.models import Message
+    from app.domains.orders.models import Order
+    from app.domains.integrations.models import Integration
+    from app.domains.customers.models import CustomerProfile
     
     # Map resource types to models
     model_map = {
@@ -198,7 +202,7 @@ async def list_user_projects(user_id: str, db: AsyncSession):
     Returns:
         list: List of Project objects owned by the user
     """
-    from app.db.models import Project
+    from app.domains.projects.models import Project
     
     result = await db.execute(
         select(Project)
@@ -221,7 +225,7 @@ async def count_user_projects(user_id: str, db: AsyncSession) -> int:
     Returns:
         int: Number of projects owned by the user
     """
-    from app.db.models import Project
+    from app.domains.projects.models import Project
     from sqlalchemy import func
     
     result = await db.execute(

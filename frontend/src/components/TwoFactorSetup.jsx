@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Copy, Check, Download, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import GlassCard from './GlassCard';
+import GlassCard from './ui/GlassCard';
 import { useTranslation } from '../lib/translations';
 
 export default function TwoFactorSetup({ onComplete, onCancel }) {

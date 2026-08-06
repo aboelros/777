@@ -29,7 +29,10 @@ class GDPRCompliance:
         Returns:
             Complete user data export
         """
-        from app.db.models import User, Project, Message, Order
+        from app.domains.auth.models import User
+        from app.domains.projects.models import Project
+        from app.domains.messages.models import Message
+        from app.domains.orders.models import Order
         
         # Get user
         result = await self.db.execute(
@@ -110,7 +113,10 @@ class GDPRCompliance:
         Returns:
             Deletion summary
         """
-        from app.db.models import User, Project, Message, Order
+        from app.domains.auth.models import User
+        from app.domains.projects.models import Project
+        from app.domains.messages.models import Message
+        from app.domains.orders.models import Order
         
         # Get projects
         result = await self.db.execute(
@@ -190,7 +196,8 @@ class DataRetentionPolicy:
         retention_days = self.retention_periods.get(data_type, 365)
         cutoff_date = datetime.utcnow() - timedelta(days=retention_days)
         
-        from app.db.models import Message, Order
+        from app.domains.messages.models import Message
+        from app.domains.orders.models import Order
         
         deleted_count = 0
         
@@ -230,7 +237,7 @@ class ComplianceReporting:
     
     async def generate_gdpr_report(self) -> Dict[str, Any]:
         """Generate GDPR compliance report."""
-        from app.db.models import User
+        from app.domains.auth.models import User
         
         # Count total users
         result = await self.db.execute(select(func.count(User.id)))

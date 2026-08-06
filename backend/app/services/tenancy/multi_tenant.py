@@ -85,7 +85,7 @@ class TenantManager:
     
     async def _set_default_quotas(self, tenant_id: int, plan: str):
         """Set default resource quotas based on plan using existing subscription system."""
-        from app.db.models import SubscriptionTier
+        from app.domains.billing.models import SubscriptionTier
         from app.core.subscription_plans import TIER_LIMITS
         
         # Map plan names to SubscriptionTier enum
@@ -305,7 +305,8 @@ class TenantIsolation:
         Returns:
             True if user has access
         """
-        from app.db.models import User, TenantMember
+        from app.domains.auth.models import User
+        from app.domains.common.models import TenantMember
         
         # Check if user is tenant owner
         result = await db.execute(
@@ -352,7 +353,7 @@ class BillingIntegration:
         Returns:
             Cost breakdown
         """
-        from app.db.models import SubscriptionTier
+        from app.domains.billing.models import SubscriptionTier
         from app.core.subscription_plans import TIER_PRICING, calculate_overage_cost
         
         # Get tenant plan

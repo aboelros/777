@@ -5,8 +5,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, and_, func
 import structlog
 
-from app.db.models import Order, Project, Message, MessageDirection, Integration
-from app.services.ai_orchestrator import AIOrchestrator
+from app.domains.orders.models import Order
+from app.domains.projects.models import Project
+from app.domains.messages.models import Message, MessageDirection
+from app.domains.integrations.models import Integration
+from app.domains.ai.orchestrator import AIOrchestrator
 
 logger = structlog.get_logger()
 

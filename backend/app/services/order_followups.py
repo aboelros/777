@@ -10,8 +10,9 @@ import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 
-from app.db.models import Order, CustomerProfile
-from app.services.ai_orchestrator import AIOrchestrator
+from app.domains.orders.models import Order
+from app.domains.customers.models import CustomerProfile
+from app.domains.ai.orchestrator import AIOrchestrator
 
 logger = structlog.get_logger(__name__)
 

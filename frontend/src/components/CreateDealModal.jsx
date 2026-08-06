@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, DollarSign, User, Building, Phone, Mail } from 'lucide-react';
-import Button from './Button';
+import Button from './ui/Button';
 import { useTranslation } from '../lib/translations';
 
 export default function CreateDealModal({ isOpen, onClose, onSubmit, initialStageId, stages }) {

@@ -12,12 +12,13 @@ import structlog
 import re
 import json
 
-from app.services.gemini_client import GeminiClient
-from app.db.models import (
-    ConversationHistory, BusinessContext, CustomerProfile,
-    SocialMediaPost, SocialMediaComment, Message, Order,
-    Product, MessageDirection, OrderStatus
-)
+from app.domains.ai.providers.gemini import GeminiClient
+from app.domains.messages.models import ConversationHistory, Message, MessageDirection
+from app.domains.projects.models import BusinessContext
+from app.domains.customers.models import CustomerProfile
+from app.domains.social.models import SocialMediaPost, SocialMediaComment
+from app.domains.orders.models import Order, OrderStatus
+from app.domains.products.models import Product
 
 logger = structlog.get_logger(__name__)
 

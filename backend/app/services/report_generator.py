@@ -10,7 +10,9 @@ import structlog
 from sqlalchemy import select, func, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import Order, Message, Integration, OrderStatus, MessageDirection
+from app.domains.orders.models import Order, OrderStatus
+from app.domains.messages.models import Message, MessageDirection
+from app.domains.integrations.models import Integration
 from app.services.service_factory import get_ai_provider
 
 logger = structlog.get_logger(__name__)

@@ -139,6 +139,7 @@ app.add_middleware(SlowAPIMiddleware)
 # Explicitly allow production and development origins to ensure credentials (cookies) work
 cors_origins = [
     "https://777-self.vercel.app",
+    "https://frontend-beryl-eta-37.vercel.app",
     "https://aisalescommander.com",
     "http://localhost:3000",
     "http://localhost:5173",
@@ -159,6 +160,36 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["X-Request-ID", "X-Process-Time"]
 )
+
+import uuid
+from starlette.middleware.base import BaseHTTPMiddleware
+
+class RequestContextMiddleware(BaseHTTPMiddleware):
+    """Binds a unique request ID to the structlog context."""
+    async def dispatch(self, request: Request, call_next):
+        request_id = str(uuid.uuid4())
+        structlog.contextvars.bind_contextvars(
+            request_id=request_id,
+            path=request.url.path,
+            method=request.method
+        )
+        
+        start_time = time.time()
+        response = await call_next(request)
+        process_time = time.time() - start_time
+        
+        response.headers["X-Request-ID"] = request_id
+        
+        logger.info(
+            "request_completed",
+            status_code=response.status_code,
+            process_time_ms=round(process_time * 1000, 2)
+        )
+        
+        structlog.contextvars.clear_contextvars()
+        return response
+
+app.add_middleware(RequestContextMiddleware)
 
 # 3. Security Headers (Manual Helmet-equivalent)
 @app.middleware("http")

@@ -11,9 +11,12 @@ import structlog
 
 from app.core.database import get_db
 from app.core.security import get_current_user_id
-from app.db.models import SocialMediaComment, Project, Product, BotInstruction, AutoResponseTemplate
+from app.domains.social.models import SocialMediaComment
+from app.domains.projects.models import Project
+from app.domains.products.models import Product
+from app.domains.ai.models import BotInstruction, AutoResponseTemplate
 from app.api.v1.messages import _to_absolute_url, _get_api_base_url
-from app.services.gemini_client import gemini_client
+from app.domains.ai.providers.gemini import gemini_client
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -101,7 +104,7 @@ async def get_social_accounts(
     """Get connected social media accounts."""
     await verify_project_access(project_id, user_id, db)
     
-    from app.db.models import Integration, IntegrationStatus
+    from app.domains.integrations.models import Integration, IntegrationStatus
     
     result = await db.execute(
         select(Integration)
@@ -194,7 +197,7 @@ async def get_live_feed(
     """Fetch live feed from Meta platforms (Facebook/Instagram)."""
     await verify_project_access(project_id, user_id, db)
     
-    from app.db.models import Integration, IntegrationStatus
+    from app.domains.integrations.models import Integration, IntegrationStatus
     result = await db.execute(
         select(Integration)
         .where(Integration.project_id == project_id)
@@ -461,7 +464,7 @@ async def send_comment_response(
         )
     
     # Actually send via platform API
-    from app.db.models import Integration
+    from app.domains.integrations.models import Integration
     integration_result = await db.execute(
         select(Integration)
         .where(Integration.project_id == project_id)

@@ -3,7 +3,7 @@ from typing import Dict, Any, Optional
 from fastapi import Request, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.db.models import Integration, IntegrationStatus
+from app.domains.integrations.models import Integration, IntegrationStatus
 
 from app.services.webhook_domain import WebhookEvent, EventType
 from app.services.webhook_adapters import (

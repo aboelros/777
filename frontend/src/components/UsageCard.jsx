@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { AlertTriangle, TrendingUp, CheckCircle, XCircle } from 'lucide-react';
-import GlassCard from './GlassCard';
+import GlassCard from './ui/GlassCard';
 import { useTranslation } from '../lib/translations';
 
 export default function UsageCard({ resource, used, limit, percentage, alerts }) {

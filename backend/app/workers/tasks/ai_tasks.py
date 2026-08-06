@@ -18,9 +18,9 @@ def process_incoming_message(self, message_id: str, project_id: str):
         message_id: UUID of the message to process
         project_id: UUID of the project
     """
-    from app.services.ai_orchestrator import AIOrchestrator
+    from app.domains.ai.orchestrator import AIOrchestrator
     from app.core.database import get_async_session
-    from app.db.models import Message
+    from app.domains.messages.models import Message
     from sqlalchemy import select
     
     try:
@@ -79,7 +79,7 @@ def sync_integration_data(integration_id: str):
         integration_id: UUID of the integration to sync
     """
     from app.core.database import get_async_session
-    from app.db.models import Integration
+    from app.domains.integrations.models import Integration
     from app.services.integrations.shopify import ShopifyClient
     from sqlalchemy import select
     
@@ -134,7 +134,7 @@ def auto_respond_to_customer(customer_id: str, project_id: str, context: dict):
         project_id: UUID of the project
         context: Additional context for the response
     """
-    from app.services.ai_orchestrator import AIOrchestrator
+    from app.domains.ai.orchestrator import AIOrchestrator
     from app.core.database import get_async_session
     
     try:
@@ -181,9 +181,9 @@ def analyze_conversation_sentiment(conversation_id: str):
     Args:
         conversation_id: UUID of the conversation
     """
-    from app.services.gemini_client import GeminiClient
+    from app.domains.ai.providers.gemini import GeminiClient
     from app.core.database import get_async_session
-    from app.db.models import Message
+    from app.domains.messages.models import Message
     from sqlalchemy import select
     
     try:
@@ -239,9 +239,11 @@ def generate_sales_insights(project_id: str, timeframe: str = "7d"):
         project_id: UUID of the project
         timeframe: Timeframe for analysis (7d, 30d, etc.)
     """
-    from app.services.gemini_client import GeminiClient
+    from app.domains.ai.providers.gemini import GeminiClient
     from app.core.database import get_async_session
-    from app.db.models import Order, Customer, Message
+    from app.domains.orders.models import Order
+    from app.domains.common.models import Customer
+    from app.domains.messages.models import Message
     from sqlalchemy import select, func
     from datetime import datetime, timedelta
     

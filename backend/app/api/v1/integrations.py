@@ -11,17 +11,12 @@ import structlog
 
 from app.core.database import get_db
 from app.core.security import get_current_user_id
-from app.db.models import Project, Integration, IntegrationStatus
+from app.domains.projects.models import Project
+from app.domains.integrations.models import Integration, IntegrationStatus
 from pydantic import BaseModel
-from app.models.schemas import (
-    IntegrationConnect,
-    IntegrationUpdate,
-    IntegrationResponse,
-    TelegramSettings,
-    WhatsAppSettings,
-    InstagramSettings,
-    FacebookSettings,
-)
+from app.domains.integrations.schemas import IntegrationConnect, IntegrationUpdate, IntegrationResponse, TelegramSettings, WhatsAppSettings, InstagramSettings, FacebookSettings
+from app.domains.integrations.service import IntegrationService
+from app.core.uow import UnitOfWork
 # WhatsApp Business API (official Meta API)
 from app.services.integrations.whatsapp_business import WhatsAppBusinessService
 from app.services.integrations.meta_oauth import MetaOAuthService
@@ -29,6 +24,9 @@ from app.core.config import settings
 
 router = APIRouter()
 logger = structlog.get_logger(__name__)
+
+async def get_integration_service(db: AsyncSession = Depends(get_db)) -> IntegrationService:
+    return IntegrationService(UnitOfWork(db))
 
 
 def _merge_settings(existing: Dict[str, Any], updates: Dict[str, Any]) -> Dict[str, Any]:
@@ -65,7 +63,8 @@ async def connect_integration(
     project_id: UUID,
     integration_data: IntegrationConnect,
     user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    service: IntegrationService = Depends(get_integration_service)
 ) -> Any:
     """
     Connect a new integration to a project.
@@ -79,149 +78,31 @@ async def connect_integration(
     
     The config object should contain provider-specific credentials.
     """
-    # Verify project access
-    await verify_project_access(project_id, user_id, db)
+    integration = await service.connect_integration(str(project_id), user_id, integration_data)
     
     logger.info(
-        "Connecting integration",
-        provider=integration_data.provider.value,
-        config_keys=list(integration_data.config.keys()) if integration_data.config else [],
-        has_api_key="api_key" in integration_data.config if integration_data.config else False,
-        has_phone_number="phone_number" in integration_data.config if integration_data.config else False,
-        project_id=str(project_id)
+        "Integration saved, starting verification",
+        integration_id=str(integration.id),
+        config_keys=list(integration.config.keys()) if integration.config else [],
+        has_api_key="api_key" in integration.config if integration.config else False
     )
     
-    config_payload = integration_data.config or {}
-    provider = integration_data.provider.value
-
-    # Provider-specific config validation
-    if provider == "whatsapp":
-        # Get WhatsApp provider type (business_api or wppconnect)
-        whatsapp_provider = config_payload.get("whatsapp_provider", "business_api")
-        
-        if whatsapp_provider == "go_whatsapp":
-            # Go WhatsApp validation
-            base_url = config_payload.get("base_url")
-            
-            if not base_url:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Base URL is required for Go WhatsApp"
-                )
-            
-            # Ensure session_id exists (default to 'default' if not provided)
-            if not config_payload.get("session_id"):
-                config_payload["session_id"] = "default"
-        else:
-            # Business API validation
-            phone_number = config_payload.get("phone_number")
-            if not phone_number:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="WhatsApp phone number is required for Business API setup"
-                )
-    else:
-        if not config_payload.get("api_key"):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="API key is required in config"
-            )
-    
-    integration_id = None
-    
+    # Verify and setup integration
     try:
-        # Check if integration already exists
-        result = await db.execute(
-            select(Integration)
-            .where(Integration.project_id == project_id)
-            .where(Integration.provider == integration_data.provider.value)
-        )
-        existing = result.scalar_one_or_none()
-        
-        if existing:
-            # Update existing integration
-            existing.config = config_payload
-            
-            # Ensure session_id is in extra_data for Go WhatsApp
-            if provider == "whatsapp" and config_payload.get("whatsapp_provider") == "go_whatsapp":
-                extra = existing.extra_data or {}
-                extra["session_id"] = config_payload.get("session_id")
-                existing.extra_data = extra
-            
-            existing.status = IntegrationStatus.PENDING
-            existing.updated_at = func.now()
-            integration_id = existing.id
-            
-            logger.info("Updating existing integration", integration_id=str(integration_id))
-        else:
-            # Create new integration
-            extra_data = {}
-            if provider == "whatsapp" and config_payload.get("whatsapp_provider") == "go_whatsapp":
-                extra_data["session_id"] = config_payload.get("session_id")
-                
-            new_integration = Integration(
-                project_id=project_id,
-                provider=provider,
-                config=config_payload,
-                extra_data=extra_data,
-                status=IntegrationStatus.PENDING
-            )
-            db.add(new_integration)
-            await db.flush()  # Ensure ID is generated
-            integration_id = new_integration.id
-            
-            logger.info("Creating new integration", integration_id=str(integration_id))
-        
-        # Commit the changes
-        await db.commit()
-        
-        # Fresh query to get the integration with committed data
-        result = await db.execute(
-            select(Integration)
-            .where(Integration.id == integration_id)
-        )
-        integration = result.scalar_one_or_none()
-        
-        if not integration:
-            logger.error("Failed to retrieve created integration", integration_id=str(integration_id))
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to retrieve created integration"
-            )
-        
-        logger.info(
-            "Integration saved, starting verification",
-            integration_id=str(integration.id),
-            config_keys=list(integration.config.keys()) if integration.config else [],
-            has_api_key="api_key" in integration.config if integration.config else False
-        )
-        
-        # Verify and setup integration
-        try:
-            await _verify_and_setup_integration(integration, db)
-            logger.info("Integration verification successful", integration_id=str(integration.id))
-        except Exception as e:
-            logger.error("Integration verification failed", error=str(e), integration_id=str(integration.id))
-            # Keep as pending - user can retry verification
-        
-        # Final fresh query to return the integration
-        result = await db.execute(
-            select(Integration)
-            .where(Integration.id == integration_id)
-        )
-        final_integration = result.scalar_one()
-        
-        return final_integration
-        
-    except HTTPException:
-        # Re-raise HTTP exceptions
-        raise
+        await _verify_and_setup_integration(integration, db)
+        logger.info("Integration verification successful", integration_id=str(integration.id))
     except Exception as e:
-        logger.error("Failed to connect integration", error=str(e), project_id=str(project_id))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to connect integration: {str(e)}"
-        )
+        logger.error("Integration verification failed", error=str(e), integration_id=str(integration.id))
+        # Keep as pending - user can retry verification
+    
+    # Fresh query to return the integration
+    result = await db.execute(
+        select(Integration)
+        .where(Integration.id == integration.id)
+    )
+    final_integration = result.scalar_one()
+    
+    return final_integration
 
 
 @router.post("/{project_id}/test-data")
@@ -248,32 +129,19 @@ async def test_integration_data(
 async def list_integrations(
     project_id: UUID,
     user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    service: IntegrationService = Depends(get_integration_service)
 ) -> Any:
     """
     List all integrations for a project.
     """
     try:
-        # Verify project access
-        await verify_project_access(project_id, user_id, db)
-        
-        result = await db.execute(
-            select(Integration)
-            .where(Integration.project_id == project_id)
-            .order_by(Integration.created_at.desc())
-        )
-        integrations = result.scalars().all()
-
-        # Serialize with masked config without mutating DB records
-        return [_serialize_integration(integration) for integration in integrations]
-        
-    except HTTPException:
-        # Re-raise HTTP exceptions (like access denied)
-        raise
+        return await service.list_integrations(str(project_id), user_id)
     except Exception as e:
-        logger.error("Failed to list integrations", error=str(e), project_id=str(project_id))
-        # Return empty list instead of crashing
-        return []
+        logger.error("Failed to list integrations", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to list integrations"
+        )
 
 
 @router.get("/{project_id}/{integration_id}", response_model=IntegrationResponse)
@@ -281,29 +149,21 @@ async def get_integration(
     project_id: UUID,
     integration_id: UUID,
     user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    service: IntegrationService = Depends(get_integration_service)
 ) -> Any:
     """
-    Get a specific integration details.
+    Get a specific integration by ID.
     """
-    # Verify project access
-    await verify_project_access(project_id, user_id, db)
-    
-    result = await db.execute(
-        select(Integration)
-        .where(Integration.id == integration_id)
-        .where(Integration.project_id == project_id)
-    )
-    integration = result.scalar_one_or_none()
-    
-    if not integration:
+    try:
+        return await service.get_integration(str(project_id), str(integration_id), user_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to get integration", error=str(e))
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Integration not found"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get integration"
         )
-    
-    # Mask sensitive config data
-    return _serialize_integration(integration)
 
 
 @router.post("/{project_id}/{integration_id}/whatsapp/session", response_model=Dict[str, Any])
@@ -352,212 +212,42 @@ async def update_integration(
     integration_id: UUID,
     integration_data: IntegrationUpdate,
     user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    service: IntegrationService = Depends(get_integration_service)
 ) -> Any:
     """
     Update an integration's configuration or status.
     """
-    # Verify project access
-    await verify_project_access(project_id, user_id, db)
-    
-    result = await db.execute(
-        select(Integration)
-        .where(Integration.id == integration_id)
-        .where(Integration.project_id == project_id)
-    )
-    integration = result.scalar_one_or_none()
-    
-    if not integration:
+    try:
+        return await service.update_integration(str(project_id), str(integration_id), user_id, integration_data)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to update integration", error=str(e))
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Integration not found"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update integration"
         )
-    
-    # Update fields
-    update_data = integration_data.dict(exclude_unset=True)
-
-    if "config" in update_data:
-        config_update: Dict[str, Any] = update_data.pop("config") or {}
-
-        integration.config = integration.config or {}
-
-        # Update API key if provided
-        if "api_key" in config_update and config_update["api_key"] is not None:
-            integration.config["api_key"] = config_update["api_key"]
-
-        if "phone_number" in config_update and config_update["phone_number"]:
-            integration.config["phone_number"] = config_update["phone_number"]
-
-        if config_update.get("whatsapp_linked_device_enabled") is not None:
-            integration.extra_data = integration.extra_data or {}
-            integration.extra_data.setdefault("automation", {})
-            integration.extra_data["automation"]["whatsapp_linked_device_enabled"] = (
-                config_update["whatsapp_linked_device_enabled"]
-            )
-
-        # Update Telegram-specific settings
-        telegram_settings_data = config_update.get("telegram_settings")
-        if telegram_settings_data is not None:
-            telegram_settings = TelegramSettings(**telegram_settings_data)
-            integration.config = integration.config or {}
-            current_settings = integration.config.get("telegram_settings") or {}
-
-            settings_payload = telegram_settings.model_dump(exclude_unset=True)
-            merged_settings = {**current_settings, **settings_payload}
-
-            commands_payload = settings_payload.get("commands")
-            if commands_payload is not None:
-                existing_commands = current_settings.get("commands") or {}
-                merged_commands = {**existing_commands, **commands_payload}
-                merged_settings["commands"] = merged_commands
-
-            if merged_settings.get("response_delay_seconds") is not None:
-                try:
-                    merged_settings["response_delay_seconds"] = int(merged_settings["response_delay_seconds"])
-                except (TypeError, ValueError):
-                    merged_settings.pop("response_delay_seconds", None)
-
-            integration.config["telegram_settings"] = merged_settings
-
-        # Update WhatsApp-specific settings
-        whatsapp_settings_data = config_update.get("whatsapp_settings")
-        if whatsapp_settings_data is not None:
-            whatsapp_settings = WhatsAppSettings(**whatsapp_settings_data)
-            current_settings = integration.config.get("whatsapp_settings") or {}
-
-            settings_payload = whatsapp_settings.model_dump(exclude_unset=True)
-            if "keyword_triggers" in settings_payload and settings_payload["keyword_triggers"] is not None:
-                settings_payload["keyword_triggers"] = [
-                    keyword.strip()
-                    for keyword in settings_payload["keyword_triggers"]
-                    if keyword and keyword.strip()
-                ]
-
-            integration.config["whatsapp_settings"] = _merge_settings(current_settings, settings_payload)
-
-        # Update Instagram-specific settings
-        instagram_settings_data = config_update.get("instagram_settings")
-        if instagram_settings_data is not None:
-            instagram_settings = InstagramSettings(**instagram_settings_data)
-            integration.config = integration.config or {}
-            current_settings = integration.config.get("instagram_settings") or {}
-
-            settings_payload = instagram_settings.model_dump(exclude_unset=True)
-            if "auto_dm_keywords" in settings_payload and settings_payload["auto_dm_keywords"] is not None:
-                settings_payload["auto_dm_keywords"] = [
-                    keyword.strip()
-                    for keyword in settings_payload["auto_dm_keywords"]
-                    if keyword and keyword.strip()
-                ]
-
-            integration.config["instagram_settings"] = _merge_settings(current_settings, settings_payload)
-
-        # Update Facebook-specific settings
-        facebook_settings_data = config_update.get("facebook_settings")
-        if facebook_settings_data is not None:
-            facebook_settings = FacebookSettings(**facebook_settings_data)
-            integration.config = integration.config or {}
-            current_settings = integration.config.get("facebook_settings") or {}
-
-            settings_payload = facebook_settings.model_dump(exclude_unset=True)
-            if "keyword_triggers" in settings_payload and settings_payload["keyword_triggers"] is not None:
-                settings_payload["keyword_triggers"] = [
-                    keyword.strip()
-                    for keyword in settings_payload["keyword_triggers"]
-                    if keyword and keyword.strip()
-                ]
-
-            integration.config["facebook_settings"] = _merge_settings(current_settings, settings_payload)
-
-        # Update Discord-specific settings
-        discord_settings_data = config_update.get("discord_settings")
-        if discord_settings_data is not None:
-            discord_settings = DiscordSettings(**discord_settings_data)
-            integration.config = integration.config or {}
-            current_settings = integration.config.get("discord_settings") or {}
-            
-            settings_payload = discord_settings.model_dump(exclude_unset=True)
-            integration.config["discord_settings"] = _merge_settings(current_settings, settings_payload)
-            # Also update flattened keys if needed for backward compatibility or simple access
-            if discord_settings.bot_token:
-                integration.config["api_key"] = discord_settings.bot_token
-            if discord_settings.guild_id:
-                integration.config["guild_id"] = discord_settings.guild_id
-
-        # Update TikTok-specific settings
-        tiktok_settings_data = config_update.get("tiktok_settings")
-        if tiktok_settings_data is not None:
-            tiktok_settings = TikTokSettings(**tiktok_settings_data)
-            integration.config = integration.config or {}
-            current_settings = integration.config.get("tiktok_settings") or {}
-
-            settings_payload = tiktok_settings.model_dump(exclude_unset=True)
-            integration.config["tiktok_settings"] = _merge_settings(current_settings, settings_payload)
-            
-            # Map specific keys for backward compatibility/direct access
-            if tiktok_settings.shop_id:
-                integration.config["shop_id"] = tiktok_settings.shop_id
-            if tiktok_settings.access_token:
-                integration.config["access_token"] = tiktok_settings.access_token
-            if tiktok_settings.app_key:
-                integration.config["api_key"] = tiktok_settings.app_key
-
-    for field, value in update_data.items():
-        setattr(integration, field, value)
-
-    await db.commit()
-    await db.refresh(integration)
-
-    logger.info(
-        "Integration updated",
-        integration_id=str(integration_id),
-        project_id=str(project_id)
-    )
-
-    return _serialize_integration(integration)
 
 
 @router.delete("/{project_id}/{integration_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def disconnect_integration(
+async def delete_integration(
     project_id: UUID,
     integration_id: UUID,
     user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    service: IntegrationService = Depends(get_integration_service)
 ) -> None:
     """
     Disconnect and delete an integration.
     """
-    # Verify project access
-    await verify_project_access(project_id, user_id, db)
-    
-    result = await db.execute(
-        select(Integration)
-        .where(Integration.id == integration_id)
-        .where(Integration.project_id == project_id)
-    )
-    integration = result.scalar_one_or_none()
-    
-    if not integration:
-        # Idempotent delete: if it's already gone, return success
-        logger.info("Integration already deleted or not found", integration_id=str(integration_id))
-        return None
-    
     try:
-        await db.delete(integration)
-        await db.commit()
-        
-        logger.info(
-            "Integration disconnected",
-            integration_id=str(integration_id),
-            project_id=str(project_id),
-            provider=integration.provider
-        )
+        await service.delete_integration(str(project_id), str(integration_id), user_id)
+    except HTTPException:
+        raise
     except Exception as e:
-        await db.rollback()
         logger.error("Failed to disconnect integration", error=str(e), integration_id=str(integration_id))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to disconnect integration: {str(e)}"
+            detail="Failed to disconnect integration"
         )
     
     return None
@@ -765,7 +455,7 @@ async def get_integration_logs(
     """
     await verify_project_access(project_id, user_id, db)
     
-    from app.db.models import APILog
+    from app.domains.analytics.models import APILog
     
     # Fetch logs where endpoint contains 'webhook'
     # In a real scenario, we might want to filter more strictly

@@ -11,14 +11,11 @@ import structlog
 
 from app.core.database import get_db
 from app.core.security import get_current_user_id
-from app.db.models import KnowledgeBase, ProjectRole
+from app.domains.ai.models import KnowledgeBase
+from app.domains.projects.models import ProjectRole
 from app.api.v1.projects import verify_project_access
 from app.services.scraper_service import scraper
-from app.models.schemas import (
-    KnowledgeBaseCreate, 
-    KnowledgeBaseUpdate, 
-    KnowledgeBaseResponse
-)
+from app.domains.ai.schemas import KnowledgeBaseCreate, KnowledgeBaseUpdate, KnowledgeBaseResponse
 
 router = APIRouter()
 logger = structlog.get_logger(__name__)

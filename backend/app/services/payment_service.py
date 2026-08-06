@@ -4,7 +4,8 @@ from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.db.models import Invoice, PaymentLink, Project
+from app.domains.billing.models import Invoice, PaymentLink
+from app.domains.projects.models import Project
 # import stripe 
 
 class PaymentService:

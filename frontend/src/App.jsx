@@ -4,8 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Toaster } from 'sonner';
 import { Plus } from 'lucide-react';
-import ErrorFallback from './components/ErrorBoundary';
-import { PageLoader } from './components/LoadingSpinner';
+import ErrorFallback from './components/ui/ErrorBoundary';
+import { PageLoader } from './components/ui/LoadingSpinner';
 import { useAuthStore } from './store/authStore';
 import { useProjectStore } from './store/projectStore';
 import useThemeStore from './store/themeStore';
@@ -13,29 +13,31 @@ import CreateProjectModal from './components/CreateProjectModal';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import CommandPalette from './components/CommandPalette';
-import Dashboard from './pages/Dashboard';
-import Projects from './pages/Projects';
-import Assistant from './pages/Assistant';
-import Deals from './pages/Deals';
-import Integrations from './pages/Integrations';
-import IntegrationsManagement from './pages/IntegrationsManagement';
-import MetaCallback from './pages/MetaCallback';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import Messages from './pages/Messages';
-import Orders from './pages/Orders';
-import OrderTracking from './pages/OrderTracking';
-import Products from './pages/Products';
-import BotTraining from './pages/BotTraining';
-import SocialMedia from './pages/SocialMedia';
-import DripCampaigns from './pages/DripCampaigns';
-import Payments from './pages/Payments';
-import Reports from './pages/Reports';
-import Subscription from './pages/Subscription';
-import UsageDashboard from './pages/UsageDashboard';
-import Settings from './pages/Settings';
-import About from './pages/About';
-import Login from './pages/Login';
+import { lazy, Suspense } from 'react';
 
+// Lazy loaded feature pages
+const Dashboard = lazy(() => import('./features/analytics/pages/Dashboard'));
+const Projects = lazy(() => import('./features/projects/pages/Projects'));
+const Assistant = lazy(() => import('./features/ai/pages/Assistant'));
+const Deals = lazy(() => import('./features/crm/pages/Deals'));
+const Integrations = lazy(() => import('./features/integrations/pages/Integrations'));
+const IntegrationsManagement = lazy(() => import('./features/integrations/pages/IntegrationsManagement'));
+const MetaCallback = lazy(() => import('./features/social/pages/MetaCallback'));
+const PrivacyPolicy = lazy(() => import('./features/common/pages/PrivacyPolicy'));
+const Messages = lazy(() => import('./features/messages/pages/Messages'));
+const Orders = lazy(() => import('./features/orders/pages/Orders'));
+const OrderTracking = lazy(() => import('./features/orders/pages/OrderTracking'));
+const Products = lazy(() => import('./features/products/pages/Products'));
+const BotTraining = lazy(() => import('./features/ai/pages/BotTraining'));
+const SocialMedia = lazy(() => import('./features/social/pages/SocialMedia'));
+const DripCampaigns = lazy(() => import('./features/crm/pages/DripCampaigns'));
+const Payments = lazy(() => import('./features/billing/pages/Payments'));
+const Reports = lazy(() => import('./features/analytics/pages/Reports'));
+const Subscription = lazy(() => import('./features/billing/pages/Subscription'));
+const UsageDashboard = lazy(() => import('./features/analytics/pages/UsageDashboard'));
+const Settings = lazy(() => import('./features/common/pages/Settings'));
+const About = lazy(() => import('./features/common/pages/About'));
+const Login = lazy(() => import('./features/auth/pages/Login'));
 // Create query client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -129,14 +131,15 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
-          {/* Protected Routes */}
-          <Route
-            path="/*"
+            {/* Protected Routes */}
+            <Route
+              path="/*"
             element={
               <ErrorBoundary FallbackComponent={ErrorFallback}>
                 <ProtectedRoute>
@@ -173,6 +176,7 @@ function App() {
             }
           />
         </Routes>
+        </Suspense>
       </BrowserRouter>
 
       {/* Toast Notifications */}

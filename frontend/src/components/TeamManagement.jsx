@@ -5,7 +5,7 @@ import { Users, UserPlus, Shield, Trash2, MoreVertical, X, Check, Loader2 } from
 import api from '../services/api';
 import { useProjectStore } from '../store/projectStore';
 import { toast } from 'sonner';
-import Button from './Button';
+import Button from './ui/Button';
 
 const ROLES = {
     owner: { label: 'Owner', color: 'text-cyan-400', badge: 'bg-cyan-400/10 border-cyan-400/20' },

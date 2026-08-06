@@ -5,7 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 from sqlalchemy.orm import joinedload
 
-from app.db.models import DripCampaign, DripStep, CampaignEnrollment, CustomerProfile, Project
+from app.domains.crm.models import DripCampaign, DripStep, CampaignEnrollment
+from app.domains.customers.models import CustomerProfile
+from app.domains.projects.models import Project
 from app.services.messages import MessageService
 
 class DripEngine:

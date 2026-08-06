@@ -12,8 +12,13 @@ import structlog
 
 from app.core.database import get_db
 from app.core.security import get_current_user_id
-from app.db.models import Project, Order, Message, MessageDirection, APILog, Product, BotInstruction
-from app.models.schemas import AssistantQuery, AssistantResponse, FunctionCall, GenerateReplyRequest
+from app.domains.projects.models import Project
+from app.domains.orders.models import Order
+from app.domains.messages.models import Message, MessageDirection
+from app.domains.analytics.models import APILog
+from app.domains.products.models import Product
+from app.domains.ai.models import BotInstruction
+from app.domains.ai.schemas import AssistantQuery, AssistantResponse, FunctionCall, GenerateReplyRequest
 from app.services.service_factory import get_gemini_without_tracking, ServiceFactory
 from app.services.bot_function_executor import BotFunctionExecutor
 

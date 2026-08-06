@@ -14,14 +14,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from langdetect import detect, detect_langs, LangDetectException
 
-from app.db.models import (
-    Message,
-    Order,
-    MessageDirection,
-    OrderStatus,
-    CustomerProfile,
-    BotInstruction,
-)
+from app.domains.messages.models import Message, MessageDirection
+from app.domains.orders.models import Order, OrderStatus
+from app.domains.customers.models import CustomerProfile
+from app.domains.ai.models import BotInstruction
 from app.services.enhanced_ai_service import EnhancedAIService
 from app.services.service_factory import get_gemini_with_tracking
 

@@ -12,12 +12,11 @@ import structlog
 import re
 import json
 
-from app.services.gemini_client import GeminiClient
+from app.domains.ai.providers.gemini import GeminiClient
 from app.services.enhanced_ai_service import EnhancedAIService
-from app.db.models import (
-    SocialMediaPost, SocialMediaComment, BusinessContext,
-    AutoResponseTemplate
-)
+from app.domains.social.models import SocialMediaPost, SocialMediaComment
+from app.domains.projects.models import BusinessContext
+from app.domains.ai.models import AutoResponseTemplate
 
 logger = structlog.get_logger(__name__)
 

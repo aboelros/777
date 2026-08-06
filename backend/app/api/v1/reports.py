@@ -12,8 +12,11 @@ import structlog
 
 from app.core.database import get_db
 from app.core.security import get_current_user_id
-from app.db.models import Project, Report, Order, Message, MessageDirection
-from app.models.schemas import ReportGenerate, ReportResponse
+from app.domains.projects.models import Project
+from app.domains.analytics.models import Report
+from app.domains.orders.models import Order
+from app.domains.messages.models import Message, MessageDirection
+from app.domains.analytics.schemas import ReportGenerate, ReportResponse
 from app.services.report_generator import generate_report as generate_report_service
 
 router = APIRouter()
@@ -206,7 +209,7 @@ async def get_dashboard_summary(
 
     # NEW: Include Meta engagement metrics
     try:
-        from app.db.models import Integration
+        from app.domains.integrations.models import Integration
         result = await db.execute(
             select(Integration).where(Integration.project_id == project_id)
         )

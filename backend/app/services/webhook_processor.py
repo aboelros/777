@@ -9,15 +9,11 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from fastapi import BackgroundTasks
 
-from app.db.models import (
-    Message,
-    CustomerProfile,
-    Integration,
-    IntegrationStatus,
-    MessageDirection,
-    Order,
-    SocialMediaComment,
-)
+from app.domains.messages.models import Message, MessageDirection
+from app.domains.customers.models import CustomerProfile
+from app.domains.integrations.models import Integration, IntegrationStatus
+from app.domains.orders.models import Order
+from app.domains.social.models import SocialMediaComment
 from app.workers.tasks import process_incoming_message
 from app.services.integrations.facebook import FacebookClient
 from app.services.file_storage import FileStorageService, PostgresStorageService
@@ -622,8 +618,8 @@ class WebhookProcessor:
         # This ensures it runs even if no worker is active.
         async def run_ai_logic(msg_id: str, proj_id: str):
             try:
-                from app.services.ai_orchestrator import AIOrchestrator
-                from app.db.models import Message
+                from app.domains.ai.orchestrator import AIOrchestrator
+                from app.domains.messages.models import Message
                 from app.core.database import AsyncSessionLocal
                 
                 logger.info("Starting AI processing (direct)", message_id=msg_id)

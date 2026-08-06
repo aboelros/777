@@ -9,7 +9,9 @@ import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.db.models import Product, Order, Integration
+from app.domains.products.models import Product
+from app.domains.orders.models import Order
+from app.domains.integrations.models import Integration
 from app.core.database import AsyncSessionLocal
 
 logger = structlog.get_logger(__name__)

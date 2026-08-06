@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bot, TrendingUp, AlertTriangle, Zap, MessageSquare, ArrowRight, Brain, Activity, Sparkles, Lock } from 'lucide-react';
-import GlassCard from './GlassCard';
+import GlassCard from './ui/GlassCard';
 import { useTranslation } from '../lib/translations';
 
 // Simulated AI Signals - Enhanced for "Predictive Intelligence" feel

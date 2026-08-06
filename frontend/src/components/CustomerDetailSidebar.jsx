@@ -16,7 +16,7 @@ import {
     Zap,
     ExternalLink
 } from 'lucide-react';
-import GlassCard from './GlassCard';
+import GlassCard from './ui/GlassCard';
 import { formatCurrency, formatDateTime } from '../utils/helpers';
 import { cn } from '../lib/utils';
 

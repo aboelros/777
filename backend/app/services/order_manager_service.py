@@ -11,12 +11,12 @@ from sqlalchemy import select, and_, or_, desc
 import structlog
 import json
 
-from app.services.gemini_client import GeminiClient
+from app.domains.ai.providers.gemini import GeminiClient
 from app.services.enhanced_ai_service import EnhancedAIService
-from app.db.models import (
-    Order, OrderStatus, Message, MessageDirection,
-    CustomerProfile, Product
-)
+from app.domains.orders.models import Order, OrderStatus
+from app.domains.messages.models import Message, MessageDirection
+from app.domains.customers.models import CustomerProfile
+from app.domains.products.models import Product
 
 logger = structlog.get_logger(__name__)
 

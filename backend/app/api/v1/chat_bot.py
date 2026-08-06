@@ -12,7 +12,7 @@ import structlog
 
 from app.core.database import get_db
 from app.core.security import get_current_user_id
-from app.db.models import Project
+from app.domains.projects.models import Project
 from app.services.ai_chat_bot import get_chat_bot
 
 router = APIRouter()
@@ -318,7 +318,7 @@ async def get_bot_stats(
     - Tokens used
     - Cost savings
     """
-    from app.db.models import Message, MessageDirection
+    from app.domains.messages.models import Message, MessageDirection
     from sqlalchemy import func
     from datetime import datetime, timedelta
     

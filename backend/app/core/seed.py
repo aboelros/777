@@ -6,7 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 import structlog
 
-from app.db.models import User, UserRole, Project
+from app.domains.auth.models import User, UserRole
+from app.domains.projects.models import Project
 from app.core.security import get_password_hash
 
 logger = structlog.get_logger(__name__)

@@ -314,10 +314,10 @@ export default function Header() {
                   </button>
                   <button
                     type="submit"
-                    disabled={createProjectMutation.isLoading || !newProjectName.trim()}
+                    disabled={createProjectMutation.isPending || !newProjectName.trim()}
                     className="flex-1 bg-gradient-to-r from-accent-500 to-sky-600 px-6 py-3 rounded-xl hover:from-accent-600 hover:to-sky-700 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-accent-500/30"
                   >
-                    {createProjectMutation.isLoading ? (
+                    {createProjectMutation.isPending ? (
                       <span className="flex items-center justify-center gap-2">
                         <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />

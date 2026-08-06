@@ -13,7 +13,7 @@ from app.services.ai_optimizer import ai_optimizer
 from app.services.ai_providers.base import AIProvider
 from app.services.ai_providers.gemini import GeminiProvider
 from app.core.config import settings
-from app.services.gemini_client import GeminiClient
+from app.domains.ai.providers.gemini import GeminiClient
 
 logger = structlog.get_logger(__name__)
 

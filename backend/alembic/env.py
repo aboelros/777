@@ -9,7 +9,19 @@ import asyncio
 
 # Import your models here
 from app.core.database import Base
-from app.db.models import *  # noqa
+from app.domains.auth.models import *
+from app.domains.projects.models import *
+from app.domains.integrations.models import *
+from app.domains.orders.models import *
+from app.domains.messages.models import *
+from app.domains.ai.models import *
+from app.domains.analytics.models import *
+from app.domains.products.models import *
+from app.domains.social.models import *
+from app.domains.customers.models import *
+from app.domains.billing.models import *
+from app.domains.crm.models import *
+
 from app.core.config import settings
 
 # this is the Alembic Config object

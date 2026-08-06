@@ -9,7 +9,9 @@ from sqlalchemy import select
 
 from app.core.database import get_auth_db, get_db
 from app.core.security import get_password_hash, require_role
-from app.db.models import User, UserRole, Order, Message, MessageDirection
+from app.domains.auth.models import User, UserRole
+from app.domains.orders.models import Order
+from app.domains.messages.models import Message, MessageDirection
 
 router = APIRouter(dependencies=[Depends(require_role("admin"))])
 

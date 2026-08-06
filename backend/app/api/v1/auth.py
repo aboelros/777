@@ -2,70 +2,132 @@ from datetime import datetime, timedelta
 from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
+from sqlalchemy import select
 import structlog
 
 from app.core.database import get_db
-from app.core.security import (
-    get_password_hash, verify_password,
-    create_access_token, create_refresh_token, decode_token,
-    get_current_user_id
-)
-from app.core.config import settings
+from app.core.security import get_current_user_id
+from app.core.uow import UnitOfWork
+from app.domains.auth.service import AuthService
 from app.core.rate_limit import limiter
-from app.db.models import User, RefreshToken
-from app.models.schemas import (
-    UserRegister, UserLogin, TokenResponse, 
-    RefreshTokenRequest, UserResponse
-)
+from app.domains.auth.schemas import UserRegister, UserLogin, TokenResponse, RefreshTokenRequest, UserResponse
+from app.domains.auth.models import User
 
 router = APIRouter()
 logger = structlog.get_logger(__name__)
 
+async def get_auth_service(db: AsyncSession = Depends(get_db)) -> AuthService:
+    return AuthService(UnitOfWork(db))
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
 async def register(
     request: Request,
     user_data: UserRegister,
-    db: AsyncSession = Depends(get_db)
+    auth_service: AuthService = Depends(get_auth_service)
 ) -> Any:
     """
     Register a new user account.
-    
-    - **email**: Valid email address
-    - **password**: Minimum 8 characters with uppercase, lowercase, and digit
-    - **name**: Optional display name
     """
-    # Check if user already exists
-    result = await db.execute(select(User).where(User.email == user_data.email))
-    existing_user = result.scalar_one_or_none()
+    new_user = await auth_service.register_user(user_data)
+    return new_user
+
+@router.post("/login", response_model=TokenResponse)
+@limiter.limit("10/minute")
+async def login(
+    request: Request,
+    response: Response,
+    login_data: UserLogin,
+    auth_service: AuthService = Depends(get_auth_service)
+) -> Any:
+    """
+    Authenticate user and return tokens.
+    """
+    user, access_token, refresh_token = await auth_service.authenticate_user(login_data)
     
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
-        )
-    
-    # Create new user
-    new_user = User(
-        email=user_data.email,
-        password_hash=get_password_hash(user_data.password),
-        name=user_data.name,
-        role="user"
+    # Set refresh token in httpOnly cookie
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=True, 
+        samesite="lax",
+        max_age=30 * 24 * 60 * 60  # 30 days
     )
     
-    db.add(new_user)
-    await db.commit()
-    await db.refresh(new_user)
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": user
+    }
+
+@router.post("/refresh", response_model=TokenResponse)
+@limiter.limit("20/minute")
+async def refresh_token(
+    request: Request,
+    response: Response,
+    body: RefreshTokenRequest = None,
+    auth_service: AuthService = Depends(get_auth_service)
+) -> Any:
+    """
+    Refresh access token using refresh token.
+    """
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token and body:
+        refresh_token = body.refresh_token
+        
+    if not refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token required",
+        )
+        
+    access_token, new_refresh_token = await auth_service.refresh_tokens(refresh_token)
     
-    logger.info("User registered", user_id=str(new_user.id), email=new_user.email)
+    response.set_cookie(
+        key="refresh_token",
+        value=new_refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=30 * 24 * 60 * 60
+    )
     
-    return new_user
+    return {
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
+
+@router.post("/logout")
+async def logout(
+    request: Request,
+    response: Response,
+    auth_service: AuthService = Depends(get_auth_service)
+) -> Any:
+    """
+    Logout user and invalidate refresh token.
+    """
+    refresh_token = request.cookies.get("refresh_token")
+    if refresh_token:
+        await auth_service.logout_user(refresh_token)
+        
+    response.delete_cookie("refresh_token")
+    return {"message": "Logged out successfully"}
+
+@router.get("/me", response_model=UserResponse)
+async def get_current_user_profile(
+    user_id: str = Depends(get_current_user_id),
+    auth_service: AuthService = Depends(get_auth_service)
+) -> Any:
+    """
+    Get current logged in user profile.
+    """
+    return await auth_service.get_user_profile(user_id)
 
 @router.get("/seed-admin-now")
 async def seed_admin(db: AsyncSession = Depends(get_db)):
-    from app.db.models import UserRole
+    from app.domains.auth.models import UserRole
+    from app.core.security import get_password_hash
     result = await db.execute(select(User).where(User.email == "arnold@gmail.com"))
     existing = result.scalar_one_or_none()
     

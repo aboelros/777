@@ -12,7 +12,7 @@ import structlog
 
 from app.core.database import get_db
 from app.core.security import get_current_user_id, require_role
-from app.db.models import SubscriptionTier
+from app.domains.billing.models import SubscriptionTier
 from app.services.subscription_service import SubscriptionService
 from app.core.subscription_plans import get_all_tiers, get_tier_info
 
@@ -129,7 +129,7 @@ async def get_my_subscription(
         if not subscription:
             # Return default free tier subscription
             from app.core.subscription_plans import get_tier_info
-            from app.db.models import SubscriptionTier
+            from app.domains.billing.models import SubscriptionTier
             
             default_subscription = {
                 "tier": SubscriptionTier.FREE.value,
@@ -159,7 +159,7 @@ async def get_my_subscription(
         logger.error("Failed to get subscription", error=str(e))
         # Return default free tier on error
         from app.core.subscription_plans import get_tier_info
-        from app.db.models import SubscriptionTier
+        from app.domains.billing.models import SubscriptionTier
         
         default_subscription = {
             "tier": SubscriptionTier.FREE.value,

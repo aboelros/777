@@ -11,13 +11,19 @@ import structlog
 
 from app.core.database import get_db
 from app.core.security import get_current_user_id
-from app.db.models import Project, BotInstruction
+from app.domains.projects.models import Project
+from app.domains.ai.models import BotInstruction
 from app.api.v1.projects import verify_project_access
 from app.core.default_instructions import get_default_instructions
 from pydantic import BaseModel
+from app.domains.ai.service import AIService
+from app.core.uow import UnitOfWork
 
 router = APIRouter()
 logger = structlog.get_logger(__name__)
+
+async def get_ai_service(db: AsyncSession = Depends(get_db)) -> AIService:
+    return AIService(UnitOfWork(db))
 
 
 class BotInstructionCreate(BaseModel):
@@ -76,20 +82,15 @@ async def list_bot_instructions(
     project_id: UUID,
     active_only: bool = True,
     user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    service: AIService = Depends(get_ai_service)
 ) -> Any:
     """List all bot instructions for a project."""
-    await verify_project_access(project_id, user_id, db)
-    
-    query = select(BotInstruction).where(BotInstruction.project_id == project_id)
+    instructions = await service.list_bot_instructions(str(project_id), user_id)
     
     if active_only:
-        query = query.where(BotInstruction.is_active == True)
-    
-    query = query.order_by(BotInstruction.priority.desc(), BotInstruction.created_at.desc())
-    
-    result = await db.execute(query)
-    instructions = result.scalars().all()
+        instructions = [i for i in instructions if i.is_active]
+        
+    instructions = sorted(instructions, key=lambda i: (i.priority, i.created_at), reverse=True)
     
     return {
         "instructions": [
@@ -326,7 +327,7 @@ async def get_bot_knowledge_base(
     instructions = instructions_result.scalars().all()
     
     # Get products (for product knowledge)
-    from app.db.models import Product
+    from app.domains.products.models import Product
     products_result = await db.execute(
         select(Product)
         .where(Product.project_id == project_id)

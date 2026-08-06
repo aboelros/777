@@ -15,7 +15,7 @@ from pathlib import Path
 
 from app.core.database import get_db
 from app.core.security import get_current_user_id
-from app.db.models import Project
+from app.domains.projects.models import Project
 
 router = APIRouter()
 logger = structlog.get_logger(__name__)

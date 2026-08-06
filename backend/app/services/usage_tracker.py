@@ -9,10 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 import structlog
 
-from app.db.models import (
-    Project, Message, Order, Product, Integration,
-    Subscription, SubscriptionTier, APILog
-)
+from app.domains.projects.models import Project
+from app.domains.messages.models import Message
+from app.domains.orders.models import Order
+from app.domains.products.models import Product
+from app.domains.integrations.models import Integration
+from app.domains.billing.models import Subscription, SubscriptionTier
+from app.domains.analytics.models import APILog
 from app.core.subscription_plans import TIER_LIMITS, check_limit
 
 logger = structlog.get_logger(__name__)

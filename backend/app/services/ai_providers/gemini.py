@@ -9,7 +9,7 @@ from app.services.ai_providers.base import (
     ProviderFunctionCall,
     ProviderResponse,
 )
-from app.services.gemini_client import GeminiClient
+from app.domains.ai.providers.gemini import GeminiClient
 
 
 class GeminiProvider(AIProvider):

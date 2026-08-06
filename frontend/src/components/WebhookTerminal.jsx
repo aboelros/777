@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Terminal, RefreshCw, X, Circle, Pause, Play, Download } from 'lucide-react';
-import GlassCard from './GlassCard';
+import GlassCard from './ui/GlassCard';
 import api from '../services/api';
 import { useProjectStore } from '../store/projectStore';
 import { cn } from '../lib/utils'; // Standardized import
@@ -21,8 +21,11 @@ export default function WebhookTerminal({ onClose }) {
 
         const fetchLogs = async () => {
             try {
-                const data = await api.integrationsgetLogs(currentProject.id, 50);
-                setLogs(data);
+                // Initial fetch
+                const data = await api.integrations.getLogs(currentProject.id, 50);
+                if (Array.isArray(data)) {
+                    setLogs(data);
+                }
                 setIsConnected(true);
             } catch (error) {
                 console.error('Failed to fetch logs:', error);

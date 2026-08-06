@@ -7,7 +7,8 @@ from sqlalchemy import select, func, desc, asc
 from app.core.database import get_db
 from app.core.security import get_current_user_id
 from app.core.access_control import verify_project_access
-from app.db.models import PipelineStage, Deal, Project
+from app.domains.crm.models import PipelineStage, Deal
+from app.domains.projects.models import Project
 
 router = APIRouter()
 

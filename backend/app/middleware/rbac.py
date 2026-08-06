@@ -6,7 +6,8 @@ from typing import List, Optional, Callable
 from fastapi import HTTPException, Request, Depends
 from functools import wraps
 from sqlalchemy import select
-from app.db.models import User, UserRole, ProjectRole
+from app.domains.auth.models import User, UserRole
+from app.domains.projects.models import ProjectRole
 from app.core.database import get_db, AsyncSession
 import structlog
 
@@ -100,7 +101,7 @@ class RBACMiddleware:
             True if user has access, False otherwise
         """
         # Check if user is project owner or member
-        from app.db.models import Project, ProjectMember
+        from app.domains.projects.models import Project, ProjectMember
         
         # Check if user owns the project
         result = await db.execute(

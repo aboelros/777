@@ -9,7 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import structlog
 
 from app.core.database import get_async_session
-from app.db.models import User, SubscriptionStatus
+from app.domains.auth.models import User
+from app.domains.billing.models import SubscriptionStatus
 from app.services.subscription_service import SubscriptionService
 
 logger = structlog.get_logger(__name__)

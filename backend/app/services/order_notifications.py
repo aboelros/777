@@ -8,8 +8,8 @@ from uuid import UUID
 from datetime import datetime
 import structlog
 
-from app.db.models import Order
-from app.services.ai_orchestrator import AIOrchestrator
+from app.domains.orders.models import Order
+from app.domains.ai.orchestrator import AIOrchestrator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = structlog.get_logger(__name__)

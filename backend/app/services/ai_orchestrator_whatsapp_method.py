@@ -7,7 +7,7 @@
         """Send message via WA-Gateway."""
         try:
             # Get customer phone number
-            from app.db.models import CustomerProfile
+            from app.domains.customers.models import CustomerProfile
             result = await self.db.execute(
                 select(CustomerProfile).where(CustomerProfile.id == customer_id)
             )

@@ -14,17 +14,20 @@ from app.core.config import settings
 
 from app.core.database import get_db
 from app.core.security import get_current_user_id
-from app.db.models import Project, Message, Order, MessageDirection, CustomerProfile, ProjectRole
-from app.models.schemas import (
-    MessageSend,
-    MessageResponse,
-    ConversationSummary,
-    ConversationMessage,
-    CustomerProfileResponse,
-)
+from app.domains.projects.models import Project, ProjectRole
+from app.domains.messages.models import Message, MessageDirection
+from app.domains.orders.models import Order
+from app.domains.customers.models import CustomerProfile
+from app.domains.messages.schemas import MessageSend, MessageResponse, ConversationSummary, ConversationMessage
+from app.domains.customers.schemas import CustomerProfileResponse
+from app.domains.messages.service import MessageService
+from app.core.uow import UnitOfWork
 
 router = APIRouter()
 logger = structlog.get_logger(__name__)
+
+async def get_message_service(db: AsyncSession = Depends(get_db)) -> MessageService:
+    return MessageService(UnitOfWork(db))
 
 
 async def verify_project_access(
@@ -44,25 +47,10 @@ async def toggle_customer_ai(
     profile_id: UUID,
     enabled: bool,
     user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    service: MessageService = Depends(get_message_service)
 ) -> Any:
     """Enable or disable AI automation for a specific customer."""
-    await verify_project_access(project_id, user_id, db)
-    
-    result = await db.execute(
-        select(CustomerProfile)
-        .where(CustomerProfile.project_id == project_id)
-        .where(CustomerProfile.id == profile_id)
-    )
-    profile = result.scalar_one_or_none()
-    
-    if not profile:
-        raise HTTPException(status_code=404, detail="Customer not found")
-        
-    profile.ai_enabled = enabled
-    await db.commit()
-    
-    return {"status": "success", "ai_enabled": enabled}
+    return await service.toggle_customer_ai(str(project_id), str(profile_id), enabled, user_id)
 
 
 def _sanitize_name(name: Optional[str]) -> Optional[str]:
@@ -133,7 +121,7 @@ async def send_message(
     project_id: UUID,
     message_data: MessageSend,
     user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    service: MessageService = Depends(get_message_service)
 ) -> Any:
     """
     Send a message to a customer via specified provider.
@@ -142,104 +130,7 @@ async def send_message(
     
     This creates a database record and queues the actual sending via background worker.
     """
-    # Verify project access
-    await verify_project_access(project_id, user_id, db)
-    
-    # Verify order exists if provided
-    if message_data.order_id:
-        result = await db.execute(
-            select(Order)
-            .where(Order.id == message_data.order_id)
-            .where(Order.project_id == project_id)
-        )
-        order = result.scalar_one_or_none()
-        if not order:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Order not found"
-            )
-    
-    # Try to resolve customer_id from recipient or order
-    customer_id = None
-    target_platform_id = message_data.recipient.get("id") or message_data.recipient.get("customer_id")
-    
-    if target_platform_id:
-        # Find customer by platform ID
-        from app.db.models import CustomerProfile
-        cust_result = await db.execute(
-            select(CustomerProfile)
-            .where(CustomerProfile.project_id == project_id)
-            .where(or_(
-                CustomerProfile.customer_id == str(target_platform_id),
-                and_(
-                    CustomerProfile.platform_accounts.contains({message_data.provider.value: str(target_platform_id)})
-                )
-            ))
-        )
-        customer = cust_result.scalar_one_or_none()
-        if customer:
-            customer_id = customer.id
-            # Ensure the recipient payload has the platform ID in 'id' for the worker
-            message_data.recipient["id"] = target_platform_id
-
-    # Create message record
-    new_message = Message(
-        project_id=project_id,
-        customer_id=customer_id, # Link for grouping
-        order_id=message_data.order_id,
-        direction=MessageDirection.OUTBOUND,
-        platform=message_data.provider.value,  # Set platform same as provider
-        provider=message_data.provider.value,
-        content=message_data.content,
-        content_type=message_data.content_type,
-        attachments=message_data.attachments,
-        sender={"type": "system", "user_id": user_id},
-        recipient=message_data.recipient,
-        status="queued"
-    )
-    
-    db.add(new_message)
-    await db.commit()
-    await db.refresh(new_message)
-    
-    # Send message DIRECTLY to avoid dependency on Celery worker for manual responses
-    # This ensures a much more responsive UI and reliability in dev environments
-    try:
-        from app.services.ai_orchestrator import AIOrchestrator
-        orchestrator = AIOrchestrator(db)
-        await orchestrator.initialize_integrations(project_id)
-        
-        send_result = await orchestrator._send_message(
-            customer_id=customer_id,
-            message=new_message.content,
-            channel=new_message.provider,
-            project_id=project_id,
-            existing_message_id=new_message.id
-        )
-        
-        if send_result.get("status") == "success":
-            new_message.status = "sent"
-            new_message.external_id = send_result.get("id")
-            new_message.sent_at = datetime.utcnow()
-        else:
-            new_message.status = "failed"
-            new_message.error_message = send_result.get("message")
-            
-        await db.commit()
-        
-        logger.info(
-            "Message send attempted",
-            message_id=str(new_message.id),
-            status=new_message.status,
-            result=send_result
-        )
-    except Exception as e:
-        logger.error("Failed to send manual message", error=str(e))
-        new_message.status = "failed"
-        new_message.error_message = str(e)
-        await db.commit()
-    
-    return new_message
+    return await service.send_message(str(project_id), user_id, message_data)
 
 
 @router.get("/{project_id}/inbox", response_model=List[MessageResponse])
@@ -649,38 +540,13 @@ async def get_conversation_messages(
 async def get_message(
     project_id: UUID,
     message_id: UUID,
-    request: Request,
     user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    service: MessageService = Depends(get_message_service)
 ) -> Any:
     """
-    Get a specific message by ID.
+    Get a single message by ID.
     """
-    # Verify project access
-    await verify_project_access(project_id, user_id, db)
-    
-    result = await db.execute(
-        select(Message)
-        .where(Message.id == message_id)
-        .where(Message.project_id == project_id)
-    )
-    message = result.scalar_one_or_none()
-    
-    if not message:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Message not found"
-        )
-    
-    # Normalize avatar URLs
-    base_url = _get_api_base_url(request)
-    if hasattr(message, 'avatar_url') and message.avatar_url:
-        message.avatar_url = _to_absolute_url(message.avatar_url, base_url)
-    
-    if message.sender and message.sender.get("avatar_url"):
-        message.sender["avatar_url"] = _to_absolute_url(message.sender["avatar_url"], base_url)
-        
-    return message
+    return await service.get_message(str(project_id), str(message_id), user_id)
 
 
 @router.patch("/{project_id}/{message_id}/read", response_model=MessageResponse)
@@ -688,32 +554,12 @@ async def mark_message_read(
     project_id: UUID,
     message_id: UUID,
     user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    service: MessageService = Depends(get_message_service)
 ) -> Any:
     """
     Mark a message as read.
     """
-    # Verify project access
-    await verify_project_access(project_id, user_id, db)
-    
-    result = await db.execute(
-        select(Message)
-        .where(Message.id == message_id)
-        .where(Message.project_id == project_id)
-    )
-    message = result.scalar_one_or_none()
-    
-    if not message:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Message not found"
-        )
-    
-    message.is_read = True
-    await db.commit()
-    await db.refresh(message)
-    
-    return message
+    return await service.mark_message_read(str(project_id), str(message_id), user_id)
 
 
 @router.get("/{project_id}/conversation/{order_id}", response_model=List[MessageResponse])
@@ -903,7 +749,7 @@ async def delete_conversation_messages(
     # 4. Attempt platform-side unsend for outbound messages
     if outbound_meta_messages:
         try:
-            from app.services.ai_orchestrator import AIOrchestrator
+            from app.domains.ai.orchestrator import AIOrchestrator
             orchestrator = AIOrchestrator(db)
             await orchestrator.initialize_integrations(project_id)
             

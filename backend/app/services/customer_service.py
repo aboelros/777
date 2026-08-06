@@ -7,7 +7,8 @@ import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import CustomerProfile, Integration, IntegrationStatus
+from app.domains.customers.models import CustomerProfile
+from app.domains.integrations.models import Integration, IntegrationStatus
 from app.services.integrations.facebook import FacebookClient
 
 logger = structlog.get_logger(__name__)

@@ -14,7 +14,8 @@ from sqlalchemy import text
 
 from app.core.database import get_db
 from app.core.security import get_current_user_id
-from app.db.models import Project, MessageDirection
+from app.domains.projects.models import Project
+from app.domains.messages.models import MessageDirection
 from app.services.enhanced_ai_service import EnhancedAIService
 from app.services.social_media_monitor import SocialMediaMonitor
 
@@ -341,7 +342,7 @@ async def create_business_context(
     """
     await verify_project_access(project_id, user_id, db)
     
-    from app.db.models import BusinessContext
+    from app.domains.projects.models import BusinessContext
     
     business_context = BusinessContext(
         project_id=project_id,
@@ -588,7 +589,10 @@ async def get_ai_insights_overview(
     """
     await verify_project_access(project_id, user_id, db)
     
-    from app.db.models import ConversationHistory, CustomerProfile, BusinessContext, SocialMediaComment
+    from app.domains.messages.models import ConversationHistory
+    from app.domains.customers.models import CustomerProfile
+    from app.domains.projects.models import BusinessContext
+    from app.domains.social.models import SocialMediaComment
     from sqlalchemy import func, select
     
     # Count conversations

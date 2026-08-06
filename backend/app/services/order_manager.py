@@ -10,8 +10,10 @@ import structlog
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import Order, OrderStatus, Message, MessageDirection, Integration
-from app.services.gemini_client import gemini_client
+from app.domains.orders.models import Order, OrderStatus
+from app.domains.messages.models import Message, MessageDirection
+from app.domains.integrations.models import Integration
+from app.domains.ai.providers.gemini import gemini_client
 
 logger = structlog.get_logger(__name__)
 
