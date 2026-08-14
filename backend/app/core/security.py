@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from fastapi import HTTPException, Security, Depends, Request
+from fastapi import HTTPException, Security, Depends, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from .config import settings
 
@@ -197,14 +197,19 @@ async def verify_token(
     Raises:
         HTTPException: If token is invalid or missing
     """
-    # Skip auth check in testing mode
-    if settings.TESTING_MODE:
+    # Skip auth check in testing mode — only allowed in non-production environments
+    if settings.TESTING_MODE and settings.ENVIRONMENT.lower() != "production":
         return {
             "sub": "test-user-id",
             "email": "test@testing.com",
             "role": "admin",
             "type": "access"
         }
+    elif settings.TESTING_MODE and settings.ENVIRONMENT.lower() == "production":
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Testing mode is disabled in production",
+        )
     
     token = None
     
@@ -299,21 +304,46 @@ def require_role(required_role: str):
 
 
 # API Key validation (for webhook endpoints)
-def verify_api_key(api_key: str, project_id: str) -> bool:
+async def verify_api_key_async(api_key: str, project_id: str, db) -> bool:
     """
-    Verify API key for webhook endpoints.
-    This should check against database in production.
-    
+    Verify API key for webhook/integration endpoints against the database.
+
     Args:
         api_key: API key from request header
         project_id: Project ID to validate against
-        
+        db: AsyncSession database session
+
     Returns:
         True if valid, False otherwise
     """
-    # TODO: Implement database lookup
-    # For now, this is a placeholder
-    return True
+    if not api_key or not project_id:
+        return False
+    try:
+        from sqlalchemy import select, text
+        # Check in integrations table for matching api_key in config
+        result = await db.execute(
+            text("""
+                SELECT id FROM integrations
+                WHERE project_id = :project_id
+                  AND config->>'api_key' = :api_key
+                  AND status = 'connected'
+                LIMIT 1
+            """),
+            {"project_id": project_id, "api_key": api_key}
+        )
+        return result.scalar_one_or_none() is not None
+    except Exception:
+        # Fall through to False on any error
+        return False
+
+
+def verify_api_key(api_key: str, project_id: str) -> bool:
+    """
+    Synchronous API key check (for non-async contexts).
+    Prefer verify_api_key_async for database-backed validation.
+    """
+    # Minimum sanity check — reject blank keys
+    return bool(api_key and len(api_key) >= 8)
 
 
 def generate_api_key() -> str:

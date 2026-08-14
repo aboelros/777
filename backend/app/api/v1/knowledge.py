@@ -13,7 +13,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user_id
 from app.domains.ai.models import KnowledgeBase
 from app.domains.projects.models import ProjectRole
-from app.api.v1.projects import verify_project_access
+from app.core.access_control import verify_project_access
 from app.services.scraper_service import scraper
 from app.domains.ai.schemas import KnowledgeBaseCreate, KnowledgeBaseUpdate, KnowledgeBaseResponse
 

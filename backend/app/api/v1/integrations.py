@@ -677,13 +677,14 @@ async def _setup_whatsapp_integration(integration: Integration, db: AsyncSession
                 "Please provide phone_number_id and access_token via OAuth or environment variables."
             )
         
-        # Store provider info in extra_data
+        # Encrypt sensitive credentials before storing in extra_data
+        from app.core.security import encrypt_pii
         integration.extra_data = {
             "provider": "business_api",
             "phone_number": phone_number,
             "phone_number_id": phone_number_id,
             "business_account_id": business_account_id,
-            "access_token": access_token, # Store token for this specific integration
+            "access_token": encrypt_pii(access_token),  # Encrypted at rest
             "setup_method": "oauth" if (integration.config or {}).get("access_token") else "manual"
         }
         integration.status = IntegrationStatus.CONNECTED  # Business API is ready immediately
@@ -778,13 +779,14 @@ async def _setup_instagram_integration(integration: Integration, db: AsyncSessio
     if not ig_id:
         raise ValueError("Instagram Business Account ID is required")
     
-    # Store all necessary IDs for webhook handling
+    # Store all necessary IDs for webhook handling — encrypt token at rest
+    from app.core.security import encrypt_pii
     integration.status = IntegrationStatus.CONNECTED
     integration.extra_data = {
         "setup_method": "oauth",
         "page_id": page_id,
         "instagram_business_account_id": ig_id,
-        "access_token": access_token
+        "access_token": encrypt_pii(access_token),  # Encrypted at rest
     }
     
     # NEW: Automatically subscribe app to events
@@ -813,12 +815,13 @@ async def _setup_facebook_integration(integration: Integration, db: AsyncSession
     if not page_id:
         raise ValueError("Facebook Page ID is required")
     
-    # Store all necessary IDs for webhook handling
+    # Store all necessary IDs for webhook handling — encrypt token at rest
+    from app.core.security import encrypt_pii
     integration.status = IntegrationStatus.CONNECTED
     integration.extra_data = {
         "setup_method": "oauth",
         "page_id": page_id,
-        "access_token": access_token
+        "access_token": encrypt_pii(access_token),  # Encrypted at rest
     }
 
     # NEW: Automatically subscribe app to events

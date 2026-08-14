@@ -27,10 +27,11 @@ def get_connect_args():
     # Only external Railway connections need SSL
     if settings.ENVIRONMENT in ["production", "staging"]:
         if "railway" in settings.DATABASE_URL.lower() and "railway.internal" not in settings.DATABASE_URL.lower():
-            # External Railway connection - use SSL
+            # External Railway connection - use SSL with proper verification
             ssl_context = ssl.create_default_context()
-            ssl_context.check_hostname = False
-            ssl_context.verify_mode = ssl.CERT_NONE
+            # DO NOT disable hostname checking or cert verification in production
+            # ssl_context.check_hostname = False  # removed
+            # ssl_context.verify_mode = ssl.CERT_NONE  # removed
             connect_args["ssl"] = ssl_context
         elif "railway.internal" in settings.DATABASE_URL.lower():
             # Internal Railway connection - disable SSL (already secure private network)

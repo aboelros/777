@@ -65,3 +65,24 @@ htmlcov/
 *.egg-info/
 build/
 dist/
+
+# Secrets - never commit these
+*.env
+!*.env.example
+COMPLETE_CONFIG.env
+SUPAPASE_CONFIG.env
+secret_key.txt
+
+# ============================================================
+# SECURITY: Never commit secrets or credentials
+# ============================================================
+COMPLETE_CONFIG.env
+SUPABASE_CONFIG.env
+secret_key.txt
+backend/secret_key.txt
+# Block all .env files except examples
+*.env
+!*.env.example
+!*.env.example.*
+railway.env
+RAILWAY.env

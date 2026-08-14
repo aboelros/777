@@ -26,20 +26,40 @@ logger = structlog.get_logger(__name__)
 
 from app.services.webhook_domain import NormalizedMessage
 
-# Module-level dedup: track recently processed messages with timestamps
-# This prevents both concurrent AND sequential retries from being processed
 import time
-_recent_messages_cache: Dict[str, float] = {}  # dedup_key -> timestamp
-_processing_lock = asyncio.Lock()
 DEDUP_WINDOW_SECONDS = 60  # Reject duplicates within 60 seconds
+_processing_lock = asyncio.Lock()
 
 
-def _cleanup_old_cache_entries():
-    """Remove cache entries older than DEDUP_WINDOW_SECONDS."""
+async def _is_duplicate(key: str) -> bool:
+    """Check if message key was recently processed. Uses Redis when available, falls back to local dict."""
+    try:
+        from app.services.cache_service import cache
+        if cache.enabled and cache.redis_client:
+            redis_key = f"dedup:{key}"
+            result = await cache.redis_client.get(redis_key)
+            if result:
+                return True
+            await cache.redis_client.setex(redis_key, DEDUP_WINDOW_SECONDS, "1")
+            return False
+    except Exception:
+        pass
+
+    # Fallback: in-memory (single-worker environments only)
     now = time.time()
-    expired = [k for k, t in _recent_messages_cache.items() if now - t > DEDUP_WINDOW_SECONDS]
+    # Purge expired entries to prevent unbounded growth
+    expired = [k for k, t in _fallback_cache.items() if now - t > DEDUP_WINDOW_SECONDS]
     for k in expired:
-        del _recent_messages_cache[k]
+        del _fallback_cache[k]
+
+    if key in _fallback_cache:
+        return True
+    _fallback_cache[key] = now
+    return False
+
+
+_fallback_cache: Dict[str, float] = {}
+
 
 
 class WebhookProcessor:
@@ -66,39 +86,22 @@ class WebhookProcessor:
         content_hash = (message_data.content or "")[:100].strip().lower()
         dedup_key_content = f"{project_id}:{message_data.sender_id}:{content_hash}"
         
-        print(f"LOUD_DEBUG: WebhookProcessor processing msg from {message_data.sender_id} | "
-              f"external_id={message_data.external_id} | content='{(message_data.content or '')[:60]}' | "
-              f"platform={message_data.platform}")
+        logger.debug("Processing webhook message", sender_id=message_data.sender_id, external_id=message_data.external_id, platform=message_data.platform)
         
-        async with _processing_lock:
-            _cleanup_old_cache_entries()
-            now = time.time()
-            
-            # Check external_id dedup
-            if dedup_key_eid in _recent_messages_cache:
-                age = now - _recent_messages_cache[dedup_key_eid]
-                logger.warning(
-                    "⚠️ Duplicate message rejected (same external_id)",
-                    external_id=message_data.external_id,
-                    age_seconds=round(age, 1)
-                )
-                return {"status": "skipped", "reason": "duplicate_external_id"}
-            
-            # Check content fingerprint dedup (catches different mid, same content)
-            if dedup_key_content in _recent_messages_cache:
-                age = now - _recent_messages_cache[dedup_key_content]
-                logger.warning(
-                    "⚠️ Duplicate message rejected (same sender+content within window)",
-                    external_id=message_data.external_id,
-                    sender_id=message_data.sender_id,
-                    content_preview=content_hash[:30],
-                    age_seconds=round(age, 1)
-                )
-                return {"status": "skipped", "reason": "duplicate_content_fingerprint"}
-            
-            # Mark both keys as in-progress
-            _recent_messages_cache[dedup_key_eid] = now
-            _recent_messages_cache[dedup_key_content] = now
+        if await _is_duplicate(dedup_key_eid):
+            logger.warning(
+                "⚠️ Duplicate message rejected (same external_id)",
+                external_id=message_data.external_id,
+            )
+            return {"status": "skipped", "reason": "duplicate_external_id"}
+
+        if await _is_duplicate(dedup_key_content):
+            logger.warning(
+                "⚠️ Duplicate message rejected (same sender+content within window)",
+                external_id=message_data.external_id,
+                sender_id=message_data.sender_id,
+            )
+            return {"status": "skipped", "reason": "duplicate_content_fingerprint"}
         
         return await self._process_message_inner(project_id, message_data)
 
@@ -201,15 +204,14 @@ class WebhookProcessor:
         if customer.last_sync:
             time_since_sync = (datetime.now(timezone.utc) - customer.last_sync).total_seconds() / 60
             
-        print(f"LOUD_DEBUG: Customer {customer.customer_id} Name: {customer.name}, Avatar: {customer.avatar_url}, Last Sync: {customer.last_sync}, Time Since: {time_since_sync}")
+        logger.debug("Customer sync check", customer_id=str(customer.customer_id), has_name=bool(customer.name), time_since_sync_min=round(time_since_sync, 1))
         
         # Relaxed throttle to 0.1 minutes (6 seconds) for intensive testing
         should_sync = (is_generic_name or is_missing_avatar) and (time_since_sync > 0.1)
         
-        print(f"LOUD_DEBUG: should_sync={should_sync} (is_generic={is_generic_name}, is_missing={is_missing_avatar})")
+        
         
         if should_sync:
-            print(f"LOUD_DEBUG: Triggering enrichment for customer {customer.customer_id}")
             real_name = customer.name
             fetched_profile = None
             
@@ -266,12 +268,10 @@ class WebhookProcessor:
                         pic_url = pic_data
                         
                 if pic_url and pic_url != customer.avatar_url:
-                    print(f"LOUD_DEBUG: Found new/better avatar URL: {pic_url[:50]}...")
                     logger.info("Updating customer avatar URL", avatar_url=pic_url[:50] + "...")
                     
                     # Persist to local storage if it's an external URL
                     if pic_url.startswith("http"):
-                        print("LOUD_DEBUG: Persisting external avatar to Supabase...")
                         persistent_url = await self._persist_avatar(project_id, customer.id, pic_url)
                         if persistent_url:
                             customer.avatar_url = persistent_url
@@ -297,15 +297,15 @@ class WebhookProcessor:
                 raw_messaging = raw_entry.get("messaging", [{}])[0]
                 
                 # Check multiple potential locations for PFP
+                metadata = data.metadata if isinstance(data.metadata, dict) else {}
                 pic_url = (
                     raw_messaging.get("sender", {}).get("profile_pic") or
-                    extra.get("profile_pic") or 
+                    extra.get("profile_pic") or
                     extra.get("avatar_url") or
-                    data.metadata.get("profile_pic")
+                    metadata.get("profile_pic")
                 )
                 
                 if pic_url and "http" in str(pic_url) and pic_url != customer.avatar_url:
-                    print(f"LOUD_DEBUG: Using PAYLOAD FALLBACK avatar: {str(pic_url)[:50]}...")
                     persistent_url = await self._persist_avatar(project_id, customer.id, str(pic_url))
                     if persistent_url:
                         customer.avatar_url = persistent_url

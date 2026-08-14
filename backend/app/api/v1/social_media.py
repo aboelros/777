@@ -39,7 +39,7 @@ class ResponseGenerate(BaseModel):
 
 async def verify_project_access(project_id: UUID, user_id: str, db: AsyncSession) -> Project:
     """Helper to verify user has access to project."""
-    from app.api.v1.projects import verify_project_access as base_verify
+    from app.core.access_control import verify_project_access as base_verify
     return await base_verify(project_id, user_id, db)
 
 

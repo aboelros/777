@@ -160,8 +160,7 @@ class PostgresStorageService:
             connect_args={"statement_cache_size": 0}
         )
         display_host = self.db_url.split("@")[-1].split("/")[0] if "@" in self.db_url else "unknown"
-        print(f"LOUD_DEBUG: Initialized PostgresStorageService connecting to: {display_host}")
-        logger.info("🐘 Initialized PostgresStorageService", db_host=display_host)
+        logger.info("Initialized PostgresStorageService", db_host=display_host)
 
     async def upload_image(self, file: UploadFile, key: str, content_type: str) -> str:
         """Upload image to Postgres and return the key."""

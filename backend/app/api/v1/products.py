@@ -54,7 +54,7 @@ async def delete_product(
     product_id: UUID,
     user_id: str = Depends(get_current_user_id),
     service: ProductService = Depends(get_product_service)
-) -> Any:
+) -> None:
     await service.delete_product(str(project_id), str(product_id), user_id)
 
 @router.get("/{project_id}")

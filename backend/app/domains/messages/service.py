@@ -7,7 +7,8 @@ from sqlalchemy import select, and_, or_, func
 from app.core.uow import UnitOfWork
 from app.domains.messages.repository import MessageRepository
 from app.domains.customers.repository import CustomerProfileRepository
-from app.domains.messages.models import Message, MessageDirection, CustomerProfile
+from app.domains.messages.models import Message, MessageDirection
+from app.domains.customers.models import CustomerProfile
 from app.domains.messages.schemas import MessageSend, MessageResponse, ConversationSummary
 from app.domains.projects.repository import ProjectRepository
 from app.domains.orders.repository import OrderRepository

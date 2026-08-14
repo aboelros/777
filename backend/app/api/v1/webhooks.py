@@ -23,10 +23,9 @@ async def inbound_webhook(
     Centralized Webhook Gateway.
     All platforms should point here.
     """
-    print(f"LOUD_DEBUG: /api/v1/webhooks/inbound reached | Method: {request.method} | Path: {request.url.path}")
-    logger.info("DEBUG: Inbound webhook endpoint hit")
+    logger.debug("Inbound webhook received", method=request.method, path=str(request.url.path))
     from app.services.webhook_gateway import WebhookGateway
-    
+
     gateway = WebhookGateway(db, background_tasks)
     return await gateway.handle_inbound(request)
 
@@ -37,16 +36,16 @@ async def verify_inbound_webhook(request: Request) -> Any:
     """
     from fastapi.responses import PlainTextResponse
     from app.core.config import settings
-    
+
     mode = request.query_params.get("hub.mode")
     token = request.query_params.get("hub.verify_token")
     challenge = request.query_params.get("hub.challenge")
-    
+
     verify_token = settings.WHATSAPP_VERIFY_TOKEN or getattr(settings, "META_VERIFY_TOKEN", None)
-    
+
     if mode == "subscribe" and token == verify_token:
         return PlainTextResponse(challenge)
-        
+
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Verification failed")
 
 # --- Legacy Proxies (Delegating to Central Gateway) ---
@@ -59,7 +58,7 @@ async def whatsapp_business_webhook(
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """Legacy endpoint for WhatsApp Business API."""
-    print(f"LOUD_DEBUG: /api/v1/webhooks/whatsapp reached | Method: {request.method}")
+    logger.debug("WhatsApp webhook received", method=request.method)
     return await inbound_webhook(request, background_tasks, db)
 
 @router.get("/whatsapp")
@@ -75,7 +74,7 @@ async def telegram_webhook(
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """Legacy endpoint for Telegram."""
-    print(f"LOUD_DEBUG: /api/v1/webhooks/telegram/{project_id} reached")
+    logger.debug("Telegram webhook received", project_id=str(project_id))
     # project_id is ignored as Gateway resolves it internally
     return await inbound_webhook(request, background_tasks, db)
 
@@ -87,7 +86,7 @@ async def instagram_webhook(
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """Legacy endpoint for Instagram."""
-    print(f"LOUD_DEBUG: /api/v1/webhooks/instagram/{project_id} reached")
+    logger.debug("Instagram webhook received", project_id=str(project_id))
     return await inbound_webhook(request, background_tasks, db)
 
 @router.get("/instagram/{project_id}")
@@ -103,7 +102,7 @@ async def facebook_webhook(
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """Legacy endpoint for Facebook."""
-    print(f"LOUD_DEBUG: /api/v1/webhooks/facebook/{project_id} reached")
+    logger.debug("Facebook webhook received", project_id=str(project_id))
     return await inbound_webhook(request, background_tasks, db)
 
 @router.get("/facebook/{project_id}")
@@ -147,7 +146,7 @@ async def tiktok_webhook(
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """Endpoint for TikTok Business Messages."""
-    print(f"LOUD_DEBUG: /api/v1/webhooks/tiktok reached")
+    logger.debug("TikTok webhook received")
     return await inbound_webhook(request, background_tasks, db)
 
 @router.post("/discord")
@@ -157,5 +156,5 @@ async def discord_webhook(
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """Endpoint for Discord Interactions."""
-    print(f"LOUD_DEBUG: /api/v1/webhooks/discord reached")
+    logger.debug("Discord webhook received")
     return await inbound_webhook(request, background_tasks, db)

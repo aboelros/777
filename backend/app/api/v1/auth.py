@@ -6,31 +6,79 @@ from sqlalchemy import select
 import structlog
 
 from app.core.database import get_db
-from app.core.security import get_current_user_id
+from app.core.security import (
+    get_current_user_id,
+    create_access_token,
+    create_refresh_token,
+    verify_password,
+    decode_token,
+)
 from app.core.uow import UnitOfWork
 from app.domains.auth.service import AuthService
 from app.core.rate_limit import limiter
-from app.domains.auth.schemas import UserRegister, UserLogin, TokenResponse, RefreshTokenRequest, UserResponse
-from app.domains.auth.models import User
+from app.domains.auth.schemas import (
+    UserRegister, UserLogin, TokenResponse, RefreshTokenRequest, UserResponse
+)
+from app.domains.auth.models import User, RefreshToken, UserRole
+from app.core.config import settings
 
 router = APIRouter()
 logger = structlog.get_logger(__name__)
 
+
 async def get_auth_service(db: AsyncSession = Depends(get_db)) -> AuthService:
     return AuthService(UnitOfWork(db))
+
+
+def _set_auth_cookies(response: Response, access_token: str, refresh_token: str):
+    """Set secure httpOnly auth cookies on the response."""
+    is_production = settings.ENVIRONMENT == "production"
+    # SameSite=None requires Secure=True in all browsers.
+    # In development we use SameSite=Lax with Secure=False.
+    samesite = "none" if is_production else "lax"
+    secure = is_production
+
+    response.set_cookie(
+        key="access_token",
+        value=f"Bearer {access_token}",
+        httponly=True,
+        secure=secure,
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        expires=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        samesite=samesite,
+        path="/",
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=secure,
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        expires=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        samesite=samesite,
+        path="/",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Register
+# ---------------------------------------------------------------------------
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
 async def register(
     request: Request,
     user_data: UserRegister,
-    auth_service: AuthService = Depends(get_auth_service)
+    auth_service: AuthService = Depends(get_auth_service),
 ) -> Any:
-    """
-    Register a new user account.
-    """
+    """Register a new user account."""
     new_user = await auth_service.register_user(user_data)
     return new_user
+
+
+# ---------------------------------------------------------------------------
+# Login
+# ---------------------------------------------------------------------------
 
 @router.post("/login", response_model=TokenResponse)
 @limiter.limit("10/minute")
@@ -38,357 +86,182 @@ async def login(
     request: Request,
     response: Response,
     login_data: UserLogin,
-    auth_service: AuthService = Depends(get_auth_service)
+    db: AsyncSession = Depends(get_db),
 ) -> Any:
     """
-    Authenticate user and return tokens.
-    """
-    user, access_token, refresh_token = await auth_service.authenticate_user(login_data)
-    
-    # Set refresh token in httpOnly cookie
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        secure=True, 
-        samesite="lax",
-        max_age=30 * 24 * 60 * 60  # 30 days
-    )
-    
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user": user
-    }
+    Authenticate user and return JWT tokens.
 
-@router.post("/refresh", response_model=TokenResponse)
-@limiter.limit("20/minute")
-async def refresh_token(
-    request: Request,
-    response: Response,
-    body: RefreshTokenRequest = None,
-    auth_service: AuthService = Depends(get_auth_service)
-) -> Any:
+    Tokens are delivered both in the JSON body (for API clients) and
+    as httpOnly cookies (for browser clients).
     """
-    Refresh access token using refresh token.
-    """
-    refresh_token = request.cookies.get("refresh_token")
-    if not refresh_token and body:
-        refresh_token = body.refresh_token
-        
-    if not refresh_token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token required",
-        )
-        
-    access_token, new_refresh_token = await auth_service.refresh_tokens(refresh_token)
-    
-    response.set_cookie(
-        key="refresh_token",
-        value=new_refresh_token,
-        httponly=True,
-        secure=True,
-        samesite="lax",
-        max_age=30 * 24 * 60 * 60
-    )
-    
-    return {
-        "access_token": access_token,
-        "token_type": "bearer"
-    }
+    # Sanitize inputs
+    clean_email = login_data.email.lower().strip()
+    clean_password = login_data.password.strip()
 
-@router.post("/logout")
-async def logout(
-    request: Request,
-    response: Response,
-    auth_service: AuthService = Depends(get_auth_service)
-) -> Any:
-    """
-    Logout user and invalidate refresh token.
-    """
-    refresh_token = request.cookies.get("refresh_token")
-    if refresh_token:
-        await auth_service.logout_user(refresh_token)
-        
-    response.delete_cookie("refresh_token")
-    return {"message": "Logged out successfully"}
-
-@router.get("/me", response_model=UserResponse)
-async def get_current_user_profile(
-    user_id: str = Depends(get_current_user_id),
-    auth_service: AuthService = Depends(get_auth_service)
-) -> Any:
-    """
-    Get current logged in user profile.
-    """
-    return await auth_service.get_user_profile(user_id)
-
-@router.get("/seed-admin-now")
-async def seed_admin(db: AsyncSession = Depends(get_db)):
-    from app.domains.auth.models import UserRole
-    from app.core.security import get_password_hash
-    result = await db.execute(select(User).where(User.email == "arnold@gmail.com"))
-    existing = result.scalar_one_or_none()
-    
-    if existing:
-        existing.password_hash = get_password_hash("n01012012")
-        existing.role = UserRole.ADMIN
-        existing.is_active = True
-        await db.commit()
-        return {"status": "updated"}
-        
-    new_user = User(
-        email="arnold@gmail.com",
-        password_hash=get_password_hash("n01012012"),
-        name="Arnold",
-        role=UserRole.ADMIN,
-        is_active=True
-    )
-    db.add(new_user)
-    await db.commit()
-    return {"status": "created"}
-
-
-@router.post("/login", response_model=TokenResponse)
-@limiter.limit("50/15minutes") # Relaxed rate limit for login attempts
-async def login(
-    request: Request,
-    credentials: UserLogin,
-    response: Response,
-    db: AsyncSession = Depends(get_db)
-) -> Any:
-    """
-    Authenticate user and get JWT tokens.
-    """
-    # Sanitize inputs to prevent trailing space/case errors
-    clean_email = credentials.email.lower().strip()
-    clean_password = credentials.password.strip()
-    
-    # DEBUG: Log exactly what we received
-    logger.info("LOGIN DEBUG", 
-        raw_email=repr(credentials.email),
-        clean_email=repr(clean_email),
-        raw_password_len=len(credentials.password),
-        clean_password_len=len(clean_password),
-        password_repr=repr(clean_password),
-    )
-    
-    # Find user by email
+    # Find user
     result = await db.execute(select(User).where(User.email == clean_email))
     user = result.scalar_one_or_none()
-    
-    # DEBUG: Log user lookup result
-    logger.info("LOGIN DEBUG user lookup",
-        user_found=user is not None,
-        user_email=user.email if user else "N/A",
-        user_hash_prefix=user.password_hash[:20] if user else "N/A",
-    )
 
-    # Verify user and password
     if not user or not verify_password(clean_password, user.password_hash):
-        # DEBUG: If user exists, test password separately
-        if user:
-            verify_result = verify_password(clean_password, user.password_hash)
-            logger.warning("LOGIN DEBUG password mismatch",
-                email=clean_email,
-                verify_result=verify_result,
-                password_tried=repr(clean_password),
-                hash_used=user.password_hash[:30],
-            )
-        logger.warning("Failed login attempt", email=credentials.email)
+        logger.warning("Failed login attempt", email=clean_email)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Inactive user"
+            detail="Inactive user",
         )
-    
+
     # Update last login
     user.last_login = datetime.utcnow()
-    
-    # Create tokens
+
+    # Build token payload — always use .value so JWT contains the string "admin"/"user"
     token_data = {
         "sub": str(user.id),
         "email": user.email,
-        "role": user.role
+        "role": user.role.value if isinstance(user.role, UserRole) else str(user.role),
     }
-    
+
     access_token = create_access_token(token_data)
-    refresh_token = create_refresh_token({"sub": str(user.id)})
-    
-    # Store refresh token in database
+    refresh_token_str = create_refresh_token({"sub": str(user.id)})
+
+    # Store refresh token and revoke all previous tokens for this user
     refresh_token_expires = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     new_db_token = RefreshToken(
         user_id=user.id,
-        token=refresh_token,
-        expires_at=refresh_token_expires
+        token=refresh_token_str,
+        expires_at=refresh_token_expires,
     )
-    
-    # Delete old refresh tokens for this user (session management)
     from sqlalchemy import delete as sa_delete
     await db.execute(sa_delete(RefreshToken).where(RefreshToken.user_id == user.id))
-    
     db.add(new_db_token)
     await db.commit()
-    
-    # Set secure cookies with proper attributes
-    is_production = settings.ENVIRONMENT == "production"
-    
-    response.set_cookie(
-        key="access_token",
-        value=f"Bearer {access_token}",
-        httponly=True,  # Prevent XSS attacks
-        secure=is_production,  # Only send over HTTPS in production
-        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        expires=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        samesite="none",  # Allow cross-domain cookies (Vercel -> Render)
-        path="/"  # Available across entire site
-    )
-    
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,  # Prevent XSS attacks
-        secure=is_production,  # Only send over HTTPS in production
-        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-        expires=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-        samesite="none",  # Allow cross-domain cookies (Vercel -> Render)
-        path="/"  # Available across entire site
-    )
-    
-    logger.info("User logged in", user_id=str(user.id), email=user.email)
-    
+
+    # Set secure cookies
+    _set_auth_cookies(response, access_token, refresh_token_str)
+
+    logger.info("User logged in", user_id=str(user.id))
+
     return TokenResponse(
         access_token=access_token,
-        refresh_token=refresh_token,
+        refresh_token=refresh_token_str,
         token_type="bearer",
-        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
 
+# ---------------------------------------------------------------------------
+# Refresh
+# ---------------------------------------------------------------------------
+
 @router.post("/refresh", response_model=TokenResponse)
+@limiter.limit("20/minute")
 async def refresh_access_token(
-    token_request: RefreshTokenRequest,
+    request: Request,
     response: Response,
-    db: AsyncSession = Depends(get_db)
+    body: RefreshTokenRequest = None,
+    db: AsyncSession = Depends(get_db),
 ) -> Any:
-    """
-    Refresh access token using refresh token.
-    """
-    # ... existing logic ...
-    # Decode and validate refresh token
+    """Refresh access token using a valid refresh token."""
+    # Accept token from httpOnly cookie first, then request body
+    refresh_token_str = request.cookies.get("refresh_token")
+    if not refresh_token_str and body:
+        refresh_token_str = body.refresh_token
+
+    if not refresh_token_str:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token required",
+        )
+
+    # Validate token signature and type
     try:
-        payload = decode_token(token_request.refresh_token)
+        payload = decode_token(refresh_token_str)
     except HTTPException:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid refresh token"
+            detail="Invalid refresh token",
         )
-    
+
     if payload.get("type") != "refresh":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token type"
+            detail="Invalid token type",
         )
-    
+
     user_id = payload.get("sub")
-    
-    # Check if refresh token exists and is valid
+
+    # Validate against DB
     result = await db.execute(
         select(RefreshToken)
-        .where(RefreshToken.token == token_request.refresh_token)
+        .where(RefreshToken.token == refresh_token_str)
         .where(RefreshToken.user_id == user_id)
     )
     db_token = result.scalar_one_or_none()
-    
+
     if not db_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token not found"
+            detail="Refresh token not found or already used",
         )
-    
+
     if db_token.expires_at < datetime.utcnow():
-        # Token expired, delete it
         await db.delete(db_token)
         await db.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token expired"
+            detail="Refresh token expired",
         )
-    
+
     # Get user
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
-    
+
     if not user or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found or disabled"
+            detail="User not found or disabled",
         )
-    
-    # Create new tokens
+
+    # Rotate tokens
     token_data = {
         "sub": str(user.id),
         "email": user.email,
-        "role": user.role
+        "role": user.role.value if isinstance(user.role, UserRole) else str(user.role),
     }
-    
     new_access_token = create_access_token(token_data)
-    new_refresh_token = create_refresh_token({"sub": str(user.id)})
-    
-    # Delete old refresh token and create new one
+    new_refresh_token_str = create_refresh_token({"sub": str(user.id)})
+
+    # Swap DB tokens
     await db.delete(db_token)
-    
     refresh_token_expires = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     new_db_token = RefreshToken(
         user_id=user.id,
-        token=new_refresh_token,
-        expires_at=refresh_token_expires
+        token=new_refresh_token_str,
+        expires_at=refresh_token_expires,
     )
-    
     db.add(new_db_token)
     await db.commit()
-    
-    # Set secure cookies with proper attributes
-    is_production = settings.ENVIRONMENT == "production"
-    
-    response.set_cookie(
-        key="access_token",
-        value=f"Bearer {new_access_token}",
-        httponly=True,  # Prevent XSS attacks
-        secure=is_production,  # Only send over HTTPS in production
-        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        expires=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        samesite="none",  # Allow cross-domain cookies (Vercel -> Render)
-        path="/"  # Available across entire site
-    )
-    
-    response.set_cookie(
-        key="refresh_token",
-        value=new_refresh_token,
-        httponly=True,  # Prevent XSS attacks
-        secure=is_production,  # Only send over HTTPS in production
-        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-        expires=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-        samesite="none",  # Allow cross-domain cookies (Vercel -> Render)
-        path="/"  # Available across entire site
-    )
-    
+
+    _set_auth_cookies(response, new_access_token, new_refresh_token_str)
+
     logger.info("Token refreshed", user_id=str(user.id))
-    
+
     return TokenResponse(
         access_token=new_access_token,
-        refresh_token=new_refresh_token,
+        refresh_token=new_refresh_token_str,
         token_type="bearer",
-        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
+
+# ---------------------------------------------------------------------------
+# Logout
+# ---------------------------------------------------------------------------
 
 @router.post("/logout", status_code=status.HTTP_200_OK)
 async def logout(
@@ -396,67 +269,55 @@ async def logout(
     request: Request,
     db: AsyncSession = Depends(get_db),
     user_id: str = Depends(get_current_user_id),
-):
-    """
-    Logout user and invalidate refresh token.
-    Clears HttpOnly cookies and deletes refresh token from database.
-    """
+) -> Any:
+    """Logout user — revoke refresh token and clear auth cookies."""
     try:
-        # Try to get refresh token from cookie first
-        refresh_token = request.cookies.get("refresh_token")
-        
-        # If not in cookie, check request body for backwards compatibility
-        if not refresh_token:
+        refresh_token_str = request.cookies.get("refresh_token")
+        if not refresh_token_str:
             try:
                 body = await request.json()
-                refresh_token = body.get("refresh_token")
-            except:
+                refresh_token_str = body.get("refresh_token")
+            except Exception:
                 pass
-        
-        # Delete refresh token from database if found
-        if refresh_token:
+
+        if refresh_token_str:
             result = await db.execute(
-                select(RefreshToken).filter(RefreshToken.token == refresh_token)
+                select(RefreshToken).where(RefreshToken.token == refresh_token_str)
             )
             db_token = result.scalar_one_or_none()
-            
             if db_token:
                 await db.delete(db_token)
                 await db.commit()
-        
-        # Clear cookies by setting them to expire immediately
+
         response.delete_cookie(key="access_token", path="/")
         response.delete_cookie(key="refresh_token", path="/")
-        
         logger.info("User logged out", user_id=user_id)
-        
         return {"message": "Logged out successfully"}
-    
+
     except Exception as e:
         logger.error("Logout error", error=str(e), user_id=user_id)
-        # Clear cookies anyway
         response.delete_cookie(key="access_token", path="/")
         response.delete_cookie(key="refresh_token", path="/")
         return {"message": "Logged out successfully"}
 
+
+# ---------------------------------------------------------------------------
+# Me
+# ---------------------------------------------------------------------------
 
 @router.get("/me", response_model=UserResponse)
 async def get_current_user(
     user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> Any:
-    """
-    Get current authenticated user's information.
-    
-    Requires valid access token in Authorization header.
-    """
+    """Get the currently authenticated user's profile."""
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
-    
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
+            detail="User not found",
         )
-    
+
     return user

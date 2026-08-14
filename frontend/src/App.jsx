@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Toaster } from 'sonner';
@@ -36,7 +36,7 @@ const Reports = lazy(() => import('./features/analytics/pages/Reports'));
 const Subscription = lazy(() => import('./features/billing/pages/Subscription'));
 const UsageDashboard = lazy(() => import('./features/analytics/pages/UsageDashboard'));
 const Settings = lazy(() => import('./features/common/pages/Settings'));
-const About = lazy(() => import('./features/common/pages/About'));
+
 const Login = lazy(() => import('./features/auth/pages/Login'));
 // Create query client
 const queryClient = new QueryClient({
@@ -72,7 +72,7 @@ function ProtectedRoute({ children }) {
 }
 
 // Main Layout
-function MainLayout({ children }) {
+function MainLayout() {
   const testingMode = import.meta.env.VITE_TESTING_MODE === 'true';
   const [showCreateProject, setShowCreateProject] = useState(false);
   const { currentProject, projects, loadProjects } = useProjectStore();
@@ -92,7 +92,7 @@ function MainLayout({ children }) {
           </div>
         )}
         <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar">
-          {children}
+          <Outlet />
         </main>
 
         {/* Floating Action Button for Project Creation */}
@@ -139,43 +139,37 @@ function App() {
 
             {/* Protected Routes */}
             <Route
-              path="/*"
-            element={
-              <ErrorBoundary FallbackComponent={ErrorFallback}>
-                <ProtectedRoute>
-                  <MainLayout>
-                    <ErrorBoundary FallbackComponent={ErrorFallback}>
-                      <Routes>
-                        <Route path="/" element={<Dashboard />} />
-                        <Route path="/projects" element={<Projects />} />
-                        <Route path="/assistant" element={<Assistant />} />
-                        <Route path="/integrations" element={<Integrations />} />
-                        <Route path="/deals" element={<Deals />} />
-                        <Route path="/integrations/manage" element={<IntegrationsManagement />} />
-                        <Route path="/integrations/meta/callback" element={<MetaCallback />} />
-                        <Route path="/orders" element={<Orders />} />
-                        <Route path="/order-tracking" element={<OrderTracking />} />
-                        <Route path="/messages" element={<Messages />} />
-                        <Route path="/inbox" element={<Messages />} />
-                        <Route path="/products" element={<Products />} />
-                        <Route path="/bot-training" element={<BotTraining />} />
-                        <Route path="/social-media" element={<SocialMedia />} />
-                        <Route path="/campaigns" element={<DripCampaigns />} />
-                        <Route path="/payments" element={<Payments />} />
-                        <Route path="/reports" element={<Reports />} />
-                        <Route path="/subscription" element={<Subscription />} />
-                        <Route path="/usage" element={<UsageDashboard />} />
-                        <Route path="/settings" element={<Settings />} />
-                        <Route path="/" element={<Dashboard />} />
-                        <Route path="*" element={<Navigate to="/" replace />} />
-                      </Routes>
-                    </ErrorBoundary>
-                  </MainLayout>
-                </ProtectedRoute>
-              </ErrorBoundary>
-            }
-          />
-        </Routes>
+              element={
+                <ErrorBoundary FallbackComponent={ErrorFallback}>
+                  <ProtectedRoute>
+                    <MainLayout />
+                  </ProtectedRoute>
+                </ErrorBoundary>
+              }
+            >
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/projects" element={<Projects />} />
+              <Route path="/assistant" element={<Assistant />} />
+              <Route path="/integrations" element={<Integrations />} />
+              <Route path="/deals" element={<Deals />} />
+              <Route path="/integrations/manage" element={<IntegrationsManagement />} />
+              <Route path="/integrations/meta/callback" element={<MetaCallback />} />
+              <Route path="/orders" element={<Orders />} />
+              <Route path="/order-tracking" element={<OrderTracking />} />
+              <Route path="/messages" element={<Messages />} />
+              <Route path="/inbox" element={<Messages />} />
+              <Route path="/products" element={<Products />} />
+              <Route path="/bot-training" element={<BotTraining />} />
+              <Route path="/social-media" element={<SocialMedia />} />
+              <Route path="/campaigns" element={<DripCampaigns />} />
+              <Route path="/payments" element={<Payments />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/subscription" element={<Subscription />} />
+              <Route path="/usage" element={<UsageDashboard />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Route>
+          </Routes>
         </Suspense>
       </BrowserRouter>
 

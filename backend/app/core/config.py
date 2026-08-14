@@ -152,8 +152,7 @@ class Settings(BaseSettings):
             
             logger.warning(
                 "ENCRYPTION_KEY not set - auto-generated one",
-                note="Data encrypted with this key will be lost on restart if not set in .env!",
-                key=generated_key
+                note="Data encrypted with this key will be lost on restart if not set in .env! Set ENCRYPTION_KEY in environment to persist."
             )
             return generated_key
         return v
@@ -229,107 +228,9 @@ class Settings(BaseSettings):
         else:
             print("DEBUG: GEMINI_API_KEY is missing/empty")
         return v
-    # Additional API Keys 1-100 (add as many as you need to .env)
-    GEMINI_API_KEY_1: Optional[str] = None
-    GEMINI_API_KEY_2: Optional[str] = None
-    GEMINI_API_KEY_3: Optional[str] = None
-    GEMINI_API_KEY_4: Optional[str] = None
-    GEMINI_API_KEY_5: Optional[str] = None
-    GEMINI_API_KEY_6: Optional[str] = None
-    GEMINI_API_KEY_7: Optional[str] = None
-    GEMINI_API_KEY_8: Optional[str] = None
-    GEMINI_API_KEY_9: Optional[str] = None
-    GEMINI_API_KEY_10: Optional[str] = None
-    GEMINI_API_KEY_11: Optional[str] = None
-    GEMINI_API_KEY_12: Optional[str] = None
-    GEMINI_API_KEY_13: Optional[str] = None
-    GEMINI_API_KEY_14: Optional[str] = None
-    GEMINI_API_KEY_15: Optional[str] = None
-    GEMINI_API_KEY_16: Optional[str] = None
-    GEMINI_API_KEY_17: Optional[str] = None
-    GEMINI_API_KEY_18: Optional[str] = None
-    GEMINI_API_KEY_19: Optional[str] = None
-    GEMINI_API_KEY_20: Optional[str] = None
-    GEMINI_API_KEY_21: Optional[str] = None
-    GEMINI_API_KEY_22: Optional[str] = None
-    GEMINI_API_KEY_23: Optional[str] = None
-    GEMINI_API_KEY_24: Optional[str] = None
-    GEMINI_API_KEY_25: Optional[str] = None
-    GEMINI_API_KEY_26: Optional[str] = None
-    GEMINI_API_KEY_27: Optional[str] = None
-    GEMINI_API_KEY_28: Optional[str] = None
-    GEMINI_API_KEY_29: Optional[str] = None
-    GEMINI_API_KEY_30: Optional[str] = None
-    GEMINI_API_KEY_31: Optional[str] = None
-    GEMINI_API_KEY_32: Optional[str] = None
-    GEMINI_API_KEY_33: Optional[str] = None
-    GEMINI_API_KEY_34: Optional[str] = None
-    GEMINI_API_KEY_35: Optional[str] = None
-    GEMINI_API_KEY_36: Optional[str] = None
-    GEMINI_API_KEY_37: Optional[str] = None
-    GEMINI_API_KEY_38: Optional[str] = None
-    GEMINI_API_KEY_39: Optional[str] = None
-    GEMINI_API_KEY_40: Optional[str] = None
-    GEMINI_API_KEY_41: Optional[str] = None
-    GEMINI_API_KEY_42: Optional[str] = None
-    GEMINI_API_KEY_43: Optional[str] = None
-    GEMINI_API_KEY_44: Optional[str] = None
-    GEMINI_API_KEY_45: Optional[str] = None
-    GEMINI_API_KEY_46: Optional[str] = None
-    GEMINI_API_KEY_47: Optional[str] = None
-    GEMINI_API_KEY_48: Optional[str] = None
-    GEMINI_API_KEY_49: Optional[str] = None
-    GEMINI_API_KEY_50: Optional[str] = None
-    GEMINI_API_KEY_51: Optional[str] = None
-    GEMINI_API_KEY_52: Optional[str] = None
-    GEMINI_API_KEY_53: Optional[str] = None
-    GEMINI_API_KEY_54: Optional[str] = None
-    GEMINI_API_KEY_55: Optional[str] = None
-    GEMINI_API_KEY_56: Optional[str] = None
-    GEMINI_API_KEY_57: Optional[str] = None
-    GEMINI_API_KEY_58: Optional[str] = None
-    GEMINI_API_KEY_59: Optional[str] = None
-    GEMINI_API_KEY_60: Optional[str] = None
-    GEMINI_API_KEY_61: Optional[str] = None
-    GEMINI_API_KEY_62: Optional[str] = None
-    GEMINI_API_KEY_63: Optional[str] = None
-    GEMINI_API_KEY_64: Optional[str] = None
-    GEMINI_API_KEY_65: Optional[str] = None
-    GEMINI_API_KEY_66: Optional[str] = None
-    GEMINI_API_KEY_67: Optional[str] = None
-    GEMINI_API_KEY_68: Optional[str] = None
-    GEMINI_API_KEY_69: Optional[str] = None
-    GEMINI_API_KEY_70: Optional[str] = None
-    GEMINI_API_KEY_71: Optional[str] = None
-    GEMINI_API_KEY_72: Optional[str] = None
-    GEMINI_API_KEY_73: Optional[str] = None
-    GEMINI_API_KEY_74: Optional[str] = None
-    GEMINI_API_KEY_75: Optional[str] = None
-    GEMINI_API_KEY_76: Optional[str] = None
-    GEMINI_API_KEY_77: Optional[str] = None
-    GEMINI_API_KEY_78: Optional[str] = None
-    GEMINI_API_KEY_79: Optional[str] = None
-    GEMINI_API_KEY_80: Optional[str] = None
-    GEMINI_API_KEY_81: Optional[str] = None
-    GEMINI_API_KEY_82: Optional[str] = None
-    GEMINI_API_KEY_83: Optional[str] = None
-    GEMINI_API_KEY_84: Optional[str] = None
-    GEMINI_API_KEY_85: Optional[str] = None
-    GEMINI_API_KEY_86: Optional[str] = None
-    GEMINI_API_KEY_87: Optional[str] = None
-    GEMINI_API_KEY_88: Optional[str] = None
-    GEMINI_API_KEY_89: Optional[str] = None
-    GEMINI_API_KEY_90: Optional[str] = None
-    GEMINI_API_KEY_91: Optional[str] = None
-    GEMINI_API_KEY_92: Optional[str] = None
-    GEMINI_API_KEY_93: Optional[str] = None
-    GEMINI_API_KEY_94: Optional[str] = None
-    GEMINI_API_KEY_95: Optional[str] = None
-    GEMINI_API_KEY_96: Optional[str] = None
-    GEMINI_API_KEY_97: Optional[str] = None
-    GEMINI_API_KEY_98: Optional[str] = None
-    GEMINI_API_KEY_99: Optional[str] = None
-    GEMINI_API_KEY_100: Optional[str] = None
+    # Additional API Keys 1-100: dynamically collected at startup
+    # Set GEMINI_API_KEY_1 through GEMINI_API_KEY_100 in environment variables.
+    # Use get_all_gemini_keys() property to access all keys.
     GEMINI_MODEL: str = "gemini-2.0-flash"
     GEMINI_MAX_TOKENS: int = 8192
     GEMINI_TEMPERATURE: float = 0.7
@@ -491,6 +392,19 @@ class Settings(BaseSettings):
     def database_url_sync(self) -> str:
         """Get synchronous database URL (for Alembic migrations)."""
         return self.DATABASE_URL.replace("+asyncpg", "")
+
+    @property
+    def all_gemini_keys(self) -> List[str]:
+        """Collect all configured Gemini API keys (primary + numbered 1-100)."""
+        import os
+        keys = []
+        if self.GEMINI_API_KEY:
+            keys.append(self.GEMINI_API_KEY)
+        for i in range(1, 101):
+            key = os.getenv(f"GEMINI_API_KEY_{i}")
+            if key and key not in keys:
+                keys.append(key)
+        return keys
 
 
 @lru_cache()

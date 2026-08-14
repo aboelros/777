@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import useThemeStore from '../store/themeStore';
 
 const translations = {
@@ -1574,7 +1575,7 @@ export default translations;
 export const useTranslation = () => {
     const { language } = useThemeStore();
 
-    const t = (key) => {
+    const t = useCallback((key) => {
         const keys = key.split('.');
         let result = translations[language] || translations['en'];
 
@@ -1584,7 +1585,7 @@ export const useTranslation = () => {
         }
 
         return result || key;
-    };
+    }, [language]);
 
     return { t, language };
 };

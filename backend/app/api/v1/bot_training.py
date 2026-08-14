@@ -13,7 +13,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user_id
 from app.domains.projects.models import Project
 from app.domains.ai.models import BotInstruction
-from app.api.v1.projects import verify_project_access
+from app.core.access_control import verify_project_access
 from app.core.default_instructions import get_default_instructions
 from pydantic import BaseModel
 from app.domains.ai.service import AIService
@@ -58,23 +58,6 @@ class AutoResponseTemplateCreate(BaseModel):
     use_ai_enhancement: bool = True
     requires_approval: bool = False
 
-
-async def verify_project_access(project_id: UUID, user_id: str, db: AsyncSession) -> Project:
-    """Helper to verify user has access to project."""
-    result = await db.execute(
-        select(Project)
-        .where(Project.id == project_id)
-        .where(Project.owner_id == UUID(user_id))
-    )
-    project = result.scalar_one_or_none()
-    
-    if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found or access denied"
-        )
-    
-    return project
 
 
 @router.get("/{project_id}/instructions")

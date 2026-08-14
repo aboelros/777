@@ -81,12 +81,12 @@ async def lifespan(app: FastAPI):
             # List models that support generateContent
             models = list(genai.list_models())
             available_models = [m.name for m in models if 'generateContent' in m.supported_generation_methods]
-            print(f"DEBUG: 🧠 Available Gemini Models: {available_models}")
-            logger.info("🧠 Available Gemini Models", models=available_models)
+            print(f"DEBUG: Available Gemini Models: {available_models}")
+            logger.info("Available Gemini Models", models=available_models)
         else:
-            print("DEBUG: ⚠️ GEMINI_API_KEY is missing")
+            print("DEBUG: GEMINI_API_KEY is missing")
     except Exception as e:
-        print(f"DEBUG: ❌ Failed to list Gemini models: {e}")
+        print(f"DEBUG: Failed to list Gemini models: {e}")
         logger.error("Failed to list Gemini models", error=str(e))
         
     logger.info("✅ Database ready - migrations run by start.sh")
@@ -129,6 +129,7 @@ setup_error_handlers(app)
 # FastAPI Middleware Order (Stack): Last Added is Outermost (runs first for Request)
 
 from app.core.rate_limit import limiter, _rate_limit_exceeded_handler, RateLimitExceeded, SlowAPIMiddleware
+from app.core.security import require_role
 
 # 1. Rate Limiting (Innermost - closest to handler)
 app.state.limiter = limiter
@@ -198,12 +199,14 @@ async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
     
     # Content Security Policy (Strict)
+    # Nonces should be used for inline scripts in production; for now, disallow unsafe-inline
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
         "img-src 'self' data: https:; "
-        "script-src 'self' 'unsafe-inline'; "
+        "script-src 'self'; "
         "style-src 'self' 'unsafe-inline'; "
-        "connect-src 'self' https://aisalescommander.com https://graph.facebook.com https://graph.instagram.com"
+        "connect-src 'self' https://aisalescommander.com https://graph.facebook.com https://graph.instagram.com; "
+        "frame-ancestors 'none';"
     )
     
     # Strict Transport Security (HSTS)
@@ -221,30 +224,18 @@ async def add_security_headers(request: Request, call_next):
 # 4. Request Logging & Process Time (Outermost - runs first for request)
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
-    """Add request processing time header and logging."""
+    """Add request processing time header."""
     start_time = time.time()
-    request_id = str(time.time_ns())
-    
     try:
         response = await call_next(request)
         process_time = time.time() - start_time
-        response.headers["X-Process-Time"] = str(process_time)
-        response.headers["X-Request-ID"] = request_id
-        
-        logger.info(
-            "Request processed",
-            method=request.method,
-            path=request.url.path,
-            status_code=response.status_code,
-            process_time=f"{process_time:.3f}s",
-            request_id=request_id
-        )
+        response.headers["X-Process-Time"] = f"{process_time:.3f}s"
         return response
     except Exception as e:
-        logger.error("Request failed", error=str(e), path=request.url.path, request_id=request_id)
+        logger.error("Request failed", error=str(e), path=request.url.path)
         return JSONResponse(
             status_code=500,
-            content={"detail": "Internal server error", "request_id": request_id}
+            content={"detail": "Internal server error"}
         )
 
 
@@ -302,7 +293,7 @@ async def database_health_check(db: AsyncSession = Depends(get_db)):
 
 
 @app.get("/debug/config", tags=["Debug"])
-async def debug_config():
+async def debug_config(_: dict = Depends(require_role("admin"))):
     """Debug endpoint to check configuration."""
     db_host = "unknown"
     if settings.DATABASE_URL and "@" in settings.DATABASE_URL:
@@ -323,7 +314,7 @@ async def debug_config():
 
 
 @app.get("/check-enums", tags=["Debug"])
-async def check_enums():
+async def check_enums(_: dict = Depends(require_role("admin"))):
     """
     Check valid ENUM values for role and subscription fields.
     Shows what values are actually allowed in the database.
@@ -369,7 +360,7 @@ async def check_enums():
 
 
 @app.get("/hash-password", tags=["Debug"])
-async def hash_password(password: str):
+async def hash_password(password: str, _: dict = Depends(require_role("admin"))):
     """
     Generate a bcrypt hash for a password.
     Use this to manually create users in the database.
@@ -407,7 +398,7 @@ VALUES (
 
 
 @app.get("/check-schema", tags=["Debug"])
-async def check_schema():
+async def check_schema(_: dict = Depends(require_role("admin"))):
     """
     Check if users table has the required columns.
     """
@@ -440,7 +431,7 @@ async def check_schema():
 
 
 @app.get("/migrate", tags=["Debug"])
-async def run_migrations():
+async def run_migrations(_: dict = Depends(require_role("admin"))):
     """
     Manually trigger database migrations.
     Use this if migrations didn't run automatically.
@@ -470,7 +461,7 @@ async def run_migrations():
 
 
 @app.get("/seed-direct", tags=["Debug"])
-async def seed_direct():
+async def seed_direct(_: dict = Depends(require_role("admin"))):
     """
     Seed database using direct SQL (bypasses ORM).
     Creates: test@aisales.local / AiSales2024!Demo
@@ -542,7 +533,7 @@ async def seed_direct():
 
 
 @app.get("/seed", tags=["Debug"])
-async def seed_test_account():
+async def seed_test_account(_: dict = Depends(require_role("admin"))):
     """
     Seed database with test account.
     Creates: test@aisales.local / AiSales2024!Demo
