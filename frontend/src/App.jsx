@@ -36,6 +36,7 @@ const Reports = lazy(() => import('./features/analytics/pages/Reports'));
 const Subscription = lazy(() => import('./features/billing/pages/Subscription'));
 const UsageDashboard = lazy(() => import('./features/analytics/pages/UsageDashboard'));
 const Settings = lazy(() => import('./features/common/pages/Settings'));
+const About = lazy(() => import('./features/common/pages/About'));
 
 const Login = lazy(() => import('./features/auth/pages/Login'));
 // Create query client
@@ -167,6 +168,7 @@ function App() {
               <Route path="/subscription" element={<Subscription />} />
               <Route path="/usage" element={<UsageDashboard />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/about" element={<About />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Routes>
