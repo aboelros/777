@@ -14,38 +14,7 @@ const About = () => {
     linkedin: 'https://linkedin.com/in/mahmoudaboelros'
   };
 
-  const coFounders = [
-    {
-      name: 'Shady Ahmed',
-      role: 'Co-Founder & Strategy Lead',
-      photo: 'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=400&q=80',
-      bio: 'Strategic architect building dreams from raw chaos.',
-      email: 'shady@aisalescommander.com',
-      phone: '+20 102 345 6789',
-      instagram: 'https://instagram.com/shady.ahmed',
-      linkedin: 'https://linkedin.com/in/shady-ahmed'
-    },
-    {
-      name: 'Idris Ghamed',
-      role: 'Co-Founder & CTO',
-      photo: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80',
-      bio: 'Technical innovator turning midnight ideas into reality.',
-      email: 'idris@aisalescommander.com',
-      phone: '+20 103 456 7890',
-      instagram: 'https://instagram.com/idris.ghamed',
-      linkedin: 'https://linkedin.com/in/idris-ghamed'
-    },
-    {
-      name: 'Ayman Ali',
-      role: 'Co-Founder & Product Head',
-      photo: 'https://images.unsplash.com/photo-1547425260-76bcadfb4f2c?auto=format&fit=crop&w=400&q=80',
-      bio: 'Product visionary crafting daylight empires.',
-      email: 'ayman@aisalescommander.com',
-      phone: '+20 104 567 8901',
-      instagram: 'https://instagram.com/ayman.ali',
-      linkedin: 'https://linkedin.com/in/ayman-ali'
-    }
-  ];
+
 
   const formatPhoneHref = (phone) => phone.replace(/[^+\d]/g, '');
 
@@ -233,50 +202,7 @@ const About = () => {
         </GlassCard>
       </motion.div>
 
-      {/* Co-Founders Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-      >
-        <GlassCard className="p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <Users className="w-8 h-8 text-sky-400" />
-            <h2 className="text-3xl font-bold text-white">Meet Our Co-Founders</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {coFounders.map((cofounder, index) => (
-              <motion.div
-                key={index}
-                className="relative group"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.5 + index * 0.1 }}
-              >
-                <div className="p-6 rounded-xl bg-gradient-to-br from-blue-500/10 via-sky-500/10 to-sky-500/10 backdrop-blur-sm border border-white/10 hover:border-sky-500/50 transition-all duration-300">
-                  <div className="text-center space-y-4">
-                    {/* Avatar */}
-                    <motion.div
-                      className="mx-auto h-32 w-32 overflow-hidden rounded-full border-4 border-sky-500/30 shadow-lg shadow-sky-500/20 flex items-center justify-center bg-sky-500/10"
-                      whileHover={{ scale: 1.05 }}
-                      transition={{ duration: 0.4 }}
-                    >
-                      <User className="h-16 w-16 text-sky-400" />
-                    </motion.div>
 
-                    {/* Info */}
-                    <div>
-                      <h3 className="text-2xl font-bold text-white">{cofounder.name}</h3>
-                      <p className="text-sky-400 font-semibold">{cofounder.role}</p>
-                      <p className="text-gray-400 mt-2 text-sm">{cofounder.bio}</p>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </GlassCard>
-      </motion.div>
 
       {/* Contact Information */}
       <motion.div
