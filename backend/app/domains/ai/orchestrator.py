@@ -1238,14 +1238,14 @@ DO NOT repeat the previous text. Just give the answer.
         try:
             from app.domains.ai.models import KnowledgeBase
             
-            # For now, we fetch up to 10 active knowledge items. 
-            stmt = select(KnowledgeBase).where(
+            # Select only title and content to avoid errors if embedding column doesn't exist yet
+            stmt = select(KnowledgeBase.title, KnowledgeBase.content).where(
                 KnowledgeBase.project_id == project_id,
                 KnowledgeBase.is_active == True
             )
             
             result = await self.db.execute(stmt.limit(10))
-            items = result.scalars().all()
+            items = result.all()
             
             if not items:
                 await cache.set(cache_key, "", expire_seconds=1800)
@@ -1260,6 +1260,10 @@ DO NOT repeat the previous text. Just give the answer.
             return knowledge_text
         except Exception as e:
             logger.error("Failed to fetch knowledge context", error=str(e))
+            try:
+                await self.db.rollback()
+            except Exception:
+                pass
             return ""
 
     def _build_context(

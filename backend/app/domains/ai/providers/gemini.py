@@ -241,7 +241,7 @@ class GeminiClient:
         user_id: Optional[UUID],
         prompt: str,
         response: str,
-        model: str = "gemini-2.0-flash"
+        model: str = "gemini-3.6-flash"
     ):
         """Track AI usage for billing."""
         if not user_id or not self.subscription_service:
@@ -1017,7 +1017,7 @@ class GeminiClient:
                         )
                         
                         # KEY ROTATION STRATEGY:
-                        # 1. Try to rotate keys first while keeping the same model (e.g. gemini-2.0)
+                        # 1. Try to rotate keys first while keeping the same model (e.g. gemini-3.6)
                         # 2. Only fallback to a cheaper model if we are running out of keys/retries
                         
                         # Rotate to next API key
@@ -1027,7 +1027,7 @@ class GeminiClient:
                             # Check if we should fallback to cheaper model on the LAST few attempts
                             # e.g. if we have 10 keys, try 7 keys with 2.0, then fallback for the last 3
                             should_fallback = False
-                            if "gemini-2.0" in model_name and attempt > (max_retries - 3):
+                            if "gemini-3.6" in model_name and attempt > (max_retries - 3):
                                 should_fallback = True
                                 logger.warning("⚠️ Gemini 2.0 failing on multiple keys. Fallback to gemini-flash-latest enabled.")
                                 model_name = "gemini-flash-latest"
