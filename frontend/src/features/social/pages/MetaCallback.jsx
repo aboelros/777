@@ -106,7 +106,7 @@ export default function MetaCallback() {
                 };
             }
 
-            await integrations.create(currentProject.id, {
+            await api.integrations.create(currentProject.id, {
                 provider: provider,
                 config: config
             });
