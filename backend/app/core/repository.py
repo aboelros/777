@@ -12,6 +12,10 @@ class BaseRepository(Generic[ModelType]):
         self.model = model
         self.session = session
 
+    def add(self, obj: ModelType) -> None:
+        self.session.add(obj)
+
+
     async def get(self, id: Any) -> Optional[ModelType]:
         query = select(self.model).filter(self.model.id == id)
         result = await self.session.execute(query)
