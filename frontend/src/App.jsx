@@ -23,6 +23,8 @@ const Deals = lazy(() => import('./features/crm/pages/Deals'));
 const Integrations = lazy(() => import('./features/integrations/pages/Integrations'));
 const IntegrationsManagement = lazy(() => import('./features/integrations/pages/IntegrationsManagement'));
 const MetaCallback = lazy(() => import('./features/social/pages/MetaCallback'));
+const TikTokCallback = lazy(() => import('./features/integrations/pages/TikTokCallback'));
+const ShopifyCallback = lazy(() => import('./features/integrations/pages/ShopifyCallback'));
 const PrivacyPolicy = lazy(() => import('./features/common/pages/PrivacyPolicy'));
 const Messages = lazy(() => import('./features/messages/pages/Messages'));
 const Orders = lazy(() => import('./features/orders/pages/Orders'));
@@ -155,6 +157,8 @@ function App() {
               <Route path="/deals" element={<Deals />} />
               <Route path="/integrations/manage" element={<IntegrationsManagement />} />
               <Route path="/integrations/meta/callback" element={<MetaCallback />} />
+              <Route path="/integrations/tiktok/callback" element={<TikTokCallback />} />
+              <Route path="/integrations/shopify/callback" element={<ShopifyCallback />} />
               <Route path="/orders" element={<Orders />} />
               <Route path="/order-tracking" element={<OrderTracking />} />
               <Route path="/messages" element={<Messages />} />

@@ -95,6 +95,30 @@ export const integrations = {
     });
   },
 
+  // TikTok OAuth
+  getTikTokAuthUrl: async (projectId, redirectUri) => {
+    return apiRequest(`/api/v1/integrations/${projectId}/tiktok/auth-url?redirect_uri=${encodeURIComponent(redirectUri)}`);
+  },
+
+  handleTikTokCallback: async (projectId, code, redirectUri) => {
+    return apiRequest(`/api/v1/integrations/${projectId}/tiktok/callback`, {
+      method: 'POST',
+      body: JSON.stringify({ code, redirect_uri: redirectUri }),
+    });
+  },
+
+  // Shopify OAuth
+  getShopifyAuthUrl: async (projectId, shopDomain, redirectUri) => {
+    return apiRequest(`/api/v1/integrations/${projectId}/shopify/auth-url?shop_domain=${encodeURIComponent(shopDomain)}&redirect_uri=${encodeURIComponent(redirectUri)}`);
+  },
+
+  handleShopifyCallback: async (projectId, code, shop, hmac, state, host) => {
+    return apiRequest(`/api/v1/integrations/${projectId}/shopify/callback`, {
+      method: 'POST',
+      body: JSON.stringify({ code, shop, hmac, state, host }),
+    });
+  },
+
   getLogs: async (projectId, limit = 50) => {
     return apiRequest(`/api/v1/integrations/${projectId}/logs?limit=${limit}`);
   },

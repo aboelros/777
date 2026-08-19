@@ -285,6 +285,7 @@ class Settings(BaseSettings):
     TELEGRAM_BOT_TOKEN: Optional[str] = None
     
     # TikTok
+    TIKTOK_APP_KEY: Optional[str] = None
     TIKTOK_APP_SECRET: Optional[str] = None
     
     # Discord

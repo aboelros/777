@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <!-- Premium Dark Background with Rounded Corners -->
+    <rect width="100" height="100" rx="25" fill="#0B1120"/>
+    
+    <!-- Stylized Letter A in Brand Gradient -->
+    <path d="M30 70 L50 30 L70 70" fill="none" stroke="url(#brandGrad)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="38" y1="55" x2="62" y2="55" stroke="url(#brandGrad)" stroke-width="12" stroke-linecap="round"/>
+    
+    <defs>
+        <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#10B981" />
+            <stop offset="100%" stop-color="#F59E0B" />
+        </linearGradient>
+    </defs>
+</svg>

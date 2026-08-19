@@ -110,7 +110,7 @@ class WebhookGateway:
             return "shopify"
         if "X-Signature-Ed25519" in headers:
             return "discord"
-        if "X-Tiktok-Signature" in headers or ("event" in payload and payload["event"].startswith("message.")):
+        if "X-Tiktok-Signature" in headers:
             return "tiktok"
             
         # Payload inspection
@@ -123,6 +123,12 @@ class WebhookGateway:
             return "go_whatsapp"
         if "order_number" in payload or ("first_name" in payload and "orders_count" in payload):
             return "shopify"
+            
+        # TikTok Shop Webhooks usually have "shop_id" and "type" (integer)
+        if "shop_id" in payload and "type" in payload and isinstance(payload["type"], int):
+            return "tiktok"
+            
+        # Legacy TikTok Business webhooks
         if "event" in payload and payload["event"].startswith("message."):
             return "tiktok"
             

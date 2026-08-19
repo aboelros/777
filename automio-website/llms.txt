@@ -1,0 +1,32 @@
+# Automio AI Engineering
+
+> Automio is a premier AI engineering and automation company. We build autonomous AI ecosystems for modern enterprises to scale operations, reduce overhead, and drive unprecedented growth through cutting-edge Artificial Intelligence.
+
+## Company Information
+- **Name:** Automio
+- **Website:** https://automio.online
+- **Industry:** Artificial Intelligence, Software Development, Business Automation
+- **Location:** Egypt
+
+## Leadership
+- **Founder & CEO:** Mahmoud Abdelaziz Aboelros
+- **Contact Email:** arnold@automio.online
+- **Contact Phone:** +201063200566
+
+## Flagship Product: AI Sales Commander
+The AI Sales Commander is an enterprise-grade AI agent powered by Gemini 1.5 Pro. It handles end-to-end customer interactions, sentiment analysis, and order management natively across WhatsApp, Instagram, and Shopify.
+
+### Key Features
+1. **Omnichannel Autonomous Sales:** Seamlessly integrates with WhatsApp, Instagram DMs, and Shopify to handle customer inquiries and close sales 24/7.
+2. **Real-time Catalog Sync:** AI recommends alternative products if an item goes out of stock by syncing directly with the Shopify catalog.
+3. **Flawless Order Management:** Automatically processes orders, handles checkout flows, and updates shipping statuses without human intervention.
+4. **Post-Purchase Automation:** Triggers review requests and upsell campaigns 3 days after delivery to maximize Customer Lifetime Value (CLTV).
+5. **Human Escalation Protocol:** Smartly detects complex issues or angry customers using sentiment analysis and routes them to a human agent with full context.
+
+## Pricing Tiers
+- **Starter ($29/mo):** 1,000 AI Conversations, WhatsApp Integration, Basic Analytics, 48hr Support.
+- **Professional ($119/mo):** 10,000 AI Conversations, WhatsApp & Instagram, Shopify Sync, Custom AI Training, 24/7 Priority Support.
+- **Enterprise ($799/mo):** Unlimited Conversations, All Platforms, Custom Architecture, Dedicated Success Manager, SLA Guarantee.
+
+## Mission
+To democratize enterprise-grade AI automation, making it accessible, scalable, and highly profitable for businesses globally.

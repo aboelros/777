@@ -374,6 +374,11 @@ export default function Integrations() {
   };
 
   const handleConnect = (provider) => {
+    if (provider === 'tiktok') {
+      handleTikTokConnect();
+      return;
+    }
+    
     const integration = availableIntegrations.find(i => i.id === provider);
     setSelectedProvider(integration);
     setCredentials(initialCredentials);
@@ -404,19 +409,32 @@ export default function Integrations() {
     }
 
     if (providerId === 'shopify') {
-      if (credentials.shopDomain && credentials.shopDomain.trim()) {
-        configData.shop_domain = credentials.shopDomain.trim();
-      } else {
+      if (!credentials.shopDomain || !credentials.shopDomain.trim()) {
         toast.error('Shop domain is required for Shopify');
         setConnectingProvider(null);
         return;
       }
-
-      if (!credentials.apiSecret || !credentials.apiSecret.trim()) {
-        toast.error('Admin API secret is required for Shopify');
-        setConnectingProvider(null);
-        return;
-      }
+      
+      // Initiate OAuth flow
+      const shopDomain = credentials.shopDomain.trim();
+      const redirectUri = window.location.origin + '/integrations/shopify/callback';
+      
+      integrations.getShopifyAuthUrl(currentProject.id, shopDomain, redirectUri)
+        .then(response => {
+          if (response.auth_url) {
+            window.location.href = response.auth_url;
+          } else {
+            toast.error('Failed to get Shopify authentication URL');
+            setConnectingProvider(null);
+          }
+        })
+        .catch(error => {
+          console.error('Shopify auth error:', error);
+          toast.error('Failed to start Shopify connection');
+          setConnectingProvider(null);
+        });
+        
+      return; // Stop here, redirect handles the rest
     }
 
     if (providerId === 'whatsapp') {
@@ -576,6 +594,22 @@ export default function Integrations() {
     } catch (error) {
       console.error('Meta auth error:', error);
       toast.error('Failed to start Meta connection');
+    }
+  };
+
+  const handleTikTokConnect = async () => {
+    try {
+      const redirectUri = window.location.origin + '/integrations/tiktok/callback';
+      const response = await integrations.getTikTokAuthUrl(currentProject.id, redirectUri);
+
+      if (response.auth_url) {
+        window.location.href = response.auth_url;
+      } else {
+        toast.error('Failed to get TikTok authentication URL');
+      }
+    } catch (error) {
+      console.error('TikTok auth error:', error);
+      toast.error('Failed to start TikTok connection');
     }
   };
 
@@ -885,359 +919,308 @@ export default function Integrations() {
 
               {/* Meta OAuth Button Removed - Manual Connection Only */}
 
-              <form onSubmit={(e) => { e.preventDefault(); handleSubmitConnection(); }} className="space-y-4">
-                {selectedProvider.id !== 'whatsapp' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      {(() => {
-                        switch (selectedProvider.id) {
-                          case 'telegram':
-                            return 'Bot Token *';
-                          case 'discord':
-                            return 'Bot Token *';
-                          case 'shopify':
-                            return 'Admin API Key *';
-                          case 'instagram':
-                            return 'User Access Token *';
-                          case 'facebook':
-                            return 'Page Access Token *';
-                          case 'tiktok':
-                            return 'App Key *';
-                          default:
-                            return 'API Key *';
-                        }
-                      })()}
-                    </label>
-                    <input
-                      type="text"
-                      placeholder={
-                        selectedProvider.id === 'telegram'
-                          ? '1234567890:ABCdefGHIjklMNOpqrSTUvwxYZ'
-                          : selectedProvider.id === 'discord'
-                            ? 'MTAw...'
-                            : selectedProvider.id === 'shopify'
-                              ? 'shpat_...'
-                              : selectedProvider.id === 'facebook'
-                                ? 'EAAG...'
-                                : selectedProvider.id === 'tiktok'
-                                  ? 'Enter App Key'
-                                  : 'Enter your API key'
-                      }
-                      className="input-glass w-full"
-                      autoComplete="off"
-                      required
-                      value={selectedProvider.id === 'tiktok' ? credentials.tiktokAppKey : credentials.apiKey}
-                      onChange={(e) => {
-                        if (selectedProvider.id === 'tiktok') {
-                          setCredentials({ ...credentials, tiktokAppKey: e.target.value });
-                        } else {
-                          setCredentials({ ...credentials, apiKey: e.target.value });
-                        }
-                      }}
-                    />
-                    {selectedProvider.id === 'telegram' && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        Get this from @BotFather after creating your bot
-                      </p>
+              {(selectedProvider.id === 'facebook' || selectedProvider.id === 'instagram') ? (
+                <div className="flex flex-col items-center justify-center py-6 space-y-4">
+                  <p className="text-center text-gray-400 text-sm mb-4">
+                    Connect your Meta account to manage messages from {selectedProvider.name}.
+                  </p>
+                  <Button
+                    onClick={handleMetaConnect}
+                    variant="primary"
+                    className="w-full bg-[#1877F2] hover:bg-[#0C63D4] border-none text-white font-semibold py-3"
+                    leftIcon={Facebook}
+                  >
+                    Login with Facebook
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <form onSubmit={(e) => { e.preventDefault(); handleSubmitConnection(); }} className="space-y-4">
+                    {selectedProvider.id !== 'whatsapp' && selectedProvider.id !== 'shopify' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          {(() => {
+                            switch (selectedProvider.id) {
+                              case 'telegram':
+                                return 'Bot Token *';
+                              case 'discord':
+                                return 'Bot Token *';
+                              case 'shopify':
+                                return 'Admin API Key *';
+                              case 'tiktok':
+                                return 'App Key *';
+                              default:
+                                return 'API Key *';
+                            }
+                          })()}
+                        </label>
+                        <input
+                          type="text"
+                          placeholder={
+                            selectedProvider.id === 'telegram'
+                              ? '1234567890:ABCdefGHIjklMNOpqrSTUvwxYZ'
+                              : selectedProvider.id === 'discord'
+                                ? 'MTAw...'
+                                : selectedProvider.id === 'shopify'
+                                  ? 'shpat_...'
+                                  : selectedProvider.id === 'tiktok'
+                                    ? 'Enter App Key'
+                                    : 'Enter your API key'
+                          }
+                          className="input-glass w-full"
+                          autoComplete="off"
+                          required
+                          value={selectedProvider.id === 'tiktok' ? credentials.tiktokAppKey : credentials.apiKey}
+                          onChange={(e) => {
+                            if (selectedProvider.id === 'tiktok') {
+                              setCredentials({ ...credentials, tiktokAppKey: e.target.value });
+                            } else {
+                              setCredentials({ ...credentials, apiKey: e.target.value });
+                            }
+                          }}
+                        />
+                        {selectedProvider.id === 'telegram' && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Get this from @BotFather after creating your bot
+                          </p>
+                        )}
+                        {selectedProvider.id === 'discord' && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Get this from the Discord Developer Portal
+                          </p>
+                        )}
+                      </div>
                     )}
+
                     {selectedProvider.id === 'discord' && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        Get this from the Discord Developer Portal
-                      </p>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Server ID (Guild ID) *
+                        </label>
+                        <input
+                          type="text"
+                          value={credentials.discordGuildId || ''}
+                          onChange={(e) => setCredentials({ ...credentials, discordGuildId: e.target.value })}
+                          placeholder="123456789012345678"
+                          className="input-glass w-full"
+                          required
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Enable Developer Mode in Discord settings to copy this ID
+                        </p>
+                      </div>
                     )}
-                  </div>
-                )}
 
-                {selectedProvider.id === 'discord' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Server ID (Guild ID) *
-                    </label>
-                    <input
-                      type="text"
-                      value={credentials.discordGuildId || ''}
-                      onChange={(e) => setCredentials({ ...credentials, discordGuildId: e.target.value })}
-                      placeholder="123456789012345678"
-                      className="input-glass w-full"
-                      required
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Enable Developer Mode in Discord settings to copy this ID
-                    </p>
-                  </div>
-                )}
+                    {selectedProvider.id === 'shopify' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Shop Domain *
+                        </label>
+                        <input
+                          type="text"
+                          value={credentials.shopDomain || ''}
+                          onChange={(e) => setCredentials({ ...credentials, shopDomain: e.target.value })}
+                          placeholder="your-shop-name (without .myshopify.com)"
+                          className="input-glass w-full"
+                          required={selectedProvider.id === 'shopify'}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Just the shop name, not the full URL
+                        </p>
+                      </div>
+                    )}
 
-                {selectedProvider.id === 'shopify' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Shop Domain *
-                    </label>
-                    <input
-                      type="text"
-                      value={credentials.shopDomain || ''}
-                      onChange={(e) => setCredentials({ ...credentials, shopDomain: e.target.value })}
-                      placeholder="your-shop-name (without .myshopify.com)"
-                      className="input-glass w-full"
-                      required={selectedProvider.id === 'shopify'}
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Just the shop name, not the full URL
-                    </p>
-                  </div>
-                )}
-
-                {selectedProvider.id === 'shopify' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Admin API Secret Key *
-                    </label>
-                    <input
-                      type="password"
-                      value={credentials.apiSecret}
-                      onChange={(e) => setCredentials({ ...credentials, apiSecret: e.target.value })}
-                      placeholder="Required for Shopify"
-                      className="input-glass w-full"
-                      autoComplete="current-password"
-                      required
-                    />
-                  </div>
-                )}
-
-                {selectedProvider.id === 'whatsapp' && (
-                  <div className="grid grid-cols-1 gap-4">
-                    {/* Provider Selection */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        WhatsApp Provider *
-                      </label>
-                      <select
-                        value={credentials.whatsappProvider}
-                        onChange={(e) => setCredentials({ ...credentials, whatsappProvider: e.target.value })}
-                        className="input-glass w-full"
-                      >
-                        <option value="business_api">WhatsApp Business API (Official)</option>
-                        <option value="go_whatsapp">Go WhatsApp (Multi-Device)</option>
-                      </select>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {credentials.whatsappProvider === 'business_api'
-                          ? 'Connect your WhatsApp Business Account'
-                          : 'Scan QR code in next step'}
-                      </p>
-                    </div>
-
-                    {/* Business API Fields */}
-                    {credentials.whatsappProvider === 'business_api' && (
-                      <>
+                    {selectedProvider.id === 'whatsapp' && (
+                      <div className="grid grid-cols-1 gap-4">
+                        {/* Provider Selection */}
                         <div>
                           <label className="block text-sm font-medium text-gray-300 mb-2">
-                            WhatsApp Phone Number *
+                            WhatsApp Provider *
                           </label>
-                          <input
-                            type="text"
-                            value={credentials.whatsappPhoneNumber}
-                            onChange={(e) => setCredentials({ ...credentials, whatsappPhoneNumber: e.target.value })}
-                            placeholder="+15551234567"
+                          <select
+                            value={credentials.whatsappProvider}
+                            onChange={(e) => setCredentials({ ...credentials, whatsappProvider: e.target.value })}
                             className="input-glass w-full"
-                            required
-                          />
+                          >
+                            <option value="business_api">WhatsApp Business API (Official)</option>
+                            <option value="go_whatsapp">Go WhatsApp (Multi-Device)</option>
+                          </select>
                           <p className="text-xs text-gray-500 mt-1">
-                            Business phone number registered with WhatsApp Business API
+                            {credentials.whatsappProvider === 'business_api'
+                              ? 'Connect your WhatsApp Business Account'
+                              : 'Scan QR code in next step'}
                           </p>
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2">
-                            Business Account ID (optional)
-                          </label>
-                          <input
-                            type="text"
-                            value={credentials.whatsappBusinessAccountId}
-                            onChange={(e) => setCredentials({ ...credentials, whatsappBusinessAccountId: e.target.value })}
-                            placeholder="Optional"
-                            className="input-glass w-full"
-                          />
-                        </div>
-                      </>
+
+                        {/* Business API Fields */}
+                        {credentials.whatsappProvider === 'business_api' && (
+                          <>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-300 mb-2">
+                                WhatsApp Phone Number *
+                              </label>
+                              <input
+                                type="text"
+                                value={credentials.whatsappPhoneNumber}
+                                onChange={(e) => setCredentials({ ...credentials, whatsappPhoneNumber: e.target.value })}
+                                placeholder="+15551234567"
+                                className="input-glass w-full"
+                                required
+                              />
+                              <p className="text-xs text-gray-500 mt-1">
+                                Business phone number registered with WhatsApp Business API
+                              </p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-300 mb-2">
+                                Business Account ID (optional)
+                              </label>
+                              <input
+                                type="text"
+                                value={credentials.whatsappBusinessAccountId}
+                                onChange={(e) => setCredentials({ ...credentials, whatsappBusinessAccountId: e.target.value })}
+                                placeholder="Optional"
+                                className="input-glass w-full"
+                              />
+                            </div>
+                          </>
+                        )}
+
+
+
+                        {/* Go WhatsApp Fields */}
+                        {credentials.whatsappProvider === 'go_whatsapp' && (
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-300 mb-2">
+                                Go WhatsApp Base URL *
+                              </label>
+                              <input
+                                type="text"
+                                value={credentials.baseUrl}
+                                onChange={(e) => setCredentials({ ...credentials, baseUrl: e.target.value })}
+                                placeholder="https://go-whatsapp.railway.app"
+                                className="input-glass w-full"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-300 mb-2">
+                                Basic Auth Password (Optional)
+                              </label>
+                              <input
+                                type="password"
+                                value={credentials.apiKey}
+                                onChange={(e) => setCredentials({ ...credentials, apiKey: e.target.value })}
+                                placeholder="Password if Basic Auth is enabled"
+                                className="input-glass w-full"
+                                autoComplete="off"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-300 mb-2">
+                                Session Name (Optional)
+                              </label>
+                              <input
+                                type="text"
+                                value={credentials.sessionId}
+                                onChange={(e) => setCredentials({ ...credentials, sessionId: e.target.value })}
+                                placeholder="default"
+                                className="input-glass w-full"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     )}
 
-
-
-                    {/* Go WhatsApp Fields */}
-                    {credentials.whatsappProvider === 'go_whatsapp' && (
+                    {selectedProvider.id === 'tiktok' && (
                       <div className="space-y-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-300 mb-2">
-                            Go WhatsApp Base URL *
+                            Shop ID *
                           </label>
                           <input
                             type="text"
-                            value={credentials.baseUrl}
-                            onChange={(e) => setCredentials({ ...credentials, baseUrl: e.target.value })}
-                            placeholder="https://go-whatsapp.railway.app"
+                            value={credentials.tiktokShopId}
+                            onChange={(e) => setCredentials({ ...credentials, tiktokShopId: e.target.value })}
+                            placeholder="Enter TikTok Shop ID"
                             className="input-glass w-full"
                             required
                           />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-300 mb-2">
-                            Basic Auth Password (Optional)
+                            App Secret (Optional)
                           </label>
                           <input
                             type="password"
-                            value={credentials.apiKey}
-                            onChange={(e) => setCredentials({ ...credentials, apiKey: e.target.value })}
-                            placeholder="Password if Basic Auth is enabled"
+                            value={credentials.tiktokAppSecret}
+                            onChange={(e) => setCredentials({ ...credentials, tiktokAppSecret: e.target.value })}
+                            placeholder="Enter App Secret"
                             className="input-glass w-full"
-                            autoComplete="off"
                           />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-300 mb-2">
-                            Session Name (Optional)
+                            Access Token (Optional)
                           </label>
                           <input
-                            type="text"
-                            value={credentials.sessionId}
-                            onChange={(e) => setCredentials({ ...credentials, sessionId: e.target.value })}
-                            placeholder="default"
+                            type="password"
+                            value={credentials.tiktokAccessToken}
+                            onChange={(e) => setCredentials({ ...credentials, tiktokAccessToken: e.target.value })}
+                            placeholder="Enter Access Token"
                             className="input-glass w-full"
                           />
                         </div>
                       </div>
                     )}
-                  </div>
-                )}
+                    {selectedProvider.id !== 'shopify' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Webhook URL (optional)
+                        </label>
+                        <input
+                          type="url"
+                          value={credentials.webhookUrl}
+                          onChange={(e) => setCredentials({ ...credentials, webhookUrl: e.target.value })}
+                          placeholder="https://your-domain.com/webhook"
+                          className="input-glass w-full"
+                          autoComplete="url"
+                        />
+                      </div>
+                    )}
+                  </form>
 
-                {selectedProvider.id === 'instagram' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Instagram Business Account ID *
-                    </label>
-                    <input
-                      type="text"
-                      value={credentials.instagramBusinessAccountId}
-                      onChange={(e) => setCredentials({ ...credentials, instagramBusinessAccountId: e.target.value })}
-                      placeholder="17841405793187218"
-                      className="input-glass w-full"
-                      required
-                    />
+                  <div className="flex gap-3 mt-6">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        setShowModal(false);
+                        setCredentials(initialCredentials);
+                      }}
+                      disabled={connectMutation.isPending}
+                      className="flex-1 glass-card px-4 py-2 rounded-xl hover:bg-white/10 transition-colors"
+                    >
+                      {t('integrations.cancel')}
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleSubmitConnection}
+                      disabled={
+                        connectMutation.isPending ||
+                        (selectedProvider.id !== 'whatsapp' && selectedProvider.id !== 'tiktok' && !credentials.apiKey) ||
+                        (selectedProvider.id === 'tiktok' && (!credentials.tiktokAppKey || !credentials.tiktokShopId))
+                      }
+                      className="flex-1 btn-neon disabled:opacity-50"
+                    >
+                      {connectMutation.isPending ? t('common.loading') : t('integrations.connect')}
+                    </motion.button>
                   </div>
-                )}
-
-                {selectedProvider.id === 'facebook' && (
-                  <div className="grid grid-cols-1 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Page ID *
-                      </label>
-                      <input
-                        type="text"
-                        value={credentials.facebookPageId}
-                        onChange={(e) => setCredentials({ ...credentials, facebookPageId: e.target.value })}
-                        placeholder="112233445566778"
-                        className="input-glass w-full"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        App ID (optional)
-                      </label>
-                      <input
-                        type="text"
-                        value={credentials.facebookAppId}
-                        onChange={(e) => setCredentials({ ...credentials, facebookAppId: e.target.value })}
-                        placeholder="987654321098765"
-                        className="input-glass w-full"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {selectedProvider.id === 'tiktok' && (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Shop ID *
-                      </label>
-                      <input
-                        type="text"
-                        value={credentials.tiktokShopId}
-                        onChange={(e) => setCredentials({ ...credentials, tiktokShopId: e.target.value })}
-                        placeholder="Enter TikTok Shop ID"
-                        className="input-glass w-full"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        App Secret (Optional)
-                      </label>
-                      <input
-                        type="password"
-                        value={credentials.tiktokAppSecret}
-                        onChange={(e) => setCredentials({ ...credentials, tiktokAppSecret: e.target.value })}
-                        placeholder="Enter App Secret"
-                        className="input-glass w-full"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Access Token (Optional)
-                      </label>
-                      <input
-                        type="password"
-                        value={credentials.tiktokAccessToken}
-                        onChange={(e) => setCredentials({ ...credentials, tiktokAccessToken: e.target.value })}
-                        placeholder="Enter Access Token"
-                        className="input-glass w-full"
-                      />
-                    </div>
-                  </div>
-                )}
-                {selectedProvider.id !== 'shopify' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Webhook URL (optional)
-                    </label>
-                    <input
-                      type="url"
-                      value={credentials.webhookUrl}
-                      onChange={(e) => setCredentials({ ...credentials, webhookUrl: e.target.value })}
-                      placeholder="https://your-domain.com/webhook"
-                      className="input-glass w-full"
-                      autoComplete="url"
-                    />
-                  </div>
-                )}
-              </form>
-
-              <div className="flex gap-3 mt-6">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    setShowModal(false);
-                    setCredentials(initialCredentials);
-                  }}
-                  disabled={connectMutation.isPending}
-                  className="flex-1 glass-card px-4 py-2 rounded-xl hover:bg-white/10 transition-colors"
-                >
-                  {t('integrations.cancel')}
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleSubmitConnection}
-                  disabled={
-                    connectMutation.isPending ||
-                    (selectedProvider.id !== 'whatsapp' && selectedProvider.id !== 'tiktok' && !credentials.apiKey) ||
-                    (selectedProvider.id === 'tiktok' && (!credentials.tiktokAppKey || !credentials.tiktokShopId))
-                  }
-                  className="flex-1 btn-neon disabled:opacity-50"
-                >
-                  {connectMutation.isPending ? t('common.loading') : t('integrations.connect')}
-                </motion.button>
-              </div>
+                </>
+              )}
             </motion.div>
           </div>
         )

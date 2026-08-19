@@ -344,16 +344,12 @@ class TikTokAdapter(BaseAdapter):
     """Adapter for TikTok."""
     
     def verify_signature(self, request: Request, body: bytes) -> bool:
-        # TikTok uses Authorization header or specific signature header depending on event type
-        # For Business Messages, it often uses Authorization from setup, but for webhooks:
-        # Standard TikTok Shop/Business webhook uses a signature.
-        signature = request.headers.get("Authorization") # Sometimes passed here
+        signature = request.headers.get("Authorization") # TikTok Shop uses Authorization header
         if not signature:
-             signature = request.headers.get("X-Tiktok-Signature") # Or this
+             signature = request.headers.get("X-Tiktok-Signature")
              
         if not signature:
             # If no signature, and we have a secret, fail.
-            # But during development/sandbox, it might be loose.
             if settings.TIKTOK_APP_SECRET:
                  return False
             return True
@@ -362,20 +358,45 @@ class TikTokAdapter(BaseAdapter):
             return True
             
         import hmac, hashlib
-        # Verify TikTok HMAC-SHA256
+        app_key = getattr(settings, "TIKTOK_APP_KEY", "")
+        
+        # Verify TikTok Shop HMAC-SHA256 (AppKey + Body)
         expected = hmac.new(
-            settings.TIKTOK_APP_SECRET.encode(),
-            body,
+            settings.TIKTOK_APP_SECRET.encode('utf-8'),
+            (app_key + body.decode('utf-8')).encode('utf-8'),
             hashlib.sha256
         ).hexdigest()
         
-        # TikTok signature might act differently (header vs body), but assuming standard HMAC
         return hmac.compare_digest(expected, signature)
 
     def normalize(self, payload: Dict[str, Any]) -> Optional[WebhookEvent]:
-        # TikTok payload structure
+        # TikTok Shop Payload Structure
+        if payload.get("type") == 14:  # 14 = NEW_MESSAGE event
+            data = payload.get("data", {})
+            content_str = data.get("content", "{}")
+            import json
+            try:
+                content = json.loads(content_str)
+            except Exception:
+                content = {"text": content_str}
+                
+            return WebhookEvent(
+                event_id=data.get("message_id", "unknown"),
+                event_type=EventType.MESSAGE_CREATED,
+                timestamp=datetime.fromtimestamp(data.get("create_time", 0)),
+                platform="tiktok",
+                channel="tiktok",
+                sender_id=data.get("sender_id"),
+                sender_name=None,
+                payload={
+                    "text": content.get("text", ""),
+                    "message_type": data.get("message_type", "TEXT")
+                },
+                raw_data=payload
+            )
+            
+        # Legacy TikTok Business Payload structure
         event_type = payload.get("event")
-        
         if event_type == "message.receive":
             content = payload.get("content", {})
             return WebhookEvent(
