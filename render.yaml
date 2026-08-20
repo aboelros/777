@@ -69,6 +69,19 @@ services:
       # ── Rate Limiting ──
       - key: RATE_LIMIT_PER_MINUTE
         value: 60
+      # ── WhatsApp Gateway ──
+      - key: WHATSAPP_BAILEYS_URL
+        value: https://ai-sales-bot-whatsapp.onrender.com
+      - key: WHATSAPP_BAILEYS_API_KEY
+        fromService:
+          type: web
+          name: ai-sales-bot-whatsapp
+          envVarKey: API_KEY
+      - key: WHATSAPP_GATEWAY_CALLBACK_SECRET
+        fromService:
+          type: web
+          name: ai-sales-bot-whatsapp
+          envVarKey: CALLBACK_SECRET
       # NOTE: Per-user integrations (Telegram, WhatsApp, Shopify, etc.)
       # are stored in the database per project/user — NOT as env vars here.
 
@@ -83,3 +96,30 @@ services:
     plan: free
     maxmemoryPolicy: allkeys-lru
     ipAllowList: []
+
+  # ─────────────────────────────────────────────
+  # 3. WhatsApp Gateway (Baileys)
+  # Note: Render Free plan has ephemeral storage. Sessions will reset on deploy.
+  # Upgrade to a paid plan and add a disk for persistent sessions.
+  # ─────────────────────────────────────────────
+  - type: web
+    name: ai-sales-bot-whatsapp
+    runtime: docker
+    region: oregon
+    plan: free
+    branch: main
+    dockerfilePath: ./whatsapp-gateway/Dockerfile
+    dockerContext: ./whatsapp-gateway
+    healthCheckPath: /health
+    envVars:
+      - key: API_KEY
+        generateValue: true
+      - key: CALLBACK_SECRET
+        generateValue: true
+      - key: BACKEND_URL
+        # Replace with your actual backend URL once deployed
+        value: https://ai-sales-bot-api.onrender.com
+      - key: SESSION_DIR
+        value: ./sessions
+      - key: LOG_LEVEL
+        value: info
