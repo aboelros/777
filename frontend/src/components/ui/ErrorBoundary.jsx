@@ -1,8 +1,26 @@
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function ErrorFallback({ error, resetErrorBoundary }) {
+  useEffect(() => {
+    // Auto-reload the page once if the error is related to failing to fetch dynamically imported modules
+    // This happens frequently on Vercel/Netlify when a new build is deployed and the user's browser
+    // still has the old index.html cached, which requests now-missing JS chunk files.
+    if (
+      error?.message && 
+      (error.message.includes('Failed to fetch dynamically imported module') || 
+       error.message.includes('Importing a module script failed'))
+    ) {
+      const chunkReloaded = sessionStorage.getItem('chunk_load_error_reloaded');
+      if (!chunkReloaded) {
+        sessionStorage.setItem('chunk_load_error_reloaded', 'true');
+        window.location.reload();
+      }
+    }
+  }, [error]);
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <motion.div
@@ -40,7 +58,11 @@ export default function ErrorFallback({ error, resetErrorBoundary }) {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={resetErrorBoundary}
+              onClick={() => {
+                sessionStorage.removeItem('chunk_load_error_reloaded');
+                resetErrorBoundary();
+                window.location.reload();
+              }}
               className="flex-1 btn-neon flex items-center justify-center gap-2"
             >
               <RefreshCw className="w-4 h-4" />
@@ -49,6 +71,7 @@ export default function ErrorFallback({ error, resetErrorBoundary }) {
             
             <Link
               to="/"
+              onClick={() => sessionStorage.removeItem('chunk_load_error_reloaded')}
               className="flex-1 glass-card px-4 py-2 rounded-xl hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
             >
               <Home className="w-4 h-4" />
