@@ -71,8 +71,15 @@ services:
         value: 60
       # ── WhatsApp Gateway ──
       - key: WHATSAPP_BAILEYS_URL
-        value: https://ai-sales-bot-whatsapp.onrender.com
+        value: https://ai-sales-bot-whatsapp-vdr6.onrender.com
       - key: WHATSAPP_BAILEYS_API_KEY
+        fromService:
+          type: web
+          name: ai-sales-bot-whatsapp
+          envVarKey: API_KEY
+      - key: WA_GATEWAY_BASE_URL
+        value: https://ai-sales-bot-whatsapp-vdr6.onrender.com
+      - key: WA_GATEWAY_API_KEY
         fromService:
           type: web
           name: ai-sales-bot-whatsapp
