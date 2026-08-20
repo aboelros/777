@@ -442,26 +442,12 @@ export default function Integrations() {
       configData.whatsapp_provider = credentials.whatsappProvider || 'business_api';
 
       if (credentials.whatsappProvider === 'go_whatsapp') {
-        // Go WhatsApp validation
-        if (!credentials.baseUrl || !credentials.baseUrl.trim()) {
-          toast.error('Go WhatsApp Base URL is required');
-          setConnectingProvider(null);
-          return;
-        }
-
-        configData.base_url = credentials.baseUrl.trim();
-        // Session ID is optional/default for Go WhatsApp but we send it if provided
-        if (credentials.sessionId && credentials.sessionId.trim()) {
-          configData.session_id = credentials.sessionId.trim();
-        } else {
-          configData.session_id = 'default';
-        }
-        // API Key is already added at the top if present
-
+        // No manual configuration required, backend handles it
+        configData.session_id = 'default';
       } else {
         // Business API validation
         if (!credentials.whatsappPhoneNumber || !credentials.whatsappPhoneNumber.trim()) {
-          toast.error('Phone number is required for WhatsApp Business API');
+          toast.error('WhatsApp Phone Number is required for Business API');
           setConnectingProvider(null);
           return;
         }
@@ -1088,49 +1074,7 @@ export default function Integrations() {
 
 
 
-                        {/* Go WhatsApp Fields */}
-                        {credentials.whatsappProvider === 'go_whatsapp' && (
-                          <div className="space-y-4">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-300 mb-2">
-                                Go WhatsApp Base URL *
-                              </label>
-                              <input
-                                type="text"
-                                value={credentials.baseUrl}
-                                onChange={(e) => setCredentials({ ...credentials, baseUrl: e.target.value })}
-                                placeholder="https://go-whatsapp.railway.app"
-                                className="input-glass w-full"
-                                required
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-300 mb-2">
-                                Basic Auth Password (Optional)
-                              </label>
-                              <input
-                                type="password"
-                                value={credentials.apiKey}
-                                onChange={(e) => setCredentials({ ...credentials, apiKey: e.target.value })}
-                                placeholder="Password if Basic Auth is enabled"
-                                className="input-glass w-full"
-                                autoComplete="off"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-300 mb-2">
-                                Session Name (Optional)
-                              </label>
-                              <input
-                                type="text"
-                                value={credentials.sessionId}
-                                onChange={(e) => setCredentials({ ...credentials, sessionId: e.target.value })}
-                                placeholder="default"
-                                className="input-glass w-full"
-                              />
-                            </div>
-                          </div>
-                        )}
+                        {/* Removed manual configuration fields for Go WhatsApp to allow direct QR connect */}
                       </div>
                     )}
 
