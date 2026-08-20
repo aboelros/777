@@ -638,11 +638,11 @@ async def _setup_whatsapp_integration(integration: Integration, db: AsyncSession
     
     if whatsapp_provider == "go_whatsapp":
         # Go WhatsApp setup
-        base_url = (integration.config or {}).get("base_url")
+        base_url = (integration.config or {}).get("base_url") or settings.WA_GATEWAY_BASE_URL
         session_id = (integration.config or {}).get("session_id", "default")
         
         if not base_url:
-            raise ValueError("Base URL is required for Go WhatsApp")
+            raise ValueError("Base URL is required for Go WhatsApp. Please configure WA_GATEWAY_BASE_URL.")
             
         # Store provider info in extra_data
         integration.extra_data = {
