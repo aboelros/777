@@ -4,7 +4,7 @@ from datetime import datetime
 
 # URLs to ping (from your render.yaml)
 URLS = [
-    "https://ai-sales-bot-api.onrender.com/health",
+    "https://ai-sales-bot-api-vdr6.onrender.com/health",
     "https://ai-sales-bot-whatsapp-vdr6.onrender.com/health"
 ]
 

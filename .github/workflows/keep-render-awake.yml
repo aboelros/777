@@ -13,7 +13,7 @@ jobs:
       - name: Ping Backend API
         # Pings the /health endpoint (or root) and ignores failures so the workflow doesn't fail
         run: |
-          curl -sSf https://ai-sales-bot-api.onrender.com/health || curl -sSf https://ai-sales-bot-api.onrender.com || echo "Backend API ping returned non-200, but ping was sent."
+          curl -sSf https://ai-sales-bot-api-vdr6.onrender.com/health || curl -sSf https://ai-sales-bot-api-vdr6.onrender.com || echo "Backend API ping returned non-200, but ping was sent."
 
       - name: Ping WhatsApp Gateway
         # Pings the whatsapp gateway
