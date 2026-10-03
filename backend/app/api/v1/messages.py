@@ -14,6 +14,9 @@ from app.core.config import settings
 
 from app.core.database import get_db
 from app.core.security import get_current_user_id
+from app.core.context import TenantContext
+from app.api.dependencies.tenant import get_tenant_context
+from app.domains.messages.repository import MessageRepository
 from app.domains.projects.models import Project, ProjectRole
 from app.domains.messages.models import Message, MessageDirection
 from app.domains.orders.models import Order
@@ -198,30 +201,22 @@ async def get_inbox(
 async def get_conversations(
     project_id: UUID,
     request: Request,
+    context: TenantContext = Depends(get_tenant_context),
     provider: Optional[str] = Query(None, description="Filter by provider/channel"),
     days: int = Query(30, description="Number of days to look back", ge=1, le=180),
     limit: int = Query(50, description="Maximum conversations to return", ge=1, le=200),
     search: Optional[str] = Query(None, description="Search by customer name, email, phone, or message"),
-    user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """Return aggregated conversation summaries for messaging inbox."""
 
-    await verify_project_access(project_id, user_id, db)
-
-    query = select(Message).options(selectinload(Message.customer)).where(Message.project_id == project_id)
-
-    if provider and provider.lower() != "all":
-        query = query.where(Message.provider == provider)
-
-    start_date = datetime.utcnow() - timedelta(days=days)
-    query = query.where(Message.created_at >= start_date)
-
-    # Pull recent messages (over-fetch to build summaries reliably)
-    query = query.order_by(Message.created_at.desc()).limit(limit * 10)
-
-    result = await db.execute(query)
-    messages = result.scalars().all()
+    repo = MessageRepository(db)
+    messages = await repo.get_inbox_by_context(
+        context=context, 
+        limit=limit * 10,
+        provider=provider,
+        days=days
+    )
 
     conversations: dict[str, dict[str, Any]] = {}
     
