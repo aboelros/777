@@ -151,6 +151,68 @@ async def test_api_conversations_endpoint():
     assert res_valid_msg.status_code == 200
     assert len(res_valid_msg.json()) == 1
 
+@pytest.mark.asyncio
+async def test_api_customer_profile_endpoint():
+    """Test the migrated customer profile endpoint."""
+    from httpx import AsyncClient
+    from app.main import app
+    from app.core.security import create_access_token
+    
+    user_a_id = uuid4()
+    project_a_id = uuid4()
+    user_b_id = uuid4()
+    project_b_id = uuid4()
+    
+    async with AsyncSessionLocal() as db:
+        # User A & Project A
+        user_a = User(id=user_a_id, email=f"test_{user_a_id}@example.com", password_hash="hash", role="admin")
+        project_a = Project(id=project_a_id, owner_id=user_a_id, project_code=f"PRJ_{project_a_id}", name="Project A", timezone="UTC")
+        
+        # User B & Project B
+        user_b = User(id=user_b_id, email=f"test_{user_b_id}@example.com", password_hash="hash", role="admin")
+        project_b = Project(id=project_b_id, owner_id=user_b_id, project_code=f"PRJ_{project_b_id}", name="Project B", timezone="UTC")
+        
+        from app.domains.customers.models import CustomerProfile
+        
+        # Profile for A
+        profile_a_id = uuid4()
+        profile_a = CustomerProfile(id=profile_a_id, project_id=project_a_id, customer_id="A", name="A")
+        
+        # Profile for B
+        profile_b_id = uuid4()
+        profile_b = CustomerProfile(id=profile_b_id, project_id=project_b_id, customer_id="B", name="B")
+        
+        db.add_all([user_a, project_a, user_b, project_b, profile_a, profile_b])
+        await db.commit()
+
+    token_a = create_access_token({"sub": str(user_a_id)})
+    token_b = create_access_token({"sub": str(user_b_id)})
+    
+    async def make_profile_request(token, target_project_id, target_profile_id):
+        headers = {"Authorization": f"Bearer {token}"}
+        async with AsyncClient(app=app, base_url="http://test") as client:
+            return await client.get(f"/api/v1/messages/{target_project_id}/customers/{target_profile_id}", headers=headers)
+            
+    # Matrix:
+    # 1. A + A project + A profile -> 200
+    r1 = await make_profile_request(token_a, project_a_id, profile_a_id)
+    assert r1.status_code == 200
+    
+    # 2. B + B project + B profile -> 200
+    r2 = await make_profile_request(token_b, project_b_id, profile_b_id)
+    assert r2.status_code == 200
+    
+    # 3. A + B project -> 404 (Denied at project level)
+    r3 = await make_profile_request(token_a, project_b_id, profile_b_id)
+    assert r3.status_code == 404
+    
+    # 4. A + A project + B profile -> 404 (Denied at resource ownership level)
+    r4 = await make_profile_request(token_a, project_a_id, profile_b_id)
+    assert r4.status_code == 404
+    
+    # 5. A + A project + random profile -> 404
+    r5 = await make_profile_request(token_a, project_a_id, uuid4())
+    assert r5.status_code == 404
 
 @pytest.mark.asyncio
 async def test_tenant_a_project_to_tenant_b_resource_denied():

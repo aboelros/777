@@ -765,23 +765,19 @@ async def get_customer_profile(
     project_id: UUID,
     profile_id: UUID,
     request: Request,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """Return detailed customer profile for intelligence sidebar."""
-    await verify_project_access(project_id, user_id, db)
+    from app.domains.customers.repository import CustomerProfileRepository
     
-    result = await db.execute(
-        select(CustomerProfile)
-        .where(CustomerProfile.project_id == project_id)
-        .where(CustomerProfile.id == profile_id)
-    )
-    profile = result.scalar_one_or_none()
+    repo = CustomerProfileRepository(db)
+    profile = await repo.get_profile_by_context(context, profile_id)
     
     if not profile:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Customer profile not found"
+            detail="Customer profile not found or access denied"
         )
     
     # Normalize avatar_url to absolute
