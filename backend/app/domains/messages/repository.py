@@ -58,5 +58,39 @@ class MessageRepository(BaseRepository[Message]):
         result = await self.session.execute(query)
         return list(result.scalars().all())
 
+    async def get_recent_messages_by_context(
+        self,
+        context: 'TenantContext',
+        provider: Optional[str] = None,
+        days: int = 30,
+        limit: int = 200
+    ) -> List[Message]:
+        """
+        Retrieves messages strictly scoped to the authorized TenantContext.
+        """
+        from datetime import datetime, timedelta
+        from sqlalchemy.orm import selectinload
+        
+        query = select(self.model).options(selectinload(self.model.customer)).where(
+            self.model.project_id == context.project_id
+        )
+        
+        if provider and provider.lower() != "all":
+            if provider.lower() in ["instagram", "facebook", "whatsapp"]:
+                query = query.where(or_(
+                    self.model.provider == provider, 
+                    self.model.platform == provider,
+                    and_(self.model.provider == "meta", self.model.platform == provider)
+                ))
+            else:
+                query = query.where(self.model.provider == provider)
+                
+        start_date = datetime.utcnow() - timedelta(days=days)
+        query = query.where(self.model.created_at >= start_date)
+        
+        query = query.order_by(self.model.created_at.desc()).limit(limit)
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
+
 
 

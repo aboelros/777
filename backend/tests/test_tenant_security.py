@@ -89,61 +89,67 @@ async def test_api_conversations_endpoint():
         db.add_all([user_b, project_b])
         
         # Create a message in Project B
+        from app.domains.customers.models import CustomerProfile
+        customer_b_id = uuid4()
+        customer_b = CustomerProfile(id=customer_b_id, project_id=project_b_id, customer_id="test_platform_id_b", name="Test Customer B")
+        
         msg_b = Message(
-            id=uuid4(), project_id=project_b_id, direction=MessageDirection.INBOUND,
+            id=uuid4(), project_id=project_b_id, customer_id=customer_b_id, direction=MessageDirection.INBOUND,
             platform="whatsapp", provider="whatsapp", content="Secret message"
         )
-        db.add(msg_b)
+        db.add_all([customer_b, msg_b])
         await db.commit()
         
-    from app.api.v1.messages import get_conversations
-    from fastapi import Request
+    from httpx import AsyncClient
+    from app.main import app
+    from app.core.security import create_access_token
     
-    # 1. Valid Tenant A request
-    context_a = await get_tenant_context(project_a_id, str(user_a_id), db)
-    # create dummy request
-    scope = {
-        "type": "http",
-        "method": "GET",
-        "path": f"/api/v1/messages/{project_a_id}/conversations",
-        "headers": []
-    }
-    request = Request(scope)
-    res_a = await get_conversations(
-        project_id=project_a_id,
-        request=request,
-        context=context_a,
-        provider=None,
-        days=30,
-        limit=50,
-        search=None,
-        db=db
-    )
-    assert len(res_a) == 0  # no conversations yet for project A
+    # Generate real JWTs
+    token_a = create_access_token({"sub": str(user_a_id)})
+    token_b = create_access_token({"sub": str(user_b_id)})
     
-    # 2. Valid Tenant B request (should succeed and return the message's conversation)
-    context_b = await get_tenant_context(project_b_id, str(user_b_id), db)
-    scope_b = {
-        "type": "http",
-        "method": "GET",
-        "path": f"/api/v1/messages/{project_b_id}/conversations",
-        "headers": []
-    }
-    request_b = Request(scope_b)
-    res_b = await get_conversations(
-        project_id=project_b_id,
-        request=request_b,
-        context=context_b,
-        provider=None,
-        days=30,
-        limit=50,
-        search=None,
-        db=db
-    )
-    # The message should trigger returning conversations
-    # Wait, get_conversations returns a dict/list. We just check it didn't throw an exception.
-    assert res_b is not None
+    async def make_request(token, target_project_id):
+        headers = {"Authorization": f"Bearer {token}"}
+        # Explicitly hitting the FastAPI app to traverse the full middleware & auth stack
+        async with AsyncClient(app=app, base_url="http://test") as client:
+            response = await client.get(f"/api/v1/messages/{target_project_id}/conversations", headers=headers)
+        return response
 
+    # 1. Valid Tenant A request
+    res_a = await make_request(token_a, project_a_id)
+    assert res_a.status_code == 200
+    
+    # 2. Tenant A -> Tenant B project attack
+    res_attack = await make_request(token_a, project_b_id)
+    assert res_attack.status_code == 404
+    
+    # 3. Valid Tenant B request (should succeed)
+    res_b = await make_request(token_b, project_b_id)
+    assert res_b.status_code == 200
+    
+    # 4. Tenant A JWT + Project A URL + Tenant B conversation -> 404 (or empty)
+    # Target endpoint: /api/v1/messages/{project_id}/conversations/{conversation_id}/messages
+    async def make_msg_request(token, target_project_id, conv_id):
+        headers = {"Authorization": f"Bearer {token}"}
+        async with AsyncClient(app=app, base_url="http://test") as client:
+            return await client.get(
+                f"/api/v1/messages/{target_project_id}/conversations/{conv_id}/messages", 
+                headers=headers
+            )
+            
+    # The conversation_id derived for Tenant B's message:
+    conv_id_b = str(customer_b_id)
+    
+    # Attack: User A tries to get User B's conversation through Project A's URL
+    res_attack_msg = await make_msg_request(token_a, project_a_id, conv_id_b)
+    # The endpoint returns a list of matched messages. Should be empty because the repo limits to Project A!
+    assert res_attack_msg.status_code == 200
+    assert len(res_attack_msg.json()) == 0
+
+    # Valid: User B getting User B's conversation
+    res_valid_msg = await make_msg_request(token_b, project_b_id, conv_id_b)
+    assert res_valid_msg.status_code == 200
+    assert len(res_valid_msg.json()) == 1
 
 
 @pytest.mark.asyncio

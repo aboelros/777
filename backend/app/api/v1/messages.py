@@ -431,33 +431,17 @@ async def get_conversation_messages(
     provider: Optional[str] = Query(None, description="Filter by provider/channel"),
     days: int = Query(30, description="Number of days to look back", ge=1, le=180),
     limit: int = Query(200, description="Maximum messages to inspect", ge=50, le=500),
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db),
 ) -> Any:
     """Return messages belonging to the resolved conversation identifier."""
-
-    await verify_project_access(project_id, user_id, db)
-
-    query = select(Message).options(selectinload(Message.customer)).where(Message.project_id == project_id)
-
-    if provider and provider.lower() != "all":
-        # Standardize: check both provider and platform for Meta channels
-        if provider.lower() in ["instagram", "facebook", "whatsapp"]:
-            query = query.where(or_(
-                Message.provider == provider, 
-                Message.platform == provider,
-                and_(Message.provider == "meta", Message.platform == provider)
-            ))
-        else:
-            query = query.where(Message.provider == provider)
-
-    start_date = datetime.utcnow() - timedelta(days=days)
-    query = query.where(Message.created_at >= start_date)
-
-    query = query.order_by(Message.created_at.desc()).limit(limit)
-
-    result = await db.execute(query)
-    messages = result.scalars().all()
+    repo = MessageRepository(db)
+    messages = await repo.get_recent_messages_by_context(
+        context=context,
+        provider=provider,
+        days=days,
+        limit=limit
+    )
 
     matched: List[Message] = []
     for msg in messages:
