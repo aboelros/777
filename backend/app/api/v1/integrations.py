@@ -11,11 +11,14 @@ import structlog
 
 from app.core.database import get_db
 from app.core.security import get_current_user_id
+from app.api.dependencies.tenant import get_tenant_context
+from app.core.context import TenantContext
 from app.domains.projects.models import Project
 from app.domains.integrations.models import Integration, IntegrationStatus
 from pydantic import BaseModel
 from app.domains.integrations.schemas import IntegrationConnect, IntegrationUpdate, IntegrationResponse, TelegramSettings, WhatsAppSettings, InstagramSettings, FacebookSettings
 from app.domains.integrations.service import IntegrationService
+from app.domains.integrations.oauth_state_service import OAuthStateService
 from app.core.uow import UnitOfWork
 # WhatsApp Business API (official Meta API)
 from app.services.integrations.whatsapp_business import WhatsAppBusinessService
@@ -62,7 +65,7 @@ async def verify_project_access(project_id: UUID, user_id: str, db: AsyncSession
 async def connect_integration(
     project_id: UUID,
     integration_data: IntegrationConnect,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db),
     service: IntegrationService = Depends(get_integration_service)
 ) -> Any:
@@ -78,7 +81,7 @@ async def connect_integration(
     
     The config object should contain provider-specific credentials.
     """
-    integration = await service.connect_integration(str(project_id), user_id, integration_data)
+    integration = await service.connect_integration(context, integration_data)
     
     logger.info(
         "Integration saved, starting verification",
@@ -109,7 +112,7 @@ async def connect_integration(
 async def test_integration_data(
     project_id: UUID,
     integration_data: IntegrationConnect,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """
@@ -128,14 +131,14 @@ async def test_integration_data(
 @router.get("/{project_id}", response_model=List[IntegrationResponse])
 async def list_integrations(
     project_id: UUID,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     service: IntegrationService = Depends(get_integration_service)
 ) -> Any:
     """
     List all integrations for a project.
     """
     try:
-        return await service.list_integrations(str(project_id), user_id)
+        return await service.list_integrations(context)
     except Exception as e:
         logger.error("Failed to list integrations", error=str(e))
         raise HTTPException(
@@ -148,14 +151,14 @@ async def list_integrations(
 async def get_integration(
     project_id: UUID,
     integration_id: UUID,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     service: IntegrationService = Depends(get_integration_service)
 ) -> Any:
     """
     Get a specific integration by ID.
     """
     try:
-        return await service.get_integration(str(project_id), str(integration_id), user_id)
+        return await service.get_integration(context, str(integration_id))
     except HTTPException:
         raise
     except Exception as e:
@@ -171,10 +174,9 @@ async def create_whatsapp_session(
     project_id: UUID,
     integration_id: UUID,
     metadata: Optional[Dict[str, Any]] = Body(default=None),
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
-    await verify_project_access(project_id, user_id, db)
     integration = await _get_whatsapp_integration(db, project_id, integration_id)
     result = await ensure_linked_device_session(db, integration, metadata=metadata)
     return result
@@ -185,10 +187,9 @@ async def get_whatsapp_session_status(
     project_id: UUID,
     integration_id: UUID,
     session_id: str,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
-    await verify_project_access(project_id, user_id, db)
     integration = await _get_whatsapp_integration(db, project_id, integration_id)
     return await sync_linked_device_session(db, integration, session_id)
 
@@ -198,10 +199,9 @@ async def close_whatsapp_session(
     project_id: UUID,
     integration_id: UUID,
     session_id: str,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
-    await verify_project_access(project_id, user_id, db)
     integration = await _get_whatsapp_integration(db, project_id, integration_id)
     return await close_linked_device_session(db, integration, session_id)
 
@@ -211,14 +211,14 @@ async def update_integration(
     project_id: UUID,
     integration_id: UUID,
     integration_data: IntegrationUpdate,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     service: IntegrationService = Depends(get_integration_service)
 ) -> Any:
     """
     Update an integration's configuration or status.
     """
     try:
-        return await service.update_integration(str(project_id), str(integration_id), user_id, integration_data)
+        return await service.update_integration(context, str(integration_id), integration_data)
     except HTTPException:
         raise
     except Exception as e:
@@ -233,14 +233,14 @@ async def update_integration(
 async def delete_integration(
     project_id: UUID,
     integration_id: UUID,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     service: IntegrationService = Depends(get_integration_service)
 ) -> None:
     """
     Disconnect and delete an integration.
     """
     try:
-        await service.delete_integration(str(project_id), str(integration_id), user_id)
+        await service.delete_integration(context, str(integration_id))
     except HTTPException:
         raise
     except Exception as e:
@@ -257,7 +257,7 @@ async def delete_integration(
 async def sync_integration(
     project_id: UUID,
     integration_id: UUID,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """
@@ -266,7 +266,6 @@ async def sync_integration(
     This will queue a background task to fetch latest data from the platform.
     """
     # Verify project access
-    await verify_project_access(project_id, user_id, db)
     
     result = await db.execute(
         select(Integration)
@@ -291,7 +290,13 @@ async def sync_integration(
     from app.workers.celery_app import celery_app
     
     if integration.provider == "shopify":
-        celery_app.send_task("app.workers.tasks.sync_shopify_orders")
+        celery_app.send_task(
+            "app.workers.tasks.sync_shopify_orders",
+            kwargs={
+                "project_id": str(project_id),
+                "integration_id": str(integration.id)
+            }
+        )
     
     elif integration.provider in ["facebook", "instagram"]:
         # Specific repair action: Ensure App is subscribed to Page events
@@ -333,13 +338,12 @@ async def sync_integration(
 @router.post("/{project_id}/refresh-identities", status_code=status.HTTP_200_OK)
 async def refresh_identities_endpoint(
     project_id: UUID,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """
     Refresh customer identities (fix 'Unknown' names) for a project.
     """
-    await verify_project_access(project_id, user_id, db)
     
     from app.services.customer_service import refresh_customer_identities
     result = await refresh_customer_identities(db, project_id)
@@ -351,14 +355,13 @@ async def refresh_identities_endpoint(
 async def verify_integration(
     project_id: UUID,
     integration_id: UUID,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """
     Manually verify and setup integration.
     """
     # Verify project access
-    await verify_project_access(project_id, user_id, db)
     
     # Get integration
     result = await db.execute(
@@ -408,14 +411,13 @@ async def verify_integration(
 async def debug_integration(
     project_id: UUID,
     integration_id: UUID,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """
     Debug endpoint to check integration data.
     """
     # Verify project access
-    await verify_project_access(project_id, user_id, db)
     
     # Get integration
     result = await db.execute(
@@ -447,13 +449,12 @@ async def debug_integration(
 async def get_integration_logs(
     project_id: UUID,
     limit: int = 50,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """
     Get recent webhook/API logs for the 'Live Terminal'.
     """
-    await verify_project_access(project_id, user_id, db)
     
     from app.domains.analytics.models import APILog
     
@@ -915,7 +916,7 @@ async def _setup_discord_integration(integration: Integration, db: AsyncSession)
 async def start_wa_gateway_session(
     project_id: UUID,
     integration_id: UUID,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
     """
@@ -925,7 +926,6 @@ async def start_wa_gateway_session(
     and returns the QR code URL for scanning with WhatsApp mobile app.
     """
     # Verify project access
-    await verify_project_access(project_id, user_id, db)
     
     # Get integration
     result = await db.execute(
@@ -1061,7 +1061,7 @@ async def start_wa_gateway_session(
 async def get_wa_gateway_qr(
     project_id: UUID,
     integration_id: UUID,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
     """
@@ -1070,7 +1070,6 @@ async def get_wa_gateway_qr(
     Returns the QR code URL for an existing session.
     """
     # Verify project access
-    await verify_project_access(project_id, user_id, db)
     
     # Get integration
     result = await db.execute(
@@ -1110,7 +1109,7 @@ async def get_wa_gateway_qr(
 async def logout_wa_gateway_session(
     project_id: UUID,
     integration_id: UUID,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
     """
@@ -1119,7 +1118,6 @@ async def logout_wa_gateway_session(
     This will disconnect the WhatsApp session and require re-scanning QR code.
     """
     # Verify project access
-    await verify_project_access(project_id, user_id, db)
     
     # Get integration
     result = await db.execute(
@@ -1195,11 +1193,10 @@ async def logout_wa_gateway_session(
 async def get_meta_auth_url(
     project_id: UUID,
     redirect_uri: str,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, str]:
     """Get Facebook Login URL for OAuth flow."""
-    await verify_project_access(project_id, user_id, db)
     
     logger.info("Checking Meta Config", 
         app_id_set=bool(settings.FACEBOOK_APP_ID), 
@@ -1244,28 +1241,43 @@ async def get_meta_auth_url(
         "whatsapp_business_messaging"
     )
     
+    state_token = await OAuthStateService.create_state(
+        db=db,
+        project_id=context.project_id,
+        user_id=context.user_id,
+        provider="facebook",
+        redirect_uri=redirect_uri
+    )
+    
     return {
-        "auth_url": oauth_service.get_auth_url(state=str(project_id), scope=scopes)
+        "auth_url": oauth_service.get_auth_url(state=state_token, scope=scopes)
     }
 
 
 class MetaCallbackRequest(BaseModel):
     code: str
     redirect_uri: str
+    state: str
     provider: str = "facebook"
 
 @router.post("/{project_id}/meta/callback")
 async def handle_meta_callback(
     project_id: UUID,
     payload: MetaCallbackRequest,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """
     Exchange code for token and create/update integration.
     """
-    await verify_project_access(project_id, user_id, db)
     
+    # 1. State Validation FIRST
+    oauth_state = await OAuthStateService.consume_state(db, payload.state, "facebook")
+    if not oauth_state:
+        raise HTTPException(status_code=400, detail="Invalid, expired, or already consumed OAuth state")
+    if oauth_state.project_id != context.project_id or oauth_state.user_id != context.user_id:
+        raise HTTPException(status_code=400, detail="OAuth state does not match current user/project")
+
     if not settings.FACEBOOK_APP_ID or not settings.FACEBOOK_APP_SECRET:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1322,11 +1334,10 @@ async def handle_meta_callback(
 async def get_tiktok_auth_url(
     project_id: UUID,
     redirect_uri: str,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, str]:
     """Get TikTok Shop Login URL for OAuth flow."""
-    await verify_project_access(project_id, user_id, db)
     
     if not settings.TIKTOK_APP_KEY or not settings.TIKTOK_APP_SECRET:
         raise HTTPException(
@@ -1341,24 +1352,39 @@ async def get_tiktok_auth_url(
         redirect_uri=redirect_uri
     )
     
+    state_token = await OAuthStateService.create_state(
+        db=db,
+        project_id=context.project_id,
+        user_id=context.user_id,
+        provider="tiktok",
+        redirect_uri=redirect_uri
+    )
+    
     return {
-        "auth_url": oauth_service.get_auth_url(state=str(project_id))
+        "auth_url": oauth_service.get_auth_url(state=state_token)
     }
 
 class TikTokCallbackRequest(BaseModel):
     code: str
     redirect_uri: str
+    state: str
 
 @router.post("/{project_id}/tiktok/callback")
 async def handle_tiktok_callback(
     project_id: UUID,
     payload: TikTokCallbackRequest,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """Exchange TikTok auth code for token and shops."""
-    await verify_project_access(project_id, user_id, db)
     
+    # 1. State Validation FIRST
+    oauth_state = await OAuthStateService.consume_state(db, payload.state, "tiktok")
+    if not oauth_state:
+        raise HTTPException(status_code=400, detail="Invalid, expired, or already consumed OAuth state")
+    if oauth_state.project_id != context.project_id or oauth_state.user_id != context.user_id:
+        raise HTTPException(status_code=400, detail="OAuth state does not match current user/project")
+
     if not settings.TIKTOK_APP_KEY or not settings.TIKTOK_APP_SECRET:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1406,11 +1432,10 @@ async def get_shopify_auth_url(
     project_id: UUID,
     shop_domain: str,
     redirect_uri: str,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, str]:
     """Get Shopify Install URL for OAuth flow."""
-    await verify_project_access(project_id, user_id, db)
     
     if not settings.SHOPIFY_API_KEY or not settings.SHOPIFY_API_SECRET:
         raise HTTPException(
@@ -1426,12 +1451,20 @@ async def get_shopify_auth_url(
     scopes = "read_orders,read_products,read_customers"
     
     import urllib.parse
+    state_token = await OAuthStateService.create_state(
+        db=db,
+        project_id=context.project_id,
+        user_id=context.user_id,
+        provider="shopify",
+        redirect_uri=redirect_uri
+    )
+    
     auth_url = (
         f"https://{shop}/admin/oauth/authorize?"
         f"client_id={settings.SHOPIFY_API_KEY}&"
         f"scope={scopes}&"
         f"redirect_uri={urllib.parse.quote(redirect_uri)}&"
-        f"state={str(project_id)}"
+        f"state={state_token}"
     )
     
     return {
@@ -1449,12 +1482,18 @@ class ShopifyCallbackRequest(BaseModel):
 async def handle_shopify_callback(
     project_id: UUID,
     payload: ShopifyCallbackRequest,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """Exchange Shopify auth code for access token."""
-    await verify_project_access(project_id, user_id, db)
     
+    # 1. State Validation FIRST
+    oauth_state = await OAuthStateService.consume_state(db, payload.state, "shopify")
+    if not oauth_state:
+        raise HTTPException(status_code=400, detail="Invalid, expired, or already consumed OAuth state")
+    if oauth_state.project_id != context.project_id or oauth_state.user_id != context.user_id:
+        raise HTTPException(status_code=400, detail="OAuth state does not match current user/project")
+
     if not settings.SHOPIFY_API_KEY or not settings.SHOPIFY_API_SECRET:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1514,11 +1553,10 @@ async def handle_shopify_callback(
 async def get_meta_feed(
     project_id: UUID,
     limit: int = 10,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """Fetch recent posts/media from connected Facebook/Instagram accounts."""
-    await verify_project_access(project_id, user_id, db)
     
     # Find active meta integrations
     result = await db.execute(
@@ -1578,11 +1616,10 @@ async def get_meta_comments(
     project_id: UUID,
     object_id: str,
     platform: str, # "facebook" or "instagram"
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """Fetch comments for a specific post/media."""
-    await verify_project_access(project_id, user_id, db)
     
     # Get the appropriate integration
     result = await db.execute(
@@ -1629,11 +1666,10 @@ async def reply_meta_comment(
     comment_id: str,
     platform: str,
     message: str = Body(..., embed=True),
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """Reply to a comment on Facebook or Instagram."""
-    await verify_project_access(project_id, user_id, db)
     
     result = await db.execute(
         select(Integration)

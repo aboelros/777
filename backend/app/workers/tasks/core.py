@@ -38,9 +38,9 @@ class DatabaseTask(Task):
 
 
 @celery_app.task(bind=True, base=DatabaseTask)
-def sync_shopify_orders(self):
-    """Sync orders from all connected Shopify integrations."""
-    logger.info("Starting Shopify order sync")
+def sync_shopify_orders(self, project_id: str = None, integration_id: str = None):
+    """Sync orders from all connected Shopify integrations, or a specific one if provided."""
+    logger.info("Starting Shopify order sync", project_id=project_id, integration_id=integration_id)
     
     # Run async code in sync Celery task
     import asyncio
@@ -49,17 +49,24 @@ def sync_shopify_orders(self):
         synced_count = 0
         
         # Get all active Shopify integrations
-        result = await self.db.execute(
+        query = (
             select(Integration)
             .where(Integration.provider == "shopify")
             .where(Integration.status == IntegrationStatus.CONNECTED)
         )
+        
+        if project_id:
+            query = query.where(Integration.project_id == project_id)
+        if integration_id:
+            query = query.where(Integration.id == integration_id)
+            
+        result = await self.db.execute(query)
         integrations = result.scalars().all()
         
         for integration in integrations:
             try:
                 # Initialize service
-                creds = integration.credentials or {}
+                creds = integration.config or {}
                 service = ShopifyService(
                     shop_url=creds.get("shop_url"),
                     api_key=creds.get("api_key"),
@@ -138,14 +145,15 @@ def sync_integration(self, integration_id: str):
 
 
 @celery_app.task(bind=True, base=DatabaseTask)
-def send_message_task(self, message_id: str):
+def send_message_task(self, project_id: str, message_id: str):
     """
     Send a queued message via the appropriate provider.
     
     Args:
+        project_id: UUID of the project
         message_id: UUID of the message to send
     """
-    logger.info("Sending message", message_id=message_id)
+    logger.info("Sending message", message_id=message_id, project_id=project_id)
     
     import asyncio
     from app.services.integrations.whatsapp import WhatsAppService
@@ -153,7 +161,9 @@ def send_message_task(self, message_id: str):
     async def _send():
         # Load message
         result = await self.db.execute(
-            select(Message).where(Message.id == message_id)
+            select(Message)
+            .where(Message.id == message_id)
+            .where(Message.project_id == project_id)
         )
         message = result.scalar_one_or_none()
         
@@ -178,7 +188,7 @@ def send_message_task(self, message_id: str):
             if not integration:
                 raise Exception(f"No active integration for provider {message.provider}")
                 
-            creds = integration.credentials or {}
+            creds = integration.config or {}
             
             # Send via provider
             # Handle standardized Meta provider
@@ -327,7 +337,7 @@ def process_message_queue(self):
         processed_count = 0
         for message in queued_messages:
             # 2. For each message, call send_message_task
-            send_message_task.delay(str(message.id))
+            send_message_task.delay(str(message.project_id), str(message.id))
             processed_count += 1
             
         return {"status": "completed", "processed": processed_count}
@@ -401,7 +411,7 @@ def process_inbound_message(self, message_data: Dict[str, Any]):
             await self.db.refresh(new_message)
             
             # Trigger AI response
-            generate_ai_response.delay(str(new_message.id), auto_send=True)
+            generate_ai_response.delay(str(new_message.project_id), str(new_message.id), auto_send=True)
             
             return {"status": "processed", "message_id": str(new_message.id)}
             
@@ -417,15 +427,16 @@ def process_inbound_message(self, message_data: Dict[str, Any]):
 
 
 @celery_app.task(bind=True, base=DatabaseTask)
-def generate_ai_response(self, message_id: str, auto_send: bool = False):
+def generate_ai_response(self, project_id: str, message_id: str, auto_send: bool = False):
     """
     Generate AI response for an inbound message.
     
     Args:
+        project_id: UUID of the project
         message_id: UUID of the message to respond to
         auto_send: Whether to automatically send the generated response
     """
-    logger.info("Generating AI response", message_id=message_id)
+    logger.info("Generating AI response", message_id=message_id, project_id=project_id)
     
     import asyncio
     from app.domains.ai.providers.gemini import GeminiClient
@@ -433,7 +444,9 @@ def generate_ai_response(self, message_id: str, auto_send: bool = False):
     async def _generate():
         # 1. Load message
         result = await self.db.execute(
-            select(Message).where(Message.id == message_id)
+            select(Message)
+            .where(Message.id == message_id)
+            .where(Message.project_id == project_id)
         )
         message = result.scalar_one_or_none()
         
@@ -481,7 +494,7 @@ def generate_ai_response(self, message_id: str, auto_send: bool = False):
         
         # 4. If auto_send, queue for sending
         if auto_send:
-            send_message_task.delay(str(outbound_message.id))
+            send_message_task.delay(str(outbound_message.project_id), str(outbound_message.id))
             
         return {
             "status": "generated", 
@@ -497,28 +510,31 @@ def generate_ai_response(self, message_id: str, auto_send: bool = False):
 
 
 @celery_app.task(bind=True, base=DatabaseTask)
-def verify_integration(self, integration_id: str):
+def verify_integration(self, project_id: str, integration_id: str):
     """
     Verify that an integration connection is working.
     
     Args:
+        project_id: UUID of the project
         integration_id: UUID of the integration to verify
     """
-    logger.info("Verifying integration", integration_id=integration_id)
+    logger.info("Verifying integration", integration_id=integration_id, project_id=project_id)
     
     import asyncio
     
     async def _verify():
         # 1. Load integration
         result = await self.db.execute(
-            select(Integration).where(Integration.id == integration_id)
+            select(Integration)
+            .where(Integration.id == integration_id)
+            .where(Integration.project_id == project_id)
         )
         integration = result.scalar_one_or_none()
         
         if not integration:
             return {"status": "failed", "error": "Integration not found"}
             
-        creds = integration.credentials or {}
+        creds = integration.config or {}
         is_valid = False
         error_msg = None
         
@@ -614,14 +630,17 @@ def schedule_followup(
         channel=channel
     )
     
-    # Schedule the message to be sent later
-    send_message_task.apply_async(
-        args=[{
+    # Schedule the auto-respond task
+    celery_app.send_task(
+        "auto_respond_to_customer",
+        kwargs={
             "customer_id": customer_id,
-            "message": message,
-            "channel": channel,
-            "project_id": project_id
-        }],
+            "project_id": project_id,
+            "context": {
+                "message": message,
+                "channel": channel
+            }
+        },
         countdown=delay_hours * 3600  # Convert hours to seconds
     )
     
