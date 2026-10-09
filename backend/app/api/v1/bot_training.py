@@ -2,25 +2,23 @@
 Bot Training & Customization API endpoints
 """
 
-from typing import Any, List
+from typing import Any, List, Optional
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from pydantic import BaseModel
 import structlog
 
 from app.core.database import get_db
-from app.core.security import get_current_user_id
-from app.domains.projects.models import Project
-from app.domains.ai.models import BotInstruction
-from app.core.access_control import verify_project_access
-from app.core.default_instructions import get_default_instructions
-from pydantic import BaseModel
-from app.domains.ai.service import AIService
+from app.core.context import TenantContext
+from app.api.dependencies.tenant import get_tenant_context
 from app.core.uow import UnitOfWork
+from app.domains.ai.service import AIService
+from app.domains.products.repository import ProductRepository
 
 router = APIRouter()
 logger = structlog.get_logger(__name__)
+
 
 async def get_ai_service(db: AsyncSession = Depends(get_db)) -> AIService:
     return AIService(UnitOfWork(db))
@@ -29,7 +27,7 @@ async def get_ai_service(db: AsyncSession = Depends(get_db)) -> AIService:
 class BotInstructionCreate(BaseModel):
     title: str
     instruction: str
-    category: str | None = None
+    category: Optional[str] = None
     priority: int = 0
     active_for_platforms: List[str] = []
     active_for_topics: List[str] = []
@@ -37,44 +35,37 @@ class BotInstructionCreate(BaseModel):
 
 
 class BotInstructionUpdate(BaseModel):
-    title: str | None = None
-    instruction: str | None = None
-    category: str | None = None
-    priority: int | None = None
-    active_for_platforms: List[str] | None = None
-    active_for_topics: List[str] | None = None
-    examples: List[dict] | None = None
-    is_active: bool | None = None
+    title: Optional[str] = None
+    instruction: Optional[str] = None
+    category: Optional[str] = None
+    priority: Optional[int] = None
+    active_for_platforms: Optional[List[str]] = None
+    active_for_topics: Optional[List[str]] = None
+    examples: Optional[List[dict]] = None
+    is_active: Optional[bool] = None
 
 
 class AutoResponseTemplateCreate(BaseModel):
     name: str
-    description: str | None = None
+    description: Optional[str] = None
     trigger_keywords: List[str] = []
     trigger_platforms: List[str] = []
-    trigger_intent: str | None = None
+    trigger_intent: Optional[str] = None
     response_template: str
     variations: List[str] = []
     use_ai_enhancement: bool = True
     requires_approval: bool = False
 
 
-
 @router.get("/{project_id}/instructions")
 async def list_bot_instructions(
     project_id: UUID,
     active_only: bool = True,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     service: AIService = Depends(get_ai_service)
 ) -> Any:
     """List all bot instructions for a project."""
-    instructions = await service.list_bot_instructions(str(project_id), user_id)
-    
-    if active_only:
-        instructions = [i for i in instructions if i.is_active]
-        
-    instructions = sorted(instructions, key=lambda i: (i.priority, i.created_at), reverse=True)
-    
+    instructions = await service.list_bot_instructions(context, active_only=active_only)
     return {
         "instructions": [
             {
@@ -99,54 +90,24 @@ async def list_bot_instructions(
 async def create_bot_instruction(
     project_id: UUID,
     instruction: BotInstructionCreate,
-    user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    context: TenantContext = Depends(get_tenant_context),
+    service: AIService = Depends(get_ai_service)
 ) -> Any:
     """Create a new bot instruction."""
-    try:
-        await verify_project_access(project_id, user_id, db)
-        
-        new_instruction = BotInstruction(
-            project_id=project_id,
-            title=instruction.title,
-            instruction=instruction.instruction,
-            category=instruction.category,
-            priority=instruction.priority,
-            active_for_platforms=instruction.active_for_platforms or [],
-            active_for_topics=instruction.active_for_topics or [],
-            examples=instruction.examples or [],
-        )
-        
-        db.add(new_instruction)
-        await db.commit()
-        await db.refresh(new_instruction)
-        
-        logger.info("Bot instruction created", instruction_id=str(new_instruction.id))
-        
-        return {
-            "success": True,
-            "message": "Instruction created successfully",
-            "instruction": {
-                "id": str(new_instruction.id),
-                "title": new_instruction.title,
-                "instruction": new_instruction.instruction,
-                "category": new_instruction.category,
-                "priority": new_instruction.priority,
-                "is_active": new_instruction.is_active,
-                "created_at": new_instruction.created_at.isoformat()
-            }
+    new_inst = await service.create_bot_instruction(context, instruction.model_dump())
+    return {
+        "success": True,
+        "message": "Instruction created successfully",
+        "instruction": {
+            "id": str(new_inst.id),
+            "title": new_inst.title,
+            "instruction": new_inst.instruction,
+            "category": new_inst.category,
+            "priority": new_inst.priority,
+            "is_active": new_inst.is_active,
+            "created_at": new_inst.created_at.isoformat()
         }
-        
-    except HTTPException:
-        # Re-raise HTTP exceptions (like access denied)
-        raise
-    except Exception as e:
-        logger.error("Failed to create bot instruction", error=str(e), project_id=str(project_id))
-        await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create instruction: {str(e)}"
-        )
+    }
 
 
 @router.put("/{project_id}/instructions/{instruction_id}")
@@ -154,33 +115,13 @@ async def update_bot_instruction(
     project_id: UUID,
     instruction_id: UUID,
     instruction_update: BotInstructionUpdate,
-    user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    context: TenantContext = Depends(get_tenant_context),
+    service: AIService = Depends(get_ai_service)
 ) -> Any:
     """Update a bot instruction."""
-    await verify_project_access(project_id, user_id, db)
-    
-    result = await db.execute(
-        select(BotInstruction)
-        .where(BotInstruction.id == instruction_id)
-        .where(BotInstruction.project_id == project_id)
+    await service.update_bot_instruction(
+        instruction_id, context, instruction_update.model_dump(exclude_unset=True)
     )
-    instruction = result.scalar_one_or_none()
-    
-    if not instruction:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Instruction not found"
-        )
-    
-    update_data = instruction_update.dict(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(instruction, field, value)
-    
-    await db.commit()
-    
-    logger.info("Bot instruction updated", instruction_id=str(instruction_id))
-    
     return {"message": "Instruction updated successfully"}
 
 
@@ -188,30 +129,11 @@ async def update_bot_instruction(
 async def delete_bot_instruction(
     project_id: UUID,
     instruction_id: UUID,
-    user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    context: TenantContext = Depends(get_tenant_context),
+    service: AIService = Depends(get_ai_service)
 ) -> Any:
     """Delete a bot instruction."""
-    await verify_project_access(project_id, user_id, db)
-    
-    result = await db.execute(
-        select(BotInstruction)
-        .where(BotInstruction.id == instruction_id)
-        .where(BotInstruction.project_id == project_id)
-    )
-    instruction = result.scalar_one_or_none()
-    
-    if not instruction:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Instruction not found"
-        )
-    
-    await db.delete(instruction)
-    await db.commit()
-    
-    logger.info("Bot instruction deleted", instruction_id=str(instruction_id))
-    
+    await service.delete_bot_instruction(instruction_id, context)
     return {"message": "Instruction deleted successfully"}
 
 
@@ -219,20 +141,11 @@ async def delete_bot_instruction(
 async def list_auto_response_templates(
     project_id: UUID,
     active_only: bool = True,
-    user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    context: TenantContext = Depends(get_tenant_context),
+    service: AIService = Depends(get_ai_service)
 ) -> Any:
     """List all auto-response templates."""
-    await verify_project_access(project_id, user_id, db)
-    
-    query = select(AutoResponseTemplate).where(AutoResponseTemplate.project_id == project_id)
-    
-    if active_only:
-        query = query.where(AutoResponseTemplate.is_active == True)
-    
-    result = await db.execute(query)
-    templates = result.scalars().all()
-    
+    templates = await service.list_auto_response_templates(context, active_only=active_only)
     return {
         "templates": [
             {
@@ -260,31 +173,11 @@ async def list_auto_response_templates(
 async def create_auto_response_template(
     project_id: UUID,
     template: AutoResponseTemplateCreate,
-    user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    context: TenantContext = Depends(get_tenant_context),
+    service: AIService = Depends(get_ai_service)
 ) -> Any:
     """Create a new auto-response template."""
-    await verify_project_access(project_id, user_id, db)
-    
-    new_template = AutoResponseTemplate(
-        project_id=project_id,
-        name=template.name,
-        description=template.description,
-        trigger_keywords=template.trigger_keywords,
-        trigger_platforms=template.trigger_platforms,
-        trigger_intent=template.trigger_intent,
-        response_template=template.response_template,
-        variations=template.variations,
-        use_ai_enhancement=template.use_ai_enhancement,
-        requires_approval=template.requires_approval,
-    )
-    
-    db.add(new_template)
-    await db.commit()
-    await db.refresh(new_template)
-    
-    logger.info("Auto-response template created", template_id=str(new_template.id))
-    
+    new_template = await service.create_auto_response_template(context, template.model_dump())
     return {
         "id": str(new_template.id),
         "message": "Template created successfully"
@@ -294,30 +187,15 @@ async def create_auto_response_template(
 @router.get("/{project_id}/knowledge-base")
 async def get_bot_knowledge_base(
     project_id: UUID,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
+    service: AIService = Depends(get_ai_service),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """Get complete bot knowledge base for this project (all instructions + products)."""
-    await verify_project_access(project_id, user_id, db)
-    
-    # Get instructions
-    instructions_result = await db.execute(
-        select(BotInstruction)
-        .where(BotInstruction.project_id == project_id)
-        .where(BotInstruction.is_active == True)
-        .order_by(BotInstruction.priority.desc())
-    )
-    instructions = instructions_result.scalars().all()
-    
-    # Get products (for product knowledge)
-    from app.domains.products.models import Product
-    products_result = await db.execute(
-        select(Product)
-        .where(Product.project_id == project_id)
-        .where(Product.is_active == True)
-    )
-    products = products_result.scalars().all()
-    
+    instructions = await service.list_bot_instructions(context, active_only=True)
+    prod_repo = ProductRepository(db)
+    products = await prod_repo.get_project_products(context.project_id)
+
     return {
         "instructions": [
             {
@@ -349,71 +227,14 @@ async def get_bot_knowledge_base(
 @router.post("/{project_id}/seed-instructions")
 async def seed_default_instructions(
     project_id: UUID,
-    user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    context: TenantContext = Depends(get_tenant_context),
+    service: AIService = Depends(get_ai_service)
 ) -> Any:
-    """
-    Seed project with amazing default bot instructions.
-    
-    This will create the BEST AI assistant experience ever!
-    """
-    try:
-        await verify_project_access(project_id, user_id, db)
-        
-        # Check if instructions already exist
-        result = await db.execute(
-            select(BotInstruction).where(BotInstruction.project_id == project_id)
-        )
-        existing_instructions = result.scalars().all()
-        
-        if existing_instructions:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Project already has instructions. Delete existing ones first or add manually."
-            )
-        
-        # Get default instructions
-        default_instructions = get_default_instructions()
-        
-        # Create instruction records
-        created_instructions = []
-        for inst_data in default_instructions:
-            instruction = BotInstruction(
-                project_id=project_id,
-                title=inst_data["title"],
-                instruction=inst_data["instruction"],
-                category=inst_data["category"],
-                priority=inst_data["priority"],
-                active_for_platforms=inst_data["active_for_platforms"],
-                active_for_topics=inst_data.get("active_for_topics", []),
-                examples=inst_data["examples"],
-                is_active=True
-            )
-            db.add(instruction)
-            created_instructions.append(instruction)
-        
-        await db.commit()
-        
-        logger.info(
-            "Default instructions seeded",
-            project_id=str(project_id),
-            count=len(created_instructions)
-        )
-        
-        return {
-            "success": True,
-            "message": f"🚀 Amazing! Created {len(created_instructions)} world-class bot instructions!",
-            "instructions_created": len(created_instructions),
-            "categories": list(set(inst["category"] for inst in default_instructions))
-        }
-        
-    except HTTPException:
-        # Re-raise HTTP exceptions (like access denied or already exists)
-        raise
-    except Exception as e:
-        logger.error("Failed to seed instructions", error=str(e), project_id=str(project_id))
-        await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to seed instructions: {str(e)}"
-        )
+    """Seed project with amazing default bot instructions."""
+    created = await service.seed_default_instructions(context)
+    return {
+        "success": True,
+        "message": f"🚀 Created {len(created)} bot instructions!",
+        "instructions_created": len(created),
+        "categories": list(set(inst.category for inst in created if inst.category))
+    }

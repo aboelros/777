@@ -22,7 +22,7 @@ class UnitOfWork:
             if exc_type is not None:
                 await self.rollback()
         finally:
-            await self.session.close()
+            pass # Let get_db handle closing
 
     async def commit(self):
         try:

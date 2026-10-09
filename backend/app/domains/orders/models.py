@@ -53,7 +53,7 @@ class Order(Base):
     
     # Relationships
     project = relationship("Project", back_populates="orders")
-    customer = relationship("CustomerProfile", back_populates="orders")
+    customer_profile = relationship("CustomerProfile", back_populates="orders")
     messages = relationship("Message", back_populates="order", cascade="all, delete-orphan")
     
     # Indexes

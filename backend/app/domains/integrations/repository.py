@@ -21,6 +21,7 @@ class IntegrationRepository(BaseRepository[Integration]):
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
 
+
     async def get_project_integrations(
         self,
         project_id: UUID
@@ -30,3 +31,15 @@ class IntegrationRepository(BaseRepository[Integration]):
         )
         result = await self.session.execute(query)
         return list(result.scalars().all())
+
+    async def get_tenant_integration(
+        self,
+        project_id: UUID,
+        integration_id: UUID
+    ) -> Optional[Integration]:
+        query = select(self.model).where(
+            self.model.id == integration_id,
+            self.model.project_id == project_id
+        )
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()

@@ -1,4 +1,4 @@
-import hmac
+﻿import hmac
 import hashlib
 import json
 from datetime import datetime
@@ -10,39 +10,39 @@ from app.core.config import settings
 
 class BaseAdapter:
     """Base class for all platform adapters."""
-    
+
     def verify_signature(self, request: Request, body: bytes) -> bool:
         """Verify the webhook signature."""
         return True
-        
+
     def normalize(self, payload: Dict[str, Any]) -> Optional[WebhookEvent]:
         """Convert raw payload to Unified Event."""
         raise NotImplementedError
 
 class MetaAdapter(BaseAdapter):
     """Adapter for Meta (WhatsApp, Instagram, Facebook)."""
-    
+
     def verify_signature(self, request: Request, body: bytes) -> bool:
         # Meta uses X-Hub-Signature-256
         signature = request.headers.get("X-Hub-Signature-256")
         if not signature:
             return False
-            
+
         if not settings.FACEBOOK_APP_SECRET:
             logger.warning("FACEBOOK_APP_SECRET not set, bypassing signature verification")
             return True
-            
+
         try:
             # Check if signature starts with sha256=
             if signature.startswith("sha256="):
                 signature = signature[7:]
-                
+
             expected = hmac.new(
                 settings.FACEBOOK_APP_SECRET.encode(),
                 body,
                 hashlib.sha256
             ).hexdigest()
-            
+
             return hmac.compare_digest(expected, signature)
         except Exception as e:
             logger.error("Signature verification failed", error=str(e))
@@ -51,7 +51,7 @@ class MetaAdapter(BaseAdapter):
     def normalize(self, payload: Dict[str, Any]) -> Optional[WebhookEvent]:
         # Detect specific channel within Meta
         object_type = payload.get("object")
-        
+
         if object_type == "whatsapp_business_account":
             return self._normalize_whatsapp(payload)
         elif object_type == "instagram":
@@ -59,7 +59,7 @@ class MetaAdapter(BaseAdapter):
             return self._normalize_instagram(payload)
         elif object_type == "page":
             return self._normalize_facebook(payload)
-            
+
         print(f"DEBUG: Unknown Meta object type: {object_type}")
         return None
 
@@ -67,13 +67,13 @@ class MetaAdapter(BaseAdapter):
         entry = payload.get("entry", [])[0]
         changes = entry.get("changes", [])[0]
         value = changes.get("value", {})
-        
+
         if "messages" not in value:
             return None
-            
+
         message = value["messages"][0]
         contact = value.get("contacts", [{}])[0]
-        
+
         return WebhookEvent(
             event_id=message.get("id"),
             event_type=EventType.MESSAGE_CREATED,
@@ -96,24 +96,52 @@ class MetaAdapter(BaseAdapter):
         if msg_type in ["image", "audio", "video", "document", "sticker"]:
             return message.get(msg_type)
         return None
-        
+
     def _normalize_instagram(self, payload: Dict[str, Any]) -> Optional[WebhookEvent]:
         entry = payload.get("entry", [])[0]
-        messaging = entry.get("messaging", [])[0]
-        
+
+        # Check for comments (they come in 'changes' instead of 'messaging')
+        if "changes" in entry:
+            change = entry["changes"][0]
+            if change.get("field") == "comments":
+                value = change.get("value", {})
+                from_user = value.get("from", {})
+                return WebhookEvent(
+                    event_id=value.get("id", "unknown_comment"),
+                    event_type=EventType.COMMENT_CREATED,
+                    timestamp=datetime.now(), # Instagram comments webhook might not have timestamp at the top level
+                    platform="meta",
+                    channel="instagram",
+                    sender_id=from_user.get("id"),
+                    sender_name=from_user.get("username"),
+                    payload={
+                        "text": value.get("text"),
+                        "is_comment": True,
+                        "media_id": value.get("media", {}).get("id")
+                    },
+                    raw_data=payload
+                )
+            return None
+
+        messaging_list = entry.get("messaging", [])
+        if not messaging_list:
+            return None
+
+        messaging = messaging_list[0]
+
         sender_id = messaging.get("sender", {}).get("id")
         message = messaging.get("message", {})
-        
+
         # Early echo rejection: skip messages sent BY the page (our own outbound)
         if message.get("is_echo"):
             print(f"DEBUG: Skipping Instagram echo message (sent by page)")
             return None
-        
+
         # Skip delivery notifications
         if "delivery" in messaging:
             print(f"DEBUG: Skipping Instagram delivery notification")
             return None
-        
+
         if "read" in messaging:
             return WebhookEvent(
                 event_id=f"read_{sender_id}_{messaging['timestamp']}",
@@ -130,13 +158,13 @@ class MetaAdapter(BaseAdapter):
         msg_text = message.get("text")
         msg_mid = message.get("mid", "unknown")
         msg_attachments = message.get("attachments")
-        
+
         print(f"DEBUG: Instagram msg | mid={msg_mid} | text='{msg_text}' | has_attachments={bool(msg_attachments)}")
-        
+
         if not msg_text and not msg_attachments:
             print(f"DEBUG: Skipping Instagram message with no text and no attachments")
             return None
-            
+
         return WebhookEvent(
             event_id=msg_mid,
             event_type=EventType.MESSAGE_CREATED,
@@ -152,19 +180,45 @@ class MetaAdapter(BaseAdapter):
             },
             raw_data=payload # Broad capture of metadata
         )
-        
+
     def _normalize_facebook(self, payload: Dict[str, Any]) -> Optional[WebhookEvent]:
         entry = payload.get("entry", [])[0]
-        messaging = entry.get("messaging", [])[0]
-        
+
+        if "changes" in entry:
+            change = entry["changes"][0]
+            if change.get("field") == "feed" and change.get("value", {}).get("item") == "comment":
+                value = change.get("value", {})
+                return WebhookEvent(
+                    event_id=value.get("comment_id", "unknown_comment"),
+                    event_type=EventType.COMMENT_CREATED,
+                    timestamp=datetime.now(),
+                    platform="meta",
+                    channel="facebook",
+                    sender_id=value.get("from", {}).get("id"),
+                    sender_name=value.get("from", {}).get("name"),
+                    payload={
+                        "text": value.get("message"),
+                        "is_comment": True,
+                        "post_id": value.get("post_id")
+                    },
+                    raw_data=payload
+                )
+            return None
+
+        messaging_list = entry.get("messaging", [])
+        if not messaging_list:
+            return None
+
+        messaging = messaging_list[0]
+
         sender_id = messaging.get("sender", {}).get("id")
         message = messaging.get("message", {})
-        
+
         # Early echo rejection: skip messages sent BY the page (our own outbound)
         if message.get("is_echo"):
             print(f"DEBUG: Skipping Facebook echo message (sent by page)")
             return None
-        
+
         if "read" in messaging:
             return WebhookEvent(
                 event_id=f"read_{sender_id}_{messaging['timestamp']}",
@@ -193,7 +247,7 @@ class MetaAdapter(BaseAdapter):
 
         if not message.get("text") and not message.get("attachments"):
             return None
-            
+
         return WebhookEvent(
             event_id=message.get("mid", "unknown"),
             event_type=EventType.MESSAGE_CREATED,
@@ -213,21 +267,21 @@ class MetaAdapter(BaseAdapter):
 
 class TelegramAdapter(BaseAdapter):
     """Adapter for Telegram."""
-    
+
     def verify_signature(self, request: Request, body: bytes) -> bool:
         # Telegram uses X-Telegram-Bot-Api-Secret-Token
         token = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
         # We would need to match this against what we set.
-        return True 
+        return True
 
     def normalize(self, payload: Dict[str, Any]) -> Optional[WebhookEvent]:
         message = payload.get("message", {})
         if not message:
             return None
-            
+
         from_user = message.get("from", {})
         chat = message.get("chat", {})
-        
+
         return WebhookEvent(
             event_id=str(message.get("message_id")),
             event_type=EventType.MESSAGE_CREATED,
@@ -244,21 +298,63 @@ class TelegramAdapter(BaseAdapter):
             raw_data=payload
         )
 
-class GoWhatsAppAdapter(BaseAdapter):
-    """Adapter for Go WhatsApp (Self-hosted)."""
-    
+class WAGatewayAdapter(BaseAdapter):
+    """Adapter for WA Gateway (Self-hosted)."""
+
+    def verify_signature(self, request: Request, body: bytes) -> bool:
+        """
+        Verify the webhook signature for WA Gateway.
+        Expects an HMAC-SHA256 signature in X-WA-Signature header
+        and a timestamp in X-WA-Timestamp to prevent replay attacks.
+        """
+        import hmac
+        import hashlib
+        import time
+        from app.core.config import settings
+
+        signature = request.headers.get("X-WA-Signature")
+        timestamp_str = request.headers.get("X-WA-Timestamp")
+
+        if not signature or not timestamp_str:
+            return False
+
+        if not settings.WA_GATEWAY_API_KEY:
+            # Cannot verify without the secret
+            return False
+
+        # 1. Replay protection (reject if older than 5 minutes)
+        try:
+            timestamp = int(timestamp_str)
+            current_time = int(time.time())
+            if abs(current_time - timestamp) > 300:
+                return False
+        except ValueError:
+            return False
+
+        # 2. HMAC-SHA256 verification
+        # The signature should be computed over the concatenation of timestamp and body
+        payload_to_sign = f"{timestamp_str}.".encode("utf-8") + body
+
+        expected_signature = hmac.new(
+            settings.WA_GATEWAY_API_KEY.encode("utf-8"),
+            msg=payload_to_sign,
+            digestmod=hashlib.sha256
+        ).hexdigest()
+
+        return hmac.compare_digest(expected_signature, signature)
+
     def normalize(self, payload: Dict[str, Any]) -> Optional[WebhookEvent]:
-        # Go WhatsApp structure
+        # WA Gateway structure
         data = payload.get("data", payload) # Sometimes wrapped in data
-        
+
         if not data.get("text") and not data.get("media"):
              return None
-             
+
         return WebhookEvent(
             event_id=data.get("message_id", "unknown"),
             event_type=EventType.MESSAGE_CREATED,
             timestamp=datetime.now(), # GoWA might not send timestamp
-            platform="go_whatsapp",
+            platform="wa_gateway",
             channel="whatsapp",
             sender_id=data.get("from"),
             sender_name=data.get("pushName"),
@@ -272,37 +368,37 @@ class GoWhatsAppAdapter(BaseAdapter):
 
 class ShopifyAdapter(BaseAdapter):
     """Adapter for Shopify."""
-    
+
     def verify_signature(self, request: Request, body: bytes) -> bool:
         # Shopify uses X-Shopify-Hmac-Sha256
         signature = request.headers.get("X-Shopify-Hmac-Sha256")
         if not signature:
             return False
-            
+
         # We need the app secret to verify.
         if not settings.SHOPIFY_API_SECRET:
             return True # Skip if not configured
-            
+
         import base64
         expected = base64.b64encode(hmac.new(
             settings.SHOPIFY_API_SECRET.encode(),
             body,
             hashlib.sha256
         ).digest()).decode()
-        
+
         return hmac.compare_digest(expected, signature)
 
     def normalize(self, payload: Dict[str, Any]) -> Optional[WebhookEvent]:
         # Shopify events are usually determined by the topic header, not payload content
         # But we can infer from keys
-        
+
         if "order_number" in payload:
             return self._normalize_order(payload)
         elif "first_name" in payload and "last_name" in payload and "orders_count" in payload:
             return self._normalize_customer(payload)
-            
+
         return None
-        
+
     def _normalize_order(self, payload: Dict[str, Any]) -> WebhookEvent:
         return WebhookEvent(
             event_id=str(payload.get("id")),
@@ -322,7 +418,7 @@ class ShopifyAdapter(BaseAdapter):
             },
             raw_data=payload
         )
-        
+
     def _normalize_customer(self, payload: Dict[str, Any]) -> WebhookEvent:
         return WebhookEvent(
             event_id=str(payload.get("id")),
@@ -342,31 +438,31 @@ class ShopifyAdapter(BaseAdapter):
 
 class TikTokAdapter(BaseAdapter):
     """Adapter for TikTok."""
-    
+
     def verify_signature(self, request: Request, body: bytes) -> bool:
         signature = request.headers.get("Authorization") # TikTok Shop uses Authorization header
         if not signature:
              signature = request.headers.get("X-Tiktok-Signature")
-             
+
         if not signature:
             # If no signature, and we have a secret, fail.
             if settings.TIKTOK_APP_SECRET:
                  return False
             return True
-        
+
         if not settings.TIKTOK_APP_SECRET:
             return True
-            
+
         import hmac, hashlib
         app_key = getattr(settings, "TIKTOK_APP_KEY", "")
-        
+
         # Verify TikTok Shop HMAC-SHA256 (AppKey + Body)
         expected = hmac.new(
             settings.TIKTOK_APP_SECRET.encode('utf-8'),
             (app_key + body.decode('utf-8')).encode('utf-8'),
             hashlib.sha256
         ).hexdigest()
-        
+
         return hmac.compare_digest(expected, signature)
 
     def normalize(self, payload: Dict[str, Any]) -> Optional[WebhookEvent]:
@@ -379,7 +475,7 @@ class TikTokAdapter(BaseAdapter):
                 content = json.loads(content_str)
             except Exception:
                 content = {"text": content_str}
-                
+
             return WebhookEvent(
                 event_id=data.get("message_id", "unknown"),
                 event_type=EventType.MESSAGE_CREATED,
@@ -394,7 +490,7 @@ class TikTokAdapter(BaseAdapter):
                 },
                 raw_data=payload
             )
-            
+
         # Legacy TikTok Business Payload structure
         event_type = payload.get("event")
         if event_type == "message.receive":
@@ -421,14 +517,14 @@ class DiscordAdapter(BaseAdapter):
     def verify_signature(self, request: Request, body: bytes) -> bool:
         signature = request.headers.get("X-Signature-Ed25519")
         timestamp = request.headers.get("X-Signature-Timestamp")
-        
+
         if not signature or not timestamp or not settings.DISCORD_PUBLIC_KEY:
             return False
 
         try:
             from nacl.signing import VerifyKey
             from nacl.exceptions import BadSignatureError
-            
+
             verify_key = VerifyKey(bytes.fromhex(settings.DISCORD_PUBLIC_KEY))
             verify_key.verify(f"{timestamp}{body.decode()}".encode(), bytes.fromhex(signature))
             return True
@@ -445,28 +541,28 @@ class DiscordAdapter(BaseAdapter):
     def normalize(self, payload: Dict[str, Any]) -> Optional[WebhookEvent]:
         # Discord Interaction Payload
         t = payload.get("type")
-        
+
         # 1 = PING (Handled by Gateway/Router usually before this, but if normalized here...)
-        if t == 1: 
+        if t == 1:
              return None # PING is handled separately
-             
+
         # 4 = Application Command
-        if t == 4 or t == 1: 
+        if t == 4 or t == 1:
              # Only if we treat commands as messages...
              pass
-             
+
         # We are interested in actual messages if possible, but Interactions are usually Commands.
         # If we receive a DM, it might be via Gateway, not webhook.
         # However, if this ADAPTER is used, it assumes we received an Interaction.
-        
+
         member = payload.get("member", {}).get("user", {}) if "member" in payload else payload.get("user", {})
-        
+
         data = payload.get("data", {})
-        
+
         return WebhookEvent(
             event_id=payload.get("id"),
             event_type=EventType.MESSAGE_CREATED,
-            timestamp=datetime.now(), 
+            timestamp=datetime.now(),
             platform="discord",
             channel="discord",
             sender_id=member.get("id"),

@@ -1,4 +1,4 @@
-from datetime import datetime
+﻿from datetime import datetime
 from uuid import uuid4
 from sqlalchemy import (
     Column, String, Text, Integer, Float, Boolean, DateTime, 
@@ -58,3 +58,23 @@ class Integration(Base):
     def __repr__(self):
         return f"<Integration {self.provider} - {self.status}>"
 
+
+class OAuthState(Base):
+    """OAuth authorization state for security validation."""
+    __tablename__ = "oauth_states"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    provider = Column(String(50), nullable=False)
+    state_token = Column(String(255), unique=True, nullable=False, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    
+    # Optional extra info to persist across redirect
+    redirect_uri = Column(String(1024), nullable=True)
+    
+    # Indexes
+    __table_args__ = (
+        Index("idx_oauth_state_token", "state_token"),
+    )

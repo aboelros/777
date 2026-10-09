@@ -1,76 +1,56 @@
 """
 Photo upload endpoint for about section.
 Stores photos with sequential names (1.jpg, 2.jpg, 3.jpg, 4.jpg) in a static folder.
-Photos are shared across all projects (not per-project).
+Photos are scoped per-project.
 """
 
 from typing import List
 from uuid import UUID
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 import structlog
 import os
 from pathlib import Path
 
-from app.core.database import get_db
-from app.core.security import get_current_user_id
-from app.domains.projects.models import Project
+from app.api.dependencies.tenant import get_tenant_context, TenantContext
+from app.domains.projects.models import ProjectRole
 
 router = APIRouter()
 logger = structlog.get_logger(__name__)
 
-# Static directory for about photos (committed to GitHub)
-# Using backend/static/about folder which is part of the repository
 STATIC_DIR = Path(__file__).parent.parent.parent / "static" / "about"
 try:
     STATIC_DIR.mkdir(parents=True, exist_ok=True)
 except (PermissionError, OSError):
-    # If we can't create the directory (e.g., in production), use it anyway
-    # It should already exist from the repository
     pass
 
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 MAX_PHOTOS = 4
 
+def get_project_dir(project_id: str) -> Path:
+    proj_dir = STATIC_DIR / project_id
+    proj_dir.mkdir(parents=True, exist_ok=True)
+    return proj_dir
 
 @router.post("/{project_id}/about/photos")
 async def upload_about_photos(
     project_id: UUID,
     photos: List[UploadFile] = File(...),
-    user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    tenant: TenantContext = Depends(get_tenant_context)
 ):
-    """
-    Upload photos for about section.
-    Photos are stored in static/about/ with sequential names: 1.jpg, 2.jpg, 3.jpg, 4.jpg
-    These photos are shared across all projects (not per-project).
-    Maximum 4 photos allowed.
-    """
-    # Verify project access
-    result = await db.execute(
-        select(Project)
-        .where(Project.id == project_id)
-        .where(Project.owner_id == UUID(user_id))
-    )
-    project = result.scalar_one_or_none()
+    if tenant.role not in [ProjectRole.OWNER.value, ProjectRole.MODERATOR.value]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only owners and moderators can modify photos")
     
-    if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found or access denied"
-        )
-    
-    # Validate number of photos
     if len(photos) > MAX_PHOTOS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Maximum {MAX_PHOTOS} photos allowed"
         )
     
-    # Clear existing photos in static folder
-    for existing_file in STATIC_DIR.glob("*"):
+    proj_dir = get_project_dir(str(tenant.project_id))
+    
+    # Clear existing photos for THIS project
+    for existing_file in proj_dir.glob("*"):
         if existing_file.is_file():
             existing_file.unlink()
     
@@ -78,27 +58,23 @@ async def upload_about_photos(
     
     try:
         for index, photo in enumerate(photos, start=1):
-            # Validate file extension
             file_ext = Path(photo.filename).suffix.lower()
             if file_ext not in ALLOWED_EXTENSIONS:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"File {photo.filename} has invalid extension. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
+                    detail=f"File {photo.filename} has invalid extension. Allowed: {ALLOWED_EXTENSIONS}"
                 )
             
-            # Read file content
             content = await photo.read()
             
-            # Validate file size
             if len(content) > MAX_FILE_SIZE:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"File {photo.filename} exceeds maximum size of 5MB"
                 )
             
-            # Save with sequential name in static folder
             filename = f"{index}{file_ext}"
-            file_path = STATIC_DIR / filename
+            file_path = proj_dir / filename
             
             with open(file_path, "wb") as f:
                 f.write(content)
@@ -106,34 +82,28 @@ async def upload_about_photos(
             uploaded_files.append({
                 "index": index,
                 "filename": filename,
-                "path": f"static/about/{filename}",
-                "url": f"/static/about/{filename}"
+                "path": f"static/about/{tenant.project_id}/{filename}",
+                "url": f"/static/about/{tenant.project_id}/{filename}"
             })
             
-            logger.info(
-                "About photo uploaded to static folder",
-                filename=filename,
-                size=len(content)
-            )
+            logger.info("About photo uploaded", filename=filename, project_id=str(tenant.project_id))
         
         return {
             "success": True,
             "photos": uploaded_files,
             "count": len(uploaded_files),
-            "message": "Photos uploaded to static folder (shared across all projects)"
+            "message": "Photos uploaded"
         }
         
     except HTTPException:
-        # Clean up on validation error
         for file_info in uploaded_files:
-            file_path = STATIC_DIR / file_info["filename"]
+            file_path = proj_dir / file_info["filename"]
             if file_path.exists():
                 file_path.unlink()
         raise
     except Exception as e:
-        # Clean up on unexpected error
         for file_info in uploaded_files:
-            file_path = STATIC_DIR / file_info["filename"]
+            file_path = proj_dir / file_info["filename"]
             if file_path.exists():
                 file_path.unlink()
         logger.error("Failed to upload about photos", error=str(e))
@@ -142,81 +112,49 @@ async def upload_about_photos(
             detail=f"Failed to upload photos: {str(e)}"
         )
 
-
 @router.get("/{project_id}/about/photos")
 async def get_about_photos(
     project_id: UUID,
-    user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    tenant: TenantContext = Depends(get_tenant_context)
 ):
-    """Get list of about photos from static folder."""
-    # Verify project access
-    result = await db.execute(
-        select(Project)
-        .where(Project.id == project_id)
-        .where(Project.owner_id == UUID(user_id))
-    )
-    project = result.scalar_one_or_none()
-    
-    if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found or access denied"
-        )
-    
-    # Get photos from static folder
+    proj_dir = get_project_dir(str(tenant.project_id))
     photos = []
     for i in range(1, MAX_PHOTOS + 1):
         for ext in [".jpg", ".jpeg", ".png", ".webp"]:
-            file_path = STATIC_DIR / f"{i}{ext}"
+            file_path = proj_dir / f"{i}{ext}"
             if file_path.exists():
                 photos.append({
                     "index": i,
                     "filename": f"{i}{ext}",
-                    "url": f"/static/about/{i}{ext}"
+                    "url": f"/static/about/{tenant.project_id}/{i}{ext}"
                 })
                 break
     
     return {
         "photos": photos,
         "count": len(photos),
-        "message": "Photos from static folder (shared across all projects)"
+        "message": "Photos retrieved"
     }
-
 
 @router.delete("/{project_id}/about/photos")
 async def delete_about_photos(
     project_id: UUID,
-    user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    tenant: TenantContext = Depends(get_tenant_context)
 ):
-    """Delete all about photos from static folder."""
-    # Verify project access
-    result = await db.execute(
-        select(Project)
-        .where(Project.id == project_id)
-        .where(Project.owner_id == UUID(user_id))
-    )
-    project = result.scalar_one_or_none()
+    if tenant.role not in [ProjectRole.OWNER.value, ProjectRole.MODERATOR.value]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only owners and moderators can delete photos")
     
-    if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found or access denied"
-        )
-    
-    # Delete physical files from static folder
+    proj_dir = get_project_dir(str(tenant.project_id))
     deleted_count = 0
-    for file_path in STATIC_DIR.glob("*"):
+    for file_path in proj_dir.glob("*"):
         if file_path.is_file():
             file_path.unlink()
             deleted_count += 1
     
-    logger.info("About photos deleted from static folder", count=deleted_count)
+    logger.info("About photos deleted", count=deleted_count, project_id=str(tenant.project_id))
     
     return {
         "success": True,
-        "message": f"Deleted {deleted_count} photos from static folder",
+        "message": f"Deleted {deleted_count} photos",
         "count": deleted_count
     }
-

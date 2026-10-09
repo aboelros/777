@@ -23,7 +23,8 @@ class OrderCreate(BaseModel):
     items: List[Dict[str, Any]] = []
     total: Optional[float] = None
     currency: str = "USD"
-    metadata: Dict[str, Any] = {}
+    extra_data: Dict[str, Any] = Field(default_factory=dict, alias="metadata")
+
     tags: List[str] = []
     order_date: Optional[datetime] = None
 
@@ -34,7 +35,8 @@ class OrderUpdate(BaseModel):
     customer: Optional[Dict[str, Any]] = None
     items: Optional[List[Dict[str, Any]]] = None
     total: Optional[float] = None
-    metadata: Optional[Dict[str, Any]] = None
+    extra_data: Optional[Dict[str, Any]] = Field(default=None, alias="metadata")
+
     tags: Optional[List[str]] = None
     fulfilled_date: Optional[datetime] = None
 
@@ -50,13 +52,13 @@ class OrderResponse(BaseModel):
     items: List[Dict[str, Any]]
     total: Optional[float]
     currency: str
-    metadata: Dict[str, Any]
+    extra_data: Dict[str, Any] = Field(default_factory=dict, validation_alias="extra_data", serialization_alias="metadata")
     tags: List[str]
     order_date: Optional[datetime]
     fulfilled_date: Optional[datetime]
     updated_at: Optional[datetime]
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 

@@ -67,7 +67,7 @@ class MetaOAuthService:
                 f"{self.BASE_URL}/{self.API_VERSION}/me/accounts",
                 params={
                     "access_token": access_token,
-                    "fields": "id,name,access_token,instagram_business_account"
+                    "fields": "id,name,access_token,instagram_business_account{id,username,name}"
                 }
             )
             response.raise_for_status()

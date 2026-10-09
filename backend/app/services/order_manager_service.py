@@ -5,6 +5,7 @@ Handles order lifecycle, status transitions, and customer notifications.
 
 from typing import List, Dict, Any, Optional
 from uuid import UUID
+from app.core.context import TenantContext
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_, desc
@@ -26,11 +27,15 @@ class OrderManagerService:
     Intelligent order management with automated status updates and customer communication.
     """
     
-    def __init__(self, db: AsyncSession, project_id: UUID):
+    def __init__(self, db: AsyncSession, context: TenantContext):
         self.db = db
-        self.project_id = project_id
+        self.context = context
+        self.project_id = context.project_id
         self.gemini_client = GeminiClient()
-        self.ai_service = EnhancedAIService(db, project_id)
+        self.ai_service = EnhancedAIService(db, self.project_id)
+        
+        from app.domains.orders.repository import OrderRepository
+        self.order_repo = OrderRepository(db)
     
     # =========================================================================
     # Order Status Management
@@ -55,10 +60,7 @@ class OrderManagerService:
             auto_message: Use AI to generate personalized message
         """
         # Get order
-        result = await self.db.execute(
-            select(Order).where(Order.id == order_id)
-        )
-        order = result.scalar_one_or_none()
+        order = await self.order_repo.get_by_context(order_id, self.context)
         
         if not order:
             raise ValueError(f"Order {order_id} not found")
@@ -151,10 +153,7 @@ class OrderManagerService:
         - Order details
         - Business rules
         """
-        result = await self.db.execute(
-            select(Order).where(Order.id == order_id)
-        )
-        order = result.scalar_one_or_none()
+        order = await self.order_repo.get_by_context(order_id, self.context)
         
         if not order:
             raise ValueError(f"Order {order_id} not found")
@@ -191,10 +190,7 @@ class OrderManagerService:
         
         Returns timeline, current status, next expected status, estimated completion.
         """
-        result = await self.db.execute(
-            select(Order).where(Order.id == order_id)
-        )
-        order = result.scalar_one_or_none()
+        order = await self.order_repo.get_by_context(order_id, self.context)
         
         if not order:
             raise ValueError(f"Order {order_id} not found")
@@ -216,7 +212,7 @@ class OrderManagerService:
             select(Message)
             .where(
                 and_(
-                    Message.order_id == order_id,
+                    Message.order_id == order_id, Message.project_id == self.project_id,
                     Message.direction == MessageDirection.OUTBOUND,
                     Message.ai_generated == True
                 )
@@ -271,33 +267,9 @@ class OrderManagerService:
         """
         cutoff_date = datetime.utcnow() - timedelta(hours=max_age_hours)
         
-        # Get pending orders older than cutoff
-        result = await self.db.execute(
-            select(Order)
-            .where(
-                and_(
-                    Order.project_id == self.project_id,
-                    Order.status == OrderStatus.PENDING.value,
-                    Order.order_date < cutoff_date
-                )
-            )
-            .order_by(Order.order_date)
-        )
-        pending_orders = result.scalars().all()
-        
-        # Get processing orders older than cutoff
-        result = await self.db.execute(
-            select(Order)
-            .where(
-                and_(
-                    Order.project_id == self.project_id,
-                    Order.status == OrderStatus.PROCESSING.value,
-                    Order.updated_at < cutoff_date
-                )
-            )
-            .order_by(Order.updated_at)
-        )
-        processing_orders = result.scalars().all()
+        orders_dict = await self.order_repo.get_orders_requiring_attention(self.context, max_age_hours)
+        pending_orders = orders_dict["pending"]
+        processing_orders = orders_dict["processing"]
         
         attention_required = []
         
@@ -405,10 +377,7 @@ class OrderManagerService:
         - delay: Notify about delay
         - custom: Custom message
         """
-        result = await self.db.execute(
-            select(Order).where(Order.id == order_id)
-        )
-        order = result.scalar_one_or_none()
+        order = await self.order_repo.get_by_context(order_id, self.context)
         
         if not order:
             raise ValueError(f"Order {order_id} not found")
@@ -462,10 +431,7 @@ class OrderManagerService:
         """
         Schedule a follow-up message for an order.
         """
-        result = await self.db.execute(
-            select(Order).where(Order.id == order_id)
-        )
-        order = result.scalar_one_or_none()
+        order = await self.order_repo.get_by_context(order_id, self.context)
         
         if not order:
             raise ValueError(f"Order {order_id} not found")

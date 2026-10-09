@@ -225,7 +225,7 @@ def send_notification(user_id: int, notification_type: str, data: dict):
 
 
 @celery_app.task(bind=True, max_retries=5)
-def sync_integration_data(self, integration_id: int, sync_type: str):
+def sync_integration_data(self, project_id: int, integration_id: int, sync_type: str):
     """
     Sync data from external integration.
     

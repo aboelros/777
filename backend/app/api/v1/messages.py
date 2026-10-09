@@ -34,8 +34,8 @@ async def get_message_service(db: AsyncSession = Depends(get_db)) -> MessageServ
 
 
 async def verify_project_access(
-    project_id: UUID, 
-    user_id: str, 
+    project_id: UUID,
+    user_id: str,
     db: AsyncSession,
     required_roles: List[ProjectRole] = None
 ) -> Project:
@@ -49,11 +49,11 @@ async def toggle_customer_ai(
     project_id: UUID,
     profile_id: UUID,
     enabled: bool,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     service: MessageService = Depends(get_message_service)
 ) -> Any:
     """Enable or disable AI automation for a specific customer."""
-    return await service.toggle_customer_ai(str(project_id), str(profile_id), enabled, user_id)
+    return await service.toggle_customer_ai(str(project_id), str(profile_id), enabled, context)
 
 
 def _sanitize_name(name: Optional[str]) -> Optional[str]:
@@ -99,7 +99,7 @@ def _resolve_conversation_id(msg: Message, customer_payload: Dict[str, Any]) -> 
     # 2. Extract platform ID from payload
     # Payload usually comes from 'sender' (inbound) or 'recipient' (outbound)
     platform_id = customer_payload.get("id") or customer_payload.get("customer_id")
-    
+
     candidate_fields = [
         platform_id,
         customer_payload.get("profile_id"),
@@ -123,17 +123,17 @@ def _resolve_conversation_id(msg: Message, customer_payload: Dict[str, Any]) -> 
 async def send_message(
     project_id: UUID,
     message_data: MessageSend,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     service: MessageService = Depends(get_message_service)
 ) -> Any:
     """
     Send a message to a customer via specified provider.
-    
+
     Supported providers: whatsapp, telegram, sms, instagram, facebook
-    
+
     This creates a database record and queues the actual sending via background worker.
     """
-    return await service.send_message(str(project_id), user_id, message_data)
+    return await service.send_message(context, message_data)
 
 
 @router.get("/{project_id}/inbox", response_model=List[MessageResponse])
@@ -147,53 +147,33 @@ async def get_inbox(
     days: int = Query(7, description="Number of days to look back", ge=1, le=90),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=100),
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """
     Get unified inbox with messages from all channels.
     """
-    # Verify project access
-    await verify_project_access(project_id, user_id, db)
-    
-    # Build query
-    query = select(Message).options(joinedload(Message.customer)).where(Message.project_id == project_id)
-    
-    # Apply filters
-    if direction:
-        query = query.where(Message.direction == direction)
-    if provider:
-        # Standardize: check both provider and platform for Meta channels
-        if provider.lower() in ["instagram", "facebook", "whatsapp"]:
-            query = query.where(or_(
-                Message.provider == provider, 
-                Message.platform == provider,
-                and_(Message.provider == "meta", Message.platform == provider)
-            ))
-        else:
-            query = query.where(Message.provider == provider)
-    if order_id:
-        query = query.where(Message.order_id == order_id)
-    if is_read is not None:
-        query = query.where(Message.is_read == is_read)
-    
-    # Date filter
-    start_date = datetime.utcnow() - timedelta(days=days)
-    query = query.where(Message.created_at >= start_date)
-    
-    # Order and pagination
-    query = query.order_by(Message.created_at.desc())
-    query = query.offset((page - 1) * page_size).limit(page_size)
-    
-    result = await db.execute(query)
-    messages = result.scalars().all()
-    
+    from app.domains.messages.repository import MessageRepository
+    repo = MessageRepository(db)
+
+    # Fetch messages strictly scoped to the tenant context
+    messages = await repo.get_inbox_messages_by_context(
+        context=context,
+        direction=direction,
+        provider=provider,
+        order_id=order_id,
+        is_read=is_read,
+        days=days,
+        page=page,
+        page_size=page_size
+    )
+
     # Manually populate avatar_url from customer profile for MessageResponse
     base_url = _get_api_base_url(request)
     for msg in messages:
-        if msg.customer:
+        if getattr(msg, "customer", None):
             msg.avatar_url = _to_absolute_url(msg.customer.avatar_url, base_url)
-            
+
     return messages
 
 
@@ -212,14 +192,14 @@ async def get_conversations(
 
     repo = MessageRepository(db)
     messages = await repo.get_inbox_by_context(
-        context=context, 
+        context=context,
         limit=limit * 10,
         provider=provider,
         days=days
     )
 
     conversations: dict[str, dict[str, Any]] = {}
-    
+
     # Resolve absolute URL base for avatars
     base_url = _get_api_base_url(request)
 
@@ -229,7 +209,7 @@ async def get_conversations(
             conversation_id = _resolve_conversation_id(msg, customer_payload)
 
             is_vip = False
-            
+
             # --- HISTORICAL RECONCILIATION ---
             # If the database foreign key is missing, try a dynamic lookup
             # This 'connects' orphan historical messages to the latest database data.
@@ -249,7 +229,7 @@ async def get_conversations(
                     )
                     lookup_res = await db.execute(lookup_query)
                     current_customer = lookup_res.scalar_one_or_none()
-            
+
             try:
                 if current_customer:
                     real_name = current_customer.name
@@ -262,20 +242,20 @@ async def get_conversations(
             except Exception:
                 # Relationship access error
                 pass
-            
+
             convo = conversations.get(conversation_id)
             if not convo:
                 convo = {
                     "channel": msg.platform or msg.provider or "unknown",
-                    "customer_name": _sanitize_name(real_name) 
+                    "customer_name": _sanitize_name(real_name)
                     or _sanitize_name(customer_payload.get("name"))
                     or _sanitize_name(customer_payload.get("customer_name"))
                     or _sanitize_name(customer_payload.get("username")),
                     "customer_email": customer_email or customer_payload.get("email"),
                     "customer_phone": customer_phone or customer_payload.get("phone"),
                     "customer_avatar": _to_absolute_url(
-                        customer_avatar 
-                        or customer_payload.get("avatar_url") 
+                        customer_avatar
+                        or customer_payload.get("avatar_url")
                         or customer_payload.get("profile_pic")
                         or customer_payload.get("profile_picture_url"),
                         base_url
@@ -314,7 +294,7 @@ async def get_conversations(
                 convo["last_message_at"] = created_at
                 convo["last_message"] = msg.content
                 convo["channel"] = msg.platform or msg.provider or convo["channel"]
-                
+
                 # Update name if we found a better one (e.g. from profile)
                 if real_name:
                     convo["customer_name"] = real_name
@@ -323,7 +303,7 @@ async def get_conversations(
                         customer_payload.get("name")
                         or customer_payload.get("customer_name")
                     )
-                    
+
                 convo["customer_email"] = (
                     customer_email or customer_payload.get("email") or convo["customer_email"]
                 )
@@ -341,13 +321,13 @@ async def get_conversations(
                 )
                 if msg.order_id:
                     convo["order_id"] = str(msg.order_id)
-                
+
                 # Update profile_id if available
                 if customer_profile_id:
                     convo["profile_id"] = customer_profile_id
                 elif not convo["profile_id"] and customer_payload.get("profile_id"):
                     convo["profile_id"] = customer_payload.get("profile_id")
-                    
+
                 convo["overall_sentiment"] = (
                     overall_sentiment or convo["overall_sentiment"]
                 )
@@ -384,7 +364,7 @@ async def get_conversations(
 
                 if search_term not in haystack:
                     continue
-            
+
             # Ensure all fields match the schema
             summary = ConversationSummary(
                 id=convo_id,
@@ -414,7 +394,7 @@ async def get_conversations(
 
     # Sort by last message time
     summaries.sort(key=lambda x: x.last_message_at or datetime.min, reverse=True)
-    
+
     if limit:
         return summaries[:limit]
     return summaries
@@ -456,11 +436,11 @@ async def get_conversation_messages(
     # even if the message itself is an orphan.
     final_messages = []
     base_url = _get_api_base_url(request)
-    
+
     # Pre-fetch profiles for these messages to avoid N+1 lookups
-    # (Actually we rely on joinedload/selectinload if already linked, 
+    # (Actually we rely on joinedload/selectinload if already linked,
     # but for orphans we do individual lookups or a smart batch lookup if needed)
-    
+
     for message in matched:
         msg_customer = message.customer
         if not msg_customer:
@@ -491,7 +471,7 @@ async def get_conversation_messages(
             # Still sanitize name and resolve avatar to absolute for non-inbound or no-customer cases
             if not sender_info.get("name"):
                 sender_info["name"] = _sanitize_name(sender_info.get("name"))
-            
+
             if sender_info.get("avatar_url"):
                 sender_info["avatar_url"] = _to_absolute_url(sender_info["avatar_url"], base_url)
 
@@ -519,26 +499,26 @@ async def get_conversation_messages(
 async def get_message(
     project_id: UUID,
     message_id: UUID,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     service: MessageService = Depends(get_message_service)
 ) -> Any:
     """
     Get a single message by ID.
     """
-    return await service.get_message(str(project_id), str(message_id), user_id)
+    return await service.get_message(context, message_id)
 
 
 @router.patch("/{project_id}/{message_id}/read", response_model=MessageResponse)
 async def mark_message_read(
     project_id: UUID,
     message_id: UUID,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     service: MessageService = Depends(get_message_service)
 ) -> Any:
     """
     Mark a message as read.
     """
-    return await service.mark_message_read(str(project_id), str(message_id), user_id)
+    return await service.mark_message_read(context, message_id)
 
 
 @router.get("/{project_id}/conversation/{order_id}", response_model=List[MessageResponse])
@@ -554,7 +534,7 @@ async def get_conversation(
     """
     # Verify project access
     await verify_project_access(project_id, user_id, db)
-    
+
     # Verify order exists
     result = await db.execute(
         select(Order)
@@ -562,13 +542,13 @@ async def get_conversation(
         .where(Order.project_id == project_id)
     )
     order = result.scalar_one_or_none()
-    
+
     if not order:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Order not found"
         )
-    
+
     # Get all messages for this order
     result = await db.execute(
         select(Message)
@@ -576,7 +556,7 @@ async def get_conversation(
         .order_by(Message.created_at.asc())
     )
     messages = result.scalars().all()
-    
+
     # Normalize avatar URLs
     base_url = _get_api_base_url(request)
     for msg in messages:
@@ -584,7 +564,7 @@ async def get_conversation(
             msg.avatar_url = _to_absolute_url(msg.avatar_url, base_url)
         if msg.sender and msg.sender.get("avatar_url"):
             msg.sender["avatar_url"] = _to_absolute_url(msg.sender["avatar_url"], base_url)
-            
+
     return messages
 
 
@@ -600,9 +580,9 @@ async def get_message_stats(
     """
     # Verify project access
     await verify_project_access(project_id, user_id, db)
-    
+
     start_date = datetime.utcnow() - timedelta(days=days)
-    
+
     # Total messages
     result = await db.execute(
         select(Message)
@@ -610,22 +590,22 @@ async def get_message_stats(
         .where(Message.created_at >= start_date)
     )
     messages = result.scalars().all()
-    
+
     total_messages = len(messages)
     inbound_count = sum(1 for m in messages if m.direction == MessageDirection.INBOUND)
     outbound_count = sum(1 for m in messages if m.direction == MessageDirection.OUTBOUND)
     ai_generated_count = sum(1 for m in messages if m.ai_generated)
     unread_count = sum(1 for m in messages if not m.is_read and m.direction == MessageDirection.INBOUND)
-    
+
     # Messages by provider
     messages_by_provider = {}
     for message in messages:
         provider = message.provider
         messages_by_provider[provider] = messages_by_provider.get(provider, 0) + 1
-    
+
     # Total AI cost
     total_ai_cost = sum(m.ai_cost or 0 for m in messages)
-    
+
     return {
         "period_days": days,
         "start_date": start_date.isoformat(),
@@ -645,93 +625,62 @@ async def get_message_stats(
 async def mark_conversation_read(
     project_id: UUID,
     conversation_id: str,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """
     Mark all unread inbound messages in a conversation as read.
     """
-    await verify_project_access(project_id, user_id, db)
+    repo = MessageRepository(db)
 
-    # 1. Fetch unread inbound messages for the project (recent ones, e.g. last 30 days)
-    # We restrict the scan to recent messages for performance.
-    
-    start_date = datetime.utcnow() - timedelta(days=30)
-    
-    result = await db.execute(
-        select(Message)
-        .where(Message.project_id == project_id)
-        .where(Message.direction == MessageDirection.INBOUND)
-        .where(Message.is_read == False)
-        .where(Message.created_at >= start_date)
-        .order_by(Message.created_at.desc())
-    )
-    unread_messages = result.scalars().all()
-    
-    # 2. Filter for matching conversation_id
-    messages_to_update = []
-    for msg in unread_messages:
-        payload = _resolve_customer_payload(msg)
-        if _resolve_conversation_id(msg, payload) == conversation_id:
-            messages_to_update.append(msg.id)
-            
-    # 3. Bulk update
-    if messages_to_update:
-        await db.execute(
-            update(Message)
-            .where(Message.id.in_(messages_to_update))
-            .values(is_read=True)
-        )
-        await db.commit()
-        
-    return {"count": len(messages_to_update), "status": "success"}
+    # 1. Establish ownership explicitly using real SQL schema bounds
+    owns_conversation = await repo.check_conversation_ownership(context, conversation_id)
+    if not owns_conversation:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+
+    # 2. Perform SQL-bound mutation (no Python filtering)
+    updated_count = await repo.mark_conversation_read_by_context(context, conversation_id)
+    await db.commit()
+
+    return {"count": updated_count, "status": "success"}
 
 
 @router.delete("/{project_id}/conversations/{conversation_id}", status_code=status.HTTP_200_OK)
 async def delete_conversation_messages(
     project_id: UUID,
     conversation_id: str,
-    user_id: str = Depends(get_current_user_id),
+    context: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """
     Delete all messages belonging to a specific conversation.
     """
-    # 1. Verify project access
-    await verify_project_access(project_id, user_id, db)
+    from app.domains.messages.repository import MessageRepository
+    repo = MessageRepository(db)
 
-    # 2. Fetch all messages for the project to find matching conversation_id
-    # We scan messages from the last 90 days to find members of this conversation
-    start_date = datetime.utcnow() - timedelta(days=90)
+    # 1. Fetch the matched messages securely using tenant scoping in SQL
+    messages = await repo.get_conversation_messages_by_context(context, conversation_id)
     
-    result = await db.execute(
-        select(Message)
-        .where(Message.project_id == project_id)
-        .where(Message.created_at >= start_date)
-    )
-    all_messages = result.scalars().all()
-    
-    # 3. Identify messages belonging to the conversation
-    messages_to_delete = []
+    # 2. Identify messages for external unsend
+    message_ids_to_delete = []
     outbound_meta_messages = [] # Track outbound messages for unsend
-    
-    for msg in all_messages:
-        payload = _resolve_customer_payload(msg)
-        if _resolve_conversation_id(msg, payload) == conversation_id:
-            messages_to_delete.append(msg.id)
-            if msg.direction == MessageDirection.OUTBOUND and msg.provider == "meta" and msg.external_id:
-                outbound_meta_messages.append({
-                    "id": msg.external_id,
-                    "platform": msg.platform
-                })
-            
-    # 4. Attempt platform-side unsend for outbound messages
+
+    for msg in messages:
+        message_ids_to_delete.append(msg.id)
+        if msg.direction == MessageDirection.OUTBOUND and msg.provider == "meta" and msg.external_id:
+            outbound_meta_messages.append({
+                "id": msg.external_id,
+                "platform": msg.platform
+            })
+
+    # 3. Attempt platform-side unsend for outbound messages
     if outbound_meta_messages:
         try:
             from app.domains.ai.orchestrator import AIOrchestrator
             orchestrator = AIOrchestrator(db)
-            await orchestrator.initialize_integrations(project_id)
-            
+            await orchestrator.initialize_integrations(context.project_id)
+
             for meta_msg in outbound_meta_messages:
                 client = orchestrator.integration_clients.get(meta_msg["platform"])
                 if client and hasattr(client, "unsend_message"):
@@ -739,22 +688,19 @@ async def delete_conversation_messages(
         except Exception as e:
             logger.warning("Failed to unsend some messages on platform", error=str(e))
 
-    # 5. Perform bulk deletion
+    # 4. Perform bulk deletion securely
     count = 0
-    if messages_to_delete:
-        from sqlalchemy import delete
-        delete_stmt = delete(Message).where(Message.id.in_(messages_to_delete))
-        await db.execute(delete_stmt)
+    if message_ids_to_delete:
+        count = await repo.delete_messages_by_ids_and_context(context, message_ids_to_delete)
         await db.commit()
-        count = len(messages_to_delete)
-        
+
     logger.info(
         "Conversation cleared",
-        project_id=str(project_id),
+        project_id=str(context.project_id),
         conversation_id=conversation_id,
         deleted_count=count
     )
-    
+
     return {
         "status": "success",
         "message": f"Successfully deleted {count} messages",
@@ -770,19 +716,19 @@ async def get_customer_profile(
 ) -> Any:
     """Return detailed customer profile for intelligence sidebar."""
     from app.domains.customers.repository import CustomerProfileRepository
-    
+
     repo = CustomerProfileRepository(db)
     profile = await repo.get_profile_by_context(context, profile_id)
-    
+
     if not profile:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Customer profile not found or access denied"
         )
-    
+
     # Normalize avatar_url to absolute
     if profile.avatar_url:
         base_url = _get_api_base_url(request)
         profile.avatar_url = _to_absolute_url(profile.avatar_url, base_url)
-    
+
     return profile

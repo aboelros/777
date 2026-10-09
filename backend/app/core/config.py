@@ -186,6 +186,8 @@ class Settings(BaseSettings):
         """Convert postgres:// to postgresql+asyncpg:// and handle empty values."""
         if not v:
             import os
+            from dotenv import load_dotenv
+            load_dotenv()
             # Support both standard and alias names from .env
             v = os.getenv("DATABASE_URL") or os.getenv("APP_DATABASE_URL")
             

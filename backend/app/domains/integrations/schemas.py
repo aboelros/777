@@ -1,4 +1,4 @@
-from typing import Optional, List, Dict, Any, Union
+﻿from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
 from uuid import UUID
 from pydantic import BaseModel, EmailStr, Field, validator, ConfigDict
@@ -113,9 +113,37 @@ class IntegrationResponse(BaseModel):
     error_message: Optional[str]
     created_at: datetime
     updated_at: Optional[datetime]
-    
+
     class Config:
         from_attributes = True
+
+    @validator("config", pre=True, always=True)
+    def mask_sensitive_config(cls, v):
+        if not v:
+            return v
+
+        # Deep copy to avoid mutating the original DB object
+        import copy
+        masked = copy.deepcopy(v)
+
+        secret_keys = ["access_token", "refresh_token", "api_key", "secret", "client_secret", "bot_token", "webhook_secret", "password", "private_key", "app_secret"]
+
+        def _mask(d):
+            if isinstance(d, dict):
+                for k, val in d.items():
+                    if isinstance(val, (dict, list)):
+                        _mask(val)
+                    elif isinstance(val, str) and any(s in k.lower() for s in secret_keys):
+                        if len(val) > 8:
+                            d[k] = val[:4] + "***" + val[-4:]
+                        else:
+                            d[k] = "***"
+            elif isinstance(d, list):
+                for item in d:
+                    _mask(item)
+
+        _mask(masked)
+        return masked
 
 
 # ============================================================================

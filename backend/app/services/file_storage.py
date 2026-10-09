@@ -36,245 +36,8 @@ except ImportError:
     logger.warning("boto3 not installed, S3/R2 storage disabled")
 
 
-class S3StorageService:
-    """
-    Generic S3 compatible storage service (Cloudflare R2, Backblaze B2, AWS S3, etc).
-    """
-    
-    def __init__(self):
-        if not BOTO3_AVAILABLE:
-            raise ImportError("boto3 is required for S3 storage")
-            
-        self.bucket_name = settings.S3_BUCKET_NAME
-        self.public_domain = settings.S3_PUBLIC_DOMAIN
-        
-        if not self.bucket_name:
-            raise ValueError("S3_BUCKET_NAME not configured")
-            
-        self.s3_client = boto3.client(
-            's3',
-            endpoint_url=settings.S3_ENDPOINT_URL,
-            aws_access_key_id=settings.S3_ACCESS_KEY,
-            aws_secret_access_key=settings.S3_SECRET_KEY,
-            region_name=settings.S3_REGION or 'auto'
-        )
-    
-    async def upload_image(self, file: UploadFile, key: str, content_type: str) -> str:
-        """Upload image to S3 and return the key."""
-        try:
-            logger.info(
-                "🚀 Starting S3 upload",
-                key=key,
-                content_type=content_type,
-                bucket=self.bucket_name,
-                endpoint=settings.S3_ENDPOINT_URL
-            )
-            
-            # Read file content
-            file_content = await file.read()
-            logger.info(f"📦 File read: {len(file_content)} bytes")
-            
-            # Reset file pointer for subsequent reads if any
-            await file.seek(0)
-            
-            # Upload to S3
-            logger.info("📤 Uploading to S3...")
-            self.s3_client.put_object(
-                Bucket=self.bucket_name,
-                Key=key,
-                Body=file_content,
-                ContentType=content_type,
-                # ACL='private' # Explicitly private
-            )
-            
-            logger.info(
-                "✅ S3 upload successful",
-                key=key,
-                size=len(file_content)
-            )
-            
-            return key
-            
-        except ClientError as e:
-            logger.error(
-                "❌ S3 upload failed - ClientError",
-                error=str(e),
-                error_code=e.response.get('Error', {}).get('Code') if hasattr(e, 'response') else None,
-                error_message=e.response.get('Error', {}).get('Message') if hasattr(e, 'response') else None,
-                key=key,
-                bucket=self.bucket_name
-            )
-            raise e
-        except Exception as e:
-            logger.error(
-                "❌ S3 upload failed - Unexpected",
-                error=str(e),
-                error_type=type(e).__name__,
-                key=key
-            )
-            raise e
-
-    def generate_presigned_url(self, key: str, expiration: int = 900) -> str:
-        """Generate a presigned URL for a file."""
-        try:
-            url = self.s3_client.generate_presigned_url(
-                'get_object',
-                Params={
-                    'Bucket': self.bucket_name,
-                    'Key': key
-                },
-                ExpiresIn=expiration
-            )
-            return url
-        except ClientError as e:
-            logger.error("Failed to generate presigned URL", error=str(e))
-            return ""
-
-    async def delete_image(self, key: str) -> bool:
-        """Delete image from S3."""
-        try:
-            self.s3_client.delete_object(
-                Bucket=self.bucket_name,
-                Key=key
-            )
-            return True
-        except ClientError as e:
-            logger.error("S3 delete failed", error=str(e))
-            return False
-
-
-class PostgresStorageService:
-    """
-    Storage service that stores images as binary data in a dedicated PostgreSQL database.
-    """
-    
-    def __init__(self):
-        self.db_url = settings.IMAGE_STORAGE_DATABASE_URL
-        if not self.db_url:
-            raise ValueError("IMAGE_STORAGE_DATABASE_URL not configured")
-        
-        # Create a dedicated engine for image storage
-        # Supabase/pgbouncer compatibility: Disable prepared statement caching
-        self.engine = create_async_engine(
-            self.db_url,
-            connect_args={"statement_cache_size": 0}
-        )
-        display_host = self.db_url.split("@")[-1].split("/")[0] if "@" in self.db_url else "unknown"
-        logger.info("Initialized PostgresStorageService", db_host=display_host)
-
-    async def upload_image(self, file: UploadFile, key: str, content_type: str) -> str:
-        """Upload image to Postgres and return the key."""
-        try:
-            # Read file content
-            file_content = await file.read()
-            size = len(file_content)
-            
-            # Reset file pointer
-            await file.seek(0)
-            
-            async with self.engine.begin() as conn:
-                await conn.execute(
-                    text("""
-                        INSERT INTO public.product_images (key, data, content_type, size)
-                        VALUES (:key, :data, :content_type, :size)
-                        ON CONFLICT (key) DO UPDATE 
-                        SET data = EXCLUDED.data, 
-                            content_type = EXCLUDED.content_type, 
-                            size = EXCLUDED.size,
-                            created_at = CURRENT_TIMESTAMP
-                    """),
-                    {
-                        "key": key,
-                        "data": file_content,
-                        "content_type": content_type,
-                        "size": size
-                    }
-                )
-            
-            logger.info("✅ Image stored in Postgres", key=key, size=size)
-            return key
-            
-        except Exception as e:
-            # Check if it's a missing table error
-            error_str = str(e).lower()
-            if "relation" in error_str and "does not exist" in error_str:
-                try:
-                    logger.warning("⚠️ Table 'product_images' missing, attempting to create...")
-                    async with self.engine.begin() as conn:
-                        await conn.execute(text("""
-                            CREATE TABLE IF NOT EXISTS public.product_images (
-                                key VARCHAR(500) PRIMARY KEY,
-                                data BYTEA NOT NULL,
-                                content_type VARCHAR(100) NOT NULL,
-                                size INTEGER NOT NULL,
-                                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                                updated_at TIMESTAMPTZ
-                            );
-                        """))
-                    logger.info("✅ Table 'product_images' created successfully. Retrying upload...")
-                    
-                    # Retry upload once
-                    async with self.engine.begin() as conn:
-                        await conn.execute(
-                            text("""
-                                INSERT INTO public.product_images (key, data, content_type, size)
-                                VALUES (:key, :data, :content_type, :size)
-                                ON CONFLICT (key) DO UPDATE 
-                                SET data = EXCLUDED.data, 
-                                    content_type = EXCLUDED.content_type, 
-                                    size = EXCLUDED.size,
-                                    updated_at = CURRENT_TIMESTAMP
-                            """),
-                            {
-                                "key": key,
-                                "data": file_content,
-                                "content_type": content_type,
-                                "size": size
-                            }
-                        )
-                    logger.info("✅ Image stored in Postgres (after retry)", key=key, size=size)
-                    return key
-                except Exception as retry_err:
-                    logger.error("❌ Postgres upload failed after retry", error=str(retry_err), key=key)
-                    # Fallback to local storage would happen if we raised, but we are inside retries.
-                    # Actually, we should raise so caller knows it failed.
-                    raise retry_err
-            
-            logger.error("❌ Postgres upload failed", error=str(e), key=key)
-            raise e
-
-    async def get_image(self, key: str) -> Optional[dict]:
-        """Retrieve image from Postgres."""
-        try:
-            async with self.engine.connect() as conn:
-                result = await conn.execute(
-                    text("SELECT data, content_type FROM public.product_images WHERE key = :key"),
-                    {"key": key}
-                )
-                row = result.fetchone()
-                if row:
-                    return {
-                        "data": row[0],
-                        "content_type": row[1]
-                    }
-                return None
-        except Exception as e:
-            logger.error("❌ Postgres fetch failed", error=str(e), key=key)
-            return None
-
-    async def delete_image(self, key: str) -> bool:
-        """Delete image from Postgres."""
-        try:
-            async with self.engine.begin() as conn:
-                await conn.execute(
-                    text("DELETE FROM public.product_images WHERE key = :key"),
-                    {"key": key}
-                )
-            return True
-        except Exception as e:
-            logger.error("❌ Postgres delete failed", error=str(e), key=key)
-            return False
-
+from app.services.s3_storage_provider import S3StorageService
+from app.services.postgres_storage_provider import PostgresStorageService
 
 class FileStorageService:
     """
@@ -373,7 +136,7 @@ class FileStorageService:
                 
                 try:
                     # Return the key, not the full URL
-                    stored_key = await s3_service.upload_image(file, key, file.content_type)
+                    stored_key = await s3_service.upload_image(file, key, file.content_type, project_id)
                     
                     # Get file size (approximate from read)
                     file.file.seek(0, 2)
@@ -445,7 +208,7 @@ class FileStorageService:
             raise
     
     @staticmethod
-    async def delete_image(url: str) -> bool:
+    async def delete_image(url: str, project_id: str = None) -> bool:
         """
         Delete an image file.
         """
@@ -466,7 +229,7 @@ class FileStorageService:
                         idx = parts.index("products")
                         key = "/".join(parts[idx:])
                 
-                return await s3_service.delete_image(key)
+                return await s3_service.delete_image(key, project_id)
             
             elif url.startswith("/uploads/"):
                 # Local storage

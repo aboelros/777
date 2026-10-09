@@ -32,22 +32,32 @@ class AIOrchestrator:
     Connects Gemini AI with various platform integrations.
     """
     
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession, context: Optional["TenantContext"] = None):
         self.db = db
+        self.context = context
         self.gemini = GeminiClient()
         self.integration_clients = {}
         self.confidence_scorer = AIConfidenceScorer()
         self.source_attributor = SourceAttributor()
         self.hallucination_guard = HallucinationGuard()
+
+    def _resolve_context(self, project_id: Optional[UUID] = None) -> "TenantContext":
+        from app.core.context import TenantContext
+        if self.context:
+            if project_id and self.context.project_id != project_id:
+                raise ValueError(f"Cross-tenant access violation: context {self.context.project_id} vs {project_id}")
+            return self.context
+        if project_id:
+            return TenantContext(project_id=project_id, roles=["system"])
+        raise ValueError("TenantContext or project_id required for orchestrator operation")
     
     async def initialize_integrations(self, project_id: UUID):
-        """Load and initialize all active integrations for a project."""
-        result = await self.db.execute(
-            select(Integration)
-            .where(Integration.project_id == project_id)
-            .where(Integration.status == "connected")
-        )
-        integrations = result.scalars().all()
+        """Load and initialize all active integrations for a project securely."""
+        context = self._resolve_context(project_id)
+        from app.domains.integrations.repository import IntegrationRepository
+        int_repo = IntegrationRepository(self.db)
+        all_integrations = await int_repo.get_project_integrations(context.project_id)
+        integrations = [i for i in all_integrations if i.status == "connected"]
         
         for integration in integrations:
             client = self._get_integration_client(integration)
@@ -56,7 +66,7 @@ class AIOrchestrator:
         
         logger.info(
             "Integrations initialized",
-            project_id=str(project_id),
+            project_id=str(context.project_id),
             count=len(self.integration_clients)
         )
     
@@ -105,14 +115,21 @@ class AIOrchestrator:
                 message_preview=message_content[:50]
             )
 
+            context = self._resolve_context(project_id)
+
             # Check if AI is enabled for this specific customer
-            from app.domains.customers.models import CustomerProfile
-            profile_result = await self.db.execute(
-                select(CustomerProfile).where(CustomerProfile.id == customer_id)
-            )
-            profile = profile_result.scalar_one_or_none()
+            from app.domains.customers.repository import CustomerProfileRepository
+            profile_repo = CustomerProfileRepository(self.db)
+            profile = await profile_repo.get_profile_by_context(context, customer_id)
             
-            if profile and not profile.ai_enabled:
+            if not profile:
+                logger.warning("Customer profile not found or belongs to another tenant", customer_id=str(customer_id), project_id=str(context.project_id))
+                return {
+                    "status": "error",
+                    "message": "Customer profile not found or access denied."
+                }
+            
+            if not profile.ai_enabled:
                 logger.info("AI automation disabled for this customer", customer_id=str(customer_id))
                 return {
                     "status": "ai_disabled",
@@ -504,10 +521,16 @@ DO NOT repeat the previous text. Just give the answer.
                 result = await self._update_order(
                     order_id=params["order_id"],
                     status=params["status"],
-                    note=params.get("note")
+                    note=params.get("note"),
+                    project_id=project_id,
+                    customer_id=customer_id
                 )
             elif func_name == "fetch_order_details":
-                result = await self._fetch_order(params["order_id"], customer_id=customer_id)
+                result = await self._fetch_order(
+                    order_id=params["order_id"],
+                    customer_id=customer_id,
+                    project_id=project_id
+                )
             elif func_name == "create_support_ticket":
                 result = await self._create_ticket(
                     customer_id=customer_id,
@@ -878,14 +901,13 @@ DO NOT repeat the previous text. Just give the answer.
         
         try:
             # 1. Get customer to find their platform-specific ID
-            from app.domains.customers.models import CustomerProfile
-            result = await self.db.execute(
-                select(CustomerProfile).where(CustomerProfile.id == customer_id)
-            )
-            customer = result.scalar_one_or_none()
+            context = self._resolve_context(project_id)
+            from app.domains.customers.repository import CustomerProfileRepository
+            profile_repo = CustomerProfileRepository(self.db)
+            customer = await profile_repo.get_profile_by_context(context, customer_id)
             
             if not customer:
-                logger.error("Customer not found", customer_id=str(customer_id))
+                logger.error("Customer not found or access denied", customer_id=str(customer_id))
                 return {"status": "error", "message": "Customer not found"}
             
             # 2. Get platform-specific ID
@@ -992,7 +1014,8 @@ DO NOT repeat the previous text. Just give the answer.
         self,
         customer_id: UUID,
         action: str,
-        channel: str
+        channel: str,
+        project_id: Optional[UUID] = None
     ) -> Dict[str, Any]:
         """Send a sender action (typing_on, mark_seen) via integration."""
         client = self.integration_clients.get(channel)
@@ -1000,11 +1023,10 @@ DO NOT repeat the previous text. Just give the answer.
             return {"status": "error", "message": "Action not supported on this channel"}
             
         try:
-            from app.domains.customers.models import CustomerProfile
-            result = await self.db.execute(
-                select(CustomerProfile).where(CustomerProfile.id == customer_id)
-            )
-            customer = result.scalar_one_or_none()
+            context = self._resolve_context(project_id)
+            from app.domains.customers.repository import CustomerProfileRepository
+            profile_repo = CustomerProfileRepository(self.db)
+            customer = await profile_repo.get_profile_by_context(context, customer_id)
             if not customer:
                 return {"status": "error", "message": "Customer not found"}
                 
@@ -1018,107 +1040,147 @@ DO NOT repeat the previous text. Just give the answer.
         self,
         order_id: str,
         status: str,
-        note: Optional[str] = None
+        note: Optional[str] = None,
+        project_id: Optional[UUID] = None,
+        customer_id: Optional[UUID] = None
     ) -> Dict[str, Any]:
-        """Update order status in Shopify."""
+        """Update order status in Shopify and local repository after verifying tenant ownership."""
+        context = self._resolve_context(project_id)
+        from app.domains.orders.repository import OrderRepository
+        order_repo = OrderRepository(self.db)
+
+        # 1. Verify ownership in local tenant database BEFORE triggering any external provider
+        order = None
+        try:
+            order_uuid = UUID(order_id)
+            order = await order_repo.get_by_context(order_uuid, context)
+        except (ValueError, AttributeError):
+            order = await order_repo.get_by_external_id(context.project_id, str(order_id), "shopify")
+            if not order:
+                order = await order_repo.get_by_external_id(context.project_id, str(order_id), "ai_agent")
+
+        if not order:
+            logger.warning(
+                "Cross-tenant or nonexistent order update attempt blocked",
+                order_id=order_id,
+                project_id=str(context.project_id)
+            )
+            return {"status": "error", "message": "Order not found or access denied."}
+
+        # If customer_id provided, verify customer ownership
+        if customer_id and order.customer_id and order.customer_id != customer_id:
+            logger.warning("Order does not belong to customer", order_id=order_id, customer_id=str(customer_id))
+            return {"status": "error", "message": "Order does not belong to this customer."}
+
         shopify_client = self.integration_clients.get("shopify")
         if not shopify_client:
-            return {"status": "error", "message": "Shopify not connected"}
-        
+            order.status = status
+            await self.db.commit()
+            return {"status": "success", "order_id": order_id}
+
         try:
-            result = await shopify_client.update_order(order_id, status, note)
+            ext_id = order.external_id or order_id
+            result = await shopify_client.update_order(ext_id, status, note)
+            order.status = status
+            await self.db.commit()
             return {"status": "success", "order_id": order_id}
         except Exception as e:
             return {"status": "error", "message": str(e)}
-    
-    async def _fetch_order(self, order_id: str, customer_id: UUID) -> Dict[str, Any]:
-        """Fetch order details from Shopify."""
+
+    async def _fetch_order(
+        self,
+        order_id: str,
+        customer_id: UUID,
+        project_id: Optional[UUID] = None
+    ) -> Dict[str, Any]:
+        """Fetch order details after verifying tenant ownership."""
+        context = self._resolve_context(project_id)
+        from app.domains.customers.repository import CustomerProfileRepository
+        from app.domains.orders.repository import OrderRepository
+
+        # 1. Verify customer exists and belongs to tenant
+        profile_repo = CustomerProfileRepository(self.db)
+        customer = await profile_repo.get_profile_by_context(context, customer_id)
+        if not customer:
+            return {"status": "error", "message": "Customer not found"}
+
+        # 2. Verify order belongs to tenant in local repository
+        order_repo = OrderRepository(self.db)
+        order = None
+        try:
+            order_uuid = UUID(order_id)
+            order = await order_repo.get_by_context(order_uuid, context)
+        except (ValueError, AttributeError):
+            order = await order_repo.get_by_external_id(context.project_id, str(order_id), "shopify")
+            if not order:
+                order = await order_repo.get_by_external_id(context.project_id, str(order_id), "ai_agent")
+
+        if not order:
+            logger.warning("Order fetch attempt blocked across tenants", order_id=order_id, project_id=str(context.project_id))
+            return {"status": "error", "message": "Access denied. Order does not belong to this tenant."}
+
+        if order.customer_id and order.customer_id != customer_id:
+            logger.warning("Unauthorized customer order fetch attempt", order_id=order_id, customer_id=str(customer_id))
+            return {"status": "error", "message": "Access denied. Order does not belong to this customer."}
+
         shopify_client = self.integration_clients.get("shopify")
         if not shopify_client:
-            return {"status": "error", "message": "Shopify not connected"}
-        
+            return {
+                "status": "success",
+                "order": {
+                    "id": str(order.id),
+                    "external_id": order.external_id,
+                    "status": order.status,
+                    "total": float(order.total or 0),
+                    "currency": order.currency,
+                    "items": order.items
+                }
+            }
+
         try:
-            # Verify customer exists
-            customer = await self._get_customer(customer_id)
-            if not customer:
-                return {"status": "error", "message": "Customer not found"}
-
-            order = await shopify_client.get_order(order_id)
-            if not order:
-                return {"status": "error", "message": "Order not found"}
-
-            # Security: Verify ownership
-            # Check if order email/phone matches customer
-            order_data = order if isinstance(order, dict) else order.to_dict()
-            order_email = order_data.get("email") or order_data.get("customer", {}).get("email")
-            order_phone = order_data.get("phone") or order_data.get("customer", {}).get("phone")
-            
-            is_owner = False
-            if customer.email and order_email and customer.email.lower() == order_email.lower():
-                is_owner = True
-            elif customer.phone and order_phone and (customer.phone in str(order_phone) or str(order_phone) in customer.phone):
-                is_owner = True
-            
-            # Also check if order is linked in our local DB
-            if not is_owner:
-                # Fallback to local DB check
-                from app.domains.orders.models import Order
-                stmt = select(Order).where(Order.external_id == str(order_id), Order.customer_id == customer_id)
-                result = await self.db.execute(stmt)
-                if result.scalar_one_or_none():
-                    is_owner = True
-
-            if not is_owner:
-                logger.warning(f"Unauthorized order access attempt: Customer {customer_id} tried to access Order {order_id}")
-                return {"status": "error", "message": "Access denied. Order does not belong to this customer."}
-
-            return {"status": "success", "order": order_data}
+            shopify_order = await shopify_client.get_order(order.external_id or order_id)
+            return {"status": "success", "order": shopify_order if isinstance(shopify_order, dict) else shopify_order.to_dict()}
         except Exception as e:
             return {"status": "error", "message": str(e)}
-    
+
     async def _track_order(
         self,
         customer_id: UUID,
         project_id: UUID,
         order_id: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Track order status from local database or Shopify."""
+        """Track order status scoped strictly to tenant and customer."""
+        context = self._resolve_context(project_id)
+        from app.domains.orders.repository import OrderRepository
+        from app.domains.orders.models import Order
+        order_repo = OrderRepository(self.db)
+
         try:
-            from app.domains.orders.models import Order
-            
-            # 1. Search by Order ID if provided
+            order = None
             if order_id:
-                # Try to find by external_id or internal UUID
-                # Enforce customer ownership for security
-                stmt = select(Order).where(Order.project_id == project_id, Order.customer_id == customer_id)
-                if len(str(order_id)) > 20: # Likely UUID
-                    try:
-                        stmt = stmt.where((Order.external_id == order_id) | (Order.id == UUID(order_id)))
-                    except ValueError:
-                        stmt = stmt.where(Order.external_id == order_id)
-                else:
-                    stmt = stmt.where(Order.external_id == order_id)
-                    
-                result = await self.db.execute(stmt)
-                order = result.scalar_one_or_none()
-            else:
-                # 2. Get most recent order for this customer
-                stmt = (
-                    select(Order)
-                    .where(Order.customer_id == customer_id)
-                    .order_by(Order.created_at.desc())
-                    .limit(1)
-                )
-                result = await self.db.execute(stmt)
-                order = result.scalar_one_or_none()
+                try:
+                    order = await order_repo.get_by_context(UUID(order_id), context)
+                except (ValueError, AttributeError):
+                    order = await order_repo.get_by_external_id(context.project_id, str(order_id), "shopify")
+                    if not order:
+                        order = await order_repo.get_by_external_id(context.project_id, str(order_id), "ai_agent")
                 
+                if order and order.customer_id and order.customer_id != customer_id:
+                    order = None
+            else:
+                stmt = select(Order).where(
+                    Order.project_id == context.project_id,
+                    Order.customer_id == customer_id
+                ).order_by(Order.order_date.desc()).limit(1)
+                result = await self.db.execute(stmt)
+                order = result.scalar_one_or_none()
+
             if not order:
                 return {
                     "status": "error",
                     "message": f"Could not find order {order_id if order_id else 'history'}."
                 }
-            
-            # Prepare tracking response
+
             tracking_info = {
                 "order_id": order.external_id,
                 "status": order.status,
@@ -1127,16 +1189,12 @@ DO NOT repeat the previous text. Just give the answer.
                 "order_date": order.order_date.strftime("%Y-%m-%d") if order.order_date else None,
                 "items": order.items
             }
-            
-            # If Shopify order, we could potentially fetch real-time carrier info here
-            # For now, return status from DB
-            
+
             return {
                 "status": "success",
                 "tracking": tracking_info,
                 "final_response_template": f"📦 حالة الطلب #{order.external_id}:\nالحالة: {order.status}\nالمجموع: {order.total} {order.currency}\nتاريخ الطلب: {order.order_date.strftime('%Y-%m-%d') if order.order_date else 'غير متوفر'}"
             }
-            
         except Exception as e:
             logger.error("Failed to track order", error=str(e))
             return {"status": "error", "message": "Failed to retrieve order tracking information."}
@@ -1161,13 +1219,12 @@ DO NOT repeat the previous text. Just give the answer.
             "priority": priority
         }
     
-    async def _get_customer(self, customer_id: UUID) -> Optional[dict]:
-        """Fetch customer from database."""
-        from app.domains.customers.models import CustomerProfile
-        result = await self.db.execute(
-            select(CustomerProfile).where(CustomerProfile.id == customer_id)
-        )
-        customer = result.scalar_one_or_none()
+    async def _get_customer(self, customer_id: UUID, project_id: Optional[UUID] = None) -> Optional[dict]:
+        """Fetch customer from database scoped to tenant."""
+        context = self._resolve_context(project_id)
+        from app.domains.customers.repository import CustomerProfileRepository
+        profile_repo = CustomerProfileRepository(self.db)
+        customer = await profile_repo.get_profile_by_context(context, customer_id)
         if not customer:
             return None
             
@@ -1183,12 +1240,17 @@ DO NOT repeat the previous text. Just give the answer.
     async def _get_conversation_history(
         self,
         customer_id: UUID,
-        limit: int = 10
+        limit: int = 10,
+        project_id: Optional[UUID] = None
     ) -> list:
-        """Fetch recent conversation history."""
+        """Fetch recent conversation history scoped strictly to tenant."""
+        context = self._resolve_context(project_id)
         result = await self.db.execute(
             select(Message)
-            .where(Message.customer_id == customer_id)
+            .where(
+                Message.customer_id == customer_id,
+                Message.project_id == context.project_id
+            )
             .order_by(Message.created_at.desc())
             .limit(limit)
         )
@@ -1225,28 +1287,20 @@ DO NOT repeat the previous text. Just give the answer.
         return history
     
     async def _get_knowledge_context(self, project_id: UUID, query: str) -> str:
-        """Fetch relevant knowledge base items for the given query, with caching."""
+        """Fetch relevant knowledge base items for the given query, with caching and strict tenant scoping."""
+        context = self._resolve_context(project_id)
         from app.services.cache_service import cache
-        # For simple caching, we use the project_id as key. 
-        # In a real vector search RAG, we would cache the embedding search results.
-        cache_key = f"knowledge:{project_id}"
+        cache_key = f"knowledge:{context.project_id}"
         
         cached_knowledge = await cache.get(cache_key)
         if cached_knowledge:
-            logger.debug(f"Loaded knowledge context from cache for project {project_id}")
+            logger.debug(f"Loaded knowledge context from cache for project {context.project_id}")
             return cached_knowledge
 
         try:
-            from app.domains.ai.models import KnowledgeBase
-            
-            # Select only title and content to avoid errors if embedding column doesn't exist yet
-            stmt = select(KnowledgeBase.title, KnowledgeBase.content).where(
-                KnowledgeBase.project_id == project_id,
-                KnowledgeBase.is_active == True
-            )
-            
-            result = await self.db.execute(stmt.limit(10))
-            items = result.all()
+            from app.domains.ai.repository import KnowledgeBaseRepository
+            kb_repo = KnowledgeBaseRepository(self.db)
+            items = await kb_repo.get_active_by_context(context, limit=10)
             
             if not items:
                 await cache.set(cache_key, "", expire_seconds=1800)
@@ -1507,30 +1561,23 @@ Respond in JSON format."""
         """Send a WhatsApp message via WA-Gateway."""
         try:
             # Get customer phone number
-            from app.domains.customers.models import CustomerProfile
-            from app.domains.integrations.models import Integration
+            from app.domains.customers.repository import CustomerProfileRepository
+            from app.domains.integrations.repository import IntegrationRepository
             from app.domains.messages.models import Message, MessageDirection
             
-            result = await self.db.execute(
-                select(CustomerProfile).where(CustomerProfile.id == customer_id)
-            )
-            customer = result.scalar_one_or_none()
+            context = self._resolve_context(project_id)
+            profile_repo = CustomerProfileRepository(self.db)
+            customer = await profile_repo.get_profile_by_context(context, customer_id)
             
             if not customer or not customer.phone:
                 logger.error("Customer or phone not found", customer_id=str(customer_id))
                 return {"status": "error", "message": "Customer phone not found"}
             
-            # Get WA-Gateway integration
-            result = await self.db.execute(
-                select(Integration)
-                .where(Integration.project_id == project_id)
-                .where(Integration.provider == "whatsapp")
-                .where(Integration.status == "connected")
-            )
-            integration = result.scalar_one_or_none()
+            int_repo = IntegrationRepository(self.db)
+            integration = await int_repo.get_by_provider(context.project_id, "whatsapp")
             
-            if not integration:
-                logger.error("No connected WhatsApp integration", project_id=str(project_id))
+            if not integration or integration.status != "connected":
+                logger.error("No connected WhatsApp integration", project_id=str(context.project_id))
                 return {"status": "error", "message": "No WhatsApp integration"}
             
             # Get session ID from integration
@@ -1709,30 +1756,23 @@ Respond in JSON format."""
         """Send media via WA-Gateway."""
         try:
             # Get customer phone number
-            from app.domains.customers.models import CustomerProfile
-            from app.domains.integrations.models import Integration
+            from app.domains.customers.repository import CustomerProfileRepository
+            from app.domains.integrations.repository import IntegrationRepository
             from app.domains.messages.models import Message, MessageDirection
             
-            result = await self.db.execute(
-                select(CustomerProfile).where(CustomerProfile.id == customer_id)
-            )
-            customer = result.scalar_one_or_none()
+            context = self._resolve_context(project_id)
+            profile_repo = CustomerProfileRepository(self.db)
+            customer = await profile_repo.get_profile_by_context(context, customer_id)
             
             if not customer or not customer.phone:
                 logger.error("Customer or phone not found", customer_id=str(customer_id))
                 return {"status": "error", "message": "Customer phone not found"}
             
-            # Get WA-Gateway integration
-            result = await self.db.execute(
-                select(Integration)
-                .where(Integration.project_id == project_id)
-                .where(Integration.provider == "whatsapp")
-                .where(Integration.status == "connected")
-            )
-            integration = result.scalar_one_or_none()
+            int_repo = IntegrationRepository(self.db)
+            integration = await int_repo.get_by_provider(context.project_id, "whatsapp")
             
-            if not integration:
-                logger.error("No connected WhatsApp integration", project_id=str(project_id))
+            if not integration or integration.status != "connected":
+                logger.error("No connected WhatsApp integration", project_id=str(context.project_id))
                 return {"status": "error", "message": "No WhatsApp integration"}
             
             # Get session ID from integration
@@ -1875,22 +1915,21 @@ Format as JSON with keys: text, hashtags, cta, emojis"""
             return {"status": "error", "message": str(e)}
     
     async def _get_product_catalog(self, project_id: UUID) -> List[Dict[str, Any]]:
-        """Fetch the product catalog for a project, with caching."""
+        """Fetch the product catalog for a project, with caching and strict tenant scoping."""
+        context = self._resolve_context(project_id)
         from app.services.cache_service import cache
-        cache_key = f"catalog:{project_id}"
+        cache_key = f"catalog:{context.project_id}"
         
         # Try cache first
         cached_catalog = await cache.get(cache_key)
         if cached_catalog:
-            logger.debug(f"Loaded product catalog from cache for project {project_id}")
+            logger.debug(f"Loaded product catalog from cache for project {context.project_id}")
             return cached_catalog
 
         try:
-            from app.domains.products.models import Product
-            # Original list items
-            stmt = select(Product).where(Product.project_id == project_id)
-            result = await self.db.execute(stmt)
-            products = result.scalars().all()
+            from app.domains.products.repository import ProductRepository
+            prod_repo = ProductRepository(self.db)
+            products = await prod_repo.get_project_products(context.project_id)
             
             catalog = []
             for p in products:

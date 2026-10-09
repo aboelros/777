@@ -78,7 +78,7 @@ class CustomerProfile(Base):
     # Relationships
     project = relationship("Project", backref="customer_profiles")
     messages = relationship("Message", back_populates="customer", cascade="all, delete-orphan")
-    orders = relationship("Order", back_populates="customer")
+    orders = relationship("Order", back_populates="customer_profile")
     
     # Indexes
     __table_args__ = (
@@ -87,5 +87,6 @@ class CustomerProfile(Base):
         Index("idx_customer_profile_email", "email"),
         Index("idx_customer_profile_phone", "phone"),
         Index("idx_customer_profile_type", "customer_type"),
+        Index("idx_customer_profile_project_customer", "project_id", "customer_id", unique=True),
     )
 

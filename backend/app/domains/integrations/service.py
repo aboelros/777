@@ -5,6 +5,7 @@ from sqlalchemy import func
 import structlog
 
 from app.core.uow import UnitOfWork
+from app.core.context import TenantContext
 from app.domains.integrations.repository import IntegrationRepository
 from app.domains.integrations.models import Integration, IntegrationStatus, IntegrationProvider
 from app.domains.integrations.schemas import IntegrationConnect, IntegrationUpdate, IntegrationConfigUpdate
@@ -25,21 +26,9 @@ class IntegrationService:
     def __init__(self, uow: UnitOfWork):
         self.uow = uow
 
-    async def _verify_project_access(self, project_id: UUID, user_id: UUID) -> Any:
-        project_repo = ProjectRepository(self.uow.session)
-        project = await project_repo.get(project_id)
-        if not project or project.owner_id != user_id:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Project not found or access denied"
-            )
-        return project
-
-    async def connect_integration(self, project_id: str, user_id: str, integration_data: IntegrationConnect) -> Integration:
+    async def connect_integration(self, context: TenantContext, integration_data: IntegrationConnect) -> Integration:
         async with self.uow as uow:
-            proj_uuid = UUID(project_id)
-            user_uuid = UUID(user_id)
-            await self._verify_project_access(proj_uuid, user_uuid)
+            proj_uuid = context.project_id
             
             config_payload = integration_data.config or {}
             provider = integration_data.provider.value
@@ -88,40 +77,33 @@ class IntegrationService:
             await uow.session.refresh(integration)
             return integration
 
-    async def list_integrations(self, project_id: str, user_id: str) -> List[Integration]:
+    async def list_integrations(self, context: TenantContext) -> List[Integration]:
         async with self.uow as uow:
-            proj_uuid = UUID(project_id)
-            user_uuid = UUID(user_id)
-            await self._verify_project_access(proj_uuid, user_uuid)
+            proj_uuid = context.project_id
             
             repo = IntegrationRepository(uow.session)
             return await repo.get_project_integrations(proj_uuid)
 
-    async def get_integration(self, project_id: str, integration_id: str, user_id: str) -> Integration:
+    async def get_integration(self, context: TenantContext, integration_id: str) -> Integration:
         async with self.uow as uow:
-            proj_uuid = UUID(project_id)
-            user_uuid = UUID(user_id)
-            await self._verify_project_access(proj_uuid, user_uuid)
+            proj_uuid = context.project_id
             
             repo = IntegrationRepository(uow.session)
-            integration = await repo.get(UUID(integration_id))
+            integration = await repo.get_tenant_integration(proj_uuid, UUID(integration_id))
             
-            if not integration or integration.project_id != proj_uuid:
+            if not integration:
                 raise HTTPException(status_code=404, detail="Integration not found")
                 
             return integration
 
-    async def update_integration(self, project_id: str, integration_id: str, user_id: str, update_data: IntegrationUpdate) -> Integration:
+    async def update_integration(self, context: TenantContext, integration_id: str, update_data: IntegrationUpdate) -> Integration:
         async with self.uow as uow:
-            proj_uuid = UUID(project_id)
+            proj_uuid = context.project_id
             int_uuid = UUID(integration_id)
-            user_uuid = UUID(user_id)
-            await self._verify_project_access(proj_uuid, user_uuid)
-            
             repo = IntegrationRepository(uow.session)
-            integration = await repo.get(int_uuid)
+            integration = await repo.get_tenant_integration(proj_uuid, int_uuid)
             
-            if not integration or integration.project_id != proj_uuid:
+            if not integration:
                 raise HTTPException(status_code=404, detail="Integration not found")
                 
             if update_data.status:
@@ -174,17 +156,14 @@ class IntegrationService:
             await uow.session.refresh(integration)
             return integration
 
-    async def delete_integration(self, project_id: str, integration_id: str, user_id: str) -> None:
+    async def delete_integration(self, context: TenantContext, integration_id: str) -> None:
         async with self.uow as uow:
-            proj_uuid = UUID(project_id)
+            proj_uuid = context.project_id
             int_uuid = UUID(integration_id)
-            user_uuid = UUID(user_id)
-            await self._verify_project_access(proj_uuid, user_uuid)
-            
             repo = IntegrationRepository(uow.session)
-            integration = await repo.get(int_uuid)
+            integration = await repo.get_tenant_integration(proj_uuid, int_uuid)
             
-            if not integration or integration.project_id != proj_uuid:
+            if not integration:
                 raise HTTPException(status_code=404, detail="Integration not found")
                 
             await repo.delete(integration)

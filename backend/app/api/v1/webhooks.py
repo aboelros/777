@@ -2,7 +2,7 @@
 Webhook endpoints for receiving messages from integrations.
 """
 
-from typing import Any
+from typing import Any, Optional
 from fastapi import APIRouter, Request, HTTPException, status, BackgroundTasks, Depends
 from uuid import UUID
 import structlog
@@ -17,7 +17,8 @@ logger = structlog.get_logger(__name__)
 async def inbound_webhook(
     request: Request,
     background_tasks: BackgroundTasks,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    explicit_project_id: Optional[UUID] = None
 ) -> Any:
     """
     Centralized Webhook Gateway.
@@ -27,7 +28,7 @@ async def inbound_webhook(
     from app.services.webhook_gateway import WebhookGateway
 
     gateway = WebhookGateway(db, background_tasks)
-    return await gateway.handle_inbound(request)
+    return await gateway.handle_inbound(request, explicit_project_id=explicit_project_id)
 
 @router.get("/inbound")
 async def verify_inbound_webhook(request: Request) -> Any:
@@ -59,7 +60,7 @@ async def whatsapp_business_webhook(
 ) -> Any:
     """Legacy endpoint for WhatsApp Business API."""
     logger.debug("WhatsApp webhook received", method=request.method)
-    return await inbound_webhook(request, background_tasks, db)
+    return await inbound_webhook(request, background_tasks, db, explicit_project_id=project_id)
 
 @router.get("/whatsapp")
 async def verify_whatsapp_business_webhook(request: Request) -> Any:
@@ -76,7 +77,7 @@ async def telegram_webhook(
     """Legacy endpoint for Telegram."""
     logger.debug("Telegram webhook received", project_id=str(project_id))
     # project_id is ignored as Gateway resolves it internally
-    return await inbound_webhook(request, background_tasks, db)
+    return await inbound_webhook(request, background_tasks, db, explicit_project_id=project_id)
 
 @router.post("/instagram/{project_id}")
 async def instagram_webhook(
@@ -87,7 +88,7 @@ async def instagram_webhook(
 ) -> Any:
     """Legacy endpoint for Instagram."""
     logger.debug("Instagram webhook received", project_id=str(project_id))
-    return await inbound_webhook(request, background_tasks, db)
+    return await inbound_webhook(request, background_tasks, db, explicit_project_id=project_id)
 
 @router.get("/instagram/{project_id}")
 async def instagram_verify(project_id: UUID, request: Request) -> Any:
@@ -103,7 +104,7 @@ async def facebook_webhook(
 ) -> Any:
     """Legacy endpoint for Facebook."""
     logger.debug("Facebook webhook received", project_id=str(project_id))
-    return await inbound_webhook(request, background_tasks, db)
+    return await inbound_webhook(request, background_tasks, db, explicit_project_id=project_id)
 
 @router.get("/facebook/{project_id}")
 async def facebook_verify(project_id: UUID, request: Request) -> Any:
@@ -117,7 +118,7 @@ async def go_whatsapp_webhook(
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """Legacy endpoint for Go WhatsApp."""
-    return await inbound_webhook(request, background_tasks, db)
+    return await inbound_webhook(request, background_tasks, db, explicit_project_id=project_id)
 
 @router.post("/whatsapp/go_whatsapp")
 async def go_whatsapp_webhook_alt(
@@ -126,7 +127,7 @@ async def go_whatsapp_webhook_alt(
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """Alternative legacy endpoint for Go WhatsApp."""
-    return await inbound_webhook(request, background_tasks, db)
+    return await inbound_webhook(request, background_tasks, db, explicit_project_id=project_id)
 
 @router.post("/wa-gateway/session")
 async def wa_gateway_session_webhook(
@@ -147,7 +148,7 @@ async def tiktok_webhook(
 ) -> Any:
     """Endpoint for TikTok Business Messages."""
     logger.debug("TikTok webhook received")
-    return await inbound_webhook(request, background_tasks, db)
+    return await inbound_webhook(request, background_tasks, db, explicit_project_id=project_id)
 
 @router.post("/discord")
 async def discord_webhook(
@@ -157,4 +158,4 @@ async def discord_webhook(
 ) -> Any:
     """Endpoint for Discord Interactions."""
     logger.debug("Discord webhook received")
-    return await inbound_webhook(request, background_tasks, db)
+    return await inbound_webhook(request, background_tasks, db, explicit_project_id=project_id)

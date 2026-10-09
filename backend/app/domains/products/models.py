@@ -20,6 +20,7 @@ class ProductImage(Base):
     
     # We use a text key as primary key (e.g. products/uuid/image.jpg)
     key = Column(String(500), primary_key=True)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=True)
     
     # Binary data
     data = Column(LargeBinary, nullable=False)

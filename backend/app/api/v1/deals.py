@@ -1,145 +1,97 @@
 from typing import Any, List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc, asc
 
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
-from app.core.security import get_current_user_id
-from app.core.access_control import verify_project_access
+from app.core.uow import UnitOfWork
+
+from app.core.context import TenantContext
+from app.api.dependencies.tenant import get_tenant_context
 from app.domains.crm.models import PipelineStage, Deal
+from app.domains.crm.service import CRMService
+from app.domains.crm.schemas import PipelineStageResponse, DealResponse
 from app.domains.projects.models import Project
 
 router = APIRouter()
 
+def get_crm_service(db: AsyncSession = Depends(get_db)) -> CRMService:
+    return CRMService(uow=UnitOfWork(db))
+
 # --- Stages ---
 
-@router.get("/{project_id}/stages")
+@router.get("/{project_id}/stages", response_model=List[PipelineStageResponse])
 async def get_stages(
     project_id: UUID,
-    user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    context: TenantContext = Depends(get_tenant_context),
+    service: CRMService = Depends(get_crm_service)
 ) -> Any:
     """Get all pipeline stages for a project."""
-    await verify_project_access(project_id, user_id, db)
-    
-    result = await db.execute(
-        select(PipelineStage)
-        .where(PipelineStage.project_id == project_id)
-        .where(PipelineStage.is_active == True)
-        .order_by(asc(PipelineStage.index))
-    )
-    return result.scalars().all()
+    return await service.list_stages(context)
 
-@router.post("/{project_id}/stages")
+@router.post("/{project_id}/stages", response_model=PipelineStageResponse)
 async def create_stage(
     project_id: UUID,
     name: str,
     index: int = 0,
     color: str = "#6366f1",
-    user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    context: TenantContext = Depends(get_tenant_context),
+    service: CRMService = Depends(get_crm_service)
 ) -> Any:
     """Create a new pipeline stage."""
-    await verify_project_access(project_id, user_id, db)
-    
-    stage = PipelineStage(
-        project_id=project_id,
+    return await service.create_stage(
+        context=context,
         name=name,
         index=index,
         color=color
     )
-    db.add(stage)
-    await db.commit()
-    await db.refresh(stage)
-    return stage
 
 # --- Deals ---
 
-@router.get("/{project_id}/deals")
+@router.get("/{project_id}/deals", response_model=List[DealResponse])
 async def get_deals(
     project_id: UUID,
     stage_id: Optional[UUID] = None,
-    user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    context: TenantContext = Depends(get_tenant_context),
+    service: CRMService = Depends(get_crm_service)
 ) -> Any:
     """Get deals, optionally filtered by stage."""
-    await verify_project_access(project_id, user_id, db)
-    
-    query = select(Deal).where(Deal.project_id == project_id)
-    
-    if stage_id:
-        query = query.where(Deal.stage_id == stage_id)
-        
-    query = query.order_by(desc(Deal.updated_at))
-    
-    result = await db.execute(query)
-    return result.scalars().all()
+    return await service.list_deals(context=context, stage_id=stage_id)
 
-@router.post("/{project_id}/deals")
+@router.post("/{project_id}/deals", response_model=DealResponse)
 async def create_deal(
     project_id: UUID,
     title: str,
     stage_id: UUID,
     value: float = 0.0,
     customer_id: Optional[UUID] = None,
-    user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    context: TenantContext = Depends(get_tenant_context),
+    service: CRMService = Depends(get_crm_service)
 ) -> Any:
     """Create a new deal."""
-    await verify_project_access(project_id, user_id, db)
-    
-    # Verify stage exists and belongs to project
-    stage_result = await db.execute(
-        select(PipelineStage)
-        .where(PipelineStage.id == stage_id)
-        .where(PipelineStage.project_id == project_id)
-    )
-    if not stage_result.scalar_one_or_none():
-         raise HTTPException(status_code=404, detail="Stage not found")
-
-    deal = Deal(
-        project_id=project_id,
-        stage_id=stage_id,
+    return await service.create_deal(
+        context=context,
         title=title,
+        stage_id=stage_id,
         value=value,
         customer_id=customer_id
     )
-    db.add(deal)
-    await db.commit()
-    await db.refresh(deal)
-    return deal
 
-@router.patch("/{project_id}/deals/{deal_id}")
+@router.patch("/{project_id}/deals/{deal_id}", response_model=DealResponse)
 async def update_deal(
     project_id: UUID,
     deal_id: UUID,
     stage_id: Optional[UUID] = None,
     value: Optional[float] = None,
     status: Optional[str] = None,
-    user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db)
+    context: TenantContext = Depends(get_tenant_context),
+    service: CRMService = Depends(get_crm_service)
 ) -> Any:
     """Update a deal (move stage, change value)."""
-    await verify_project_access(project_id, user_id, db)
-    
-    result = await db.execute(
-        select(Deal)
-        .where(Deal.id == deal_id)
-        .where(Deal.project_id == project_id)
+    return await service.update_deal(
+        context=context,
+        deal_id=deal_id,
+        stage_id=stage_id,
+        value=value,
+        status=status
     )
-    deal = result.scalar_one_or_none()
-    
-    if not deal:
-        raise HTTPException(status_code=404, detail="Deal not found")
-        
-    if stage_id:
-         deal.stage_id = stage_id
-    if value is not None:
-         deal.value = value
-    if status:
-         deal.status = status
-         
-    await db.commit()
-    await db.refresh(deal)
-    return deal

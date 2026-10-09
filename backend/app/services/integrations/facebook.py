@@ -178,8 +178,9 @@ class FacebookClient:
         """
         url = f"{self.api_base}/me"
         params = {"access_token": self.access_token, "fields": "id,name"}
+        timeout = aiohttp.ClientTimeout(total=5)
         try:
-             async with aiohttp.ClientSession() as session:
+             async with aiohttp.ClientSession(timeout=timeout) as session:
                 async with session.get(url, params=params) as response:
                     if response.status == 200:
                         return await response.json()
@@ -206,8 +207,9 @@ class FacebookClient:
             "subscribed_fields": "messages,messaging_postbacks,messaging_optins,message_deliveries,message_reads,standby"
         }
         
+        timeout = aiohttp.ClientTimeout(total=5)
         try:
-            async with aiohttp.ClientSession() as session:
+            async with aiohttp.ClientSession(timeout=timeout) as session:
                 async with session.post(url, params=params) as response:
                     data = await response.json()
                     if response.status == 200 and data.get("success"):

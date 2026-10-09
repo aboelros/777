@@ -1,6 +1,8 @@
 from typing import List, Optional, Any
 from uuid import UUID
-from fastapi import HTTPException, status, UploadFile
+from app.core.context import TenantContext
+from app.domains.projects.models import ProjectRole
+from fastapi import HTTPException, status, status, UploadFile
 import structlog
 import csv
 import io
@@ -9,42 +11,20 @@ from app.core.uow import UnitOfWork
 from app.domains.products.repository import ProductRepository
 from app.domains.products.models import Product
 from app.domains.products.schemas import ProductCreate, ProductUpdate
+from app.domains.products.image_service import sign_product_images
 from app.domains.projects.repository import ProjectRepository
 from app.services.file_storage import FileStorageService
 
 logger = structlog.get_logger(__name__)
 
-def sign_product_images(images: List[dict] | None) -> List[dict]:
-    if not images:
-        return []
-    
-    signed_images = []
-    for img in images:
-        img_copy = img.copy() if isinstance(img, dict) else img
-        if isinstance(img_copy, dict) and "url" in img_copy:
-            img_copy["url"] = FileStorageService.generate_presigned_url(img_copy["url"])
-        signed_images.append(img_copy)
-    return signed_images
-
 class ProductService:
     def __init__(self, uow: UnitOfWork):
         self.uow = uow
 
-    async def _verify_project_access(self, project_id: UUID, user_id: UUID) -> Any:
-        project_repo = ProjectRepository(self.uow.session)
-        project = await project_repo.get(project_id)
-        if not project or project.owner_id != user_id:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Project not found or access denied"
-            )
-        return project
-
-    async def create_product(self, project_id: str, user_id: str, product_data: ProductCreate) -> dict:
+    async def create_product(self, tenant: TenantContext, product_data: ProductCreate) -> dict:
         async with self.uow as uow:
-            proj_uuid = UUID(project_id)
-            user_uuid = UUID(user_id)
-            await self._verify_project_access(proj_uuid, user_uuid)
+            proj_uuid = tenant.project_id
+            
             
             product_repo = ProductRepository(uow.session)
             
@@ -73,7 +53,7 @@ class ProductService:
             product_repo.add(new_product)
             await uow.commit()
             
-            logger.info("Product created", product_id=str(new_product.id), project_id=project_id)
+            logger.info("Product created", product_id=str(new_product.id), project_id=str(tenant.project_id))
             
             return {
                 "id": str(new_product.id),
@@ -82,13 +62,12 @@ class ProductService:
             }
 
     async def list_products(
-        self, project_id: str, user_id: str, skip: int, limit: int,
+        self, tenant: TenantContext, skip: int, limit: int,
         category: Optional[str], active_only: bool
     ) -> dict:
         async with self.uow as uow:
-            proj_uuid = UUID(project_id)
-            user_uuid = UUID(user_id)
-            await self._verify_project_access(proj_uuid, user_uuid)
+            proj_uuid = tenant.project_id
+            
             
             product_repo = ProductRepository(uow.session)
             # Use raw query for active_only toggle since the repo method enforces active_only=True
@@ -138,12 +117,11 @@ class ProductService:
                 "total": len(products)
             }
 
-    async def get_product(self, project_id: str, product_id: str, user_id: str) -> dict:
+    async def get_product(self, tenant: TenantContext, product_id: str) -> dict:
         async with self.uow as uow:
-            proj_uuid = UUID(project_id)
+            proj_uuid = tenant.project_id
             prod_uuid = UUID(product_id)
-            user_uuid = UUID(user_id)
-            await self._verify_project_access(proj_uuid, user_uuid)
+            
             
             product_repo = ProductRepository(uow.session)
             product = await product_repo.get(prod_uuid)
@@ -175,12 +153,11 @@ class ProductService:
                 "updated_at": product.updated_at.isoformat() if product.updated_at else None,
             }
 
-    async def update_product(self, project_id: str, product_id: str, user_id: str, update_data: ProductUpdate) -> dict:
+    async def update_product(self, tenant: TenantContext, product_id: str, product_update: ProductUpdate) -> dict:
         async with self.uow as uow:
-            proj_uuid = UUID(project_id)
+            proj_uuid = tenant.project_id
             prod_uuid = UUID(product_id)
-            user_uuid = UUID(user_id)
-            await self._verify_project_access(proj_uuid, user_uuid)
+            
             
             product_repo = ProductRepository(uow.session)
             product = await product_repo.get(prod_uuid)
@@ -194,12 +171,11 @@ class ProductService:
             await uow.commit()
             return {"message": "Product updated successfully"}
 
-    async def delete_product(self, project_id: str, product_id: str, user_id: str) -> dict:
+    async def delete_product(self, tenant: TenantContext, product_id: str) -> None:
         async with self.uow as uow:
-            proj_uuid = UUID(project_id)
+            proj_uuid = tenant.project_id
             prod_uuid = UUID(product_id)
-            user_uuid = UUID(user_id)
-            await self._verify_project_access(proj_uuid, user_uuid)
+            
             
             product_repo = ProductRepository(uow.session)
             product = await product_repo.get(prod_uuid)
@@ -210,11 +186,10 @@ class ProductService:
             await uow.commit()
             return {"message": "Product deleted successfully"}
 
-    async def bulk_upload_products(self, project_id: str, user_id: str, file: UploadFile) -> dict:
+    async def bulk_upload_products(self, tenant: TenantContext, file: UploadFile) -> dict:
         async with self.uow as uow:
-            proj_uuid = UUID(project_id)
-            user_uuid = UUID(user_id)
-            await self._verify_project_access(proj_uuid, user_uuid)
+            proj_uuid = tenant.project_id
+            
             
             if not file.filename.endswith('.csv'):
                 raise HTTPException(status_code=400, detail="File must be a CSV")
@@ -267,105 +242,3 @@ class ProductService:
                 "errors": errors if errors else None
             }
 
-    async def upload_product_image(self, project_id: str, product_id: str, user_id: str, file: UploadFile, description: str) -> dict:
-        async with self.uow as uow:
-            proj_uuid = UUID(project_id)
-            prod_uuid = UUID(product_id)
-            user_uuid = UUID(user_id)
-            await self._verify_project_access(proj_uuid, user_uuid)
-            
-            product_repo = ProductRepository(uow.session)
-            product = await product_repo.get(prod_uuid)
-            if not product or product.project_id != proj_uuid:
-                raise HTTPException(status_code=404, detail="Product not found")
-                
-            try:
-                upload_result = await FileStorageService.upload_image(
-                    file=file, project_id=project_id, product_id=product_id
-                )
-                
-                if not product.images:
-                    product.images = []
-                    
-                next_order = len(product.images) + 1
-                image_data = {
-                    "url": upload_result["url"],
-                    "filename": upload_result["filename"],
-                    "description": description or "",
-                    "order": next_order,
-                    "size": upload_result["size"]
-                }
-                
-                # SQLAlchemy JSON mutations workaround
-                images = product.images.copy()
-                images.append(image_data)
-                product.images = images
-                
-                await uow.commit()
-                
-                response_image = image_data.copy()
-                response_image["url"] = FileStorageService.generate_presigned_url(response_image["url"])
-                
-                return {
-                    "success": True,
-                    "image": response_image,
-                    "message": "Image uploaded successfully"
-                }
-            except ValueError as e:
-                raise HTTPException(status_code=400, detail=str(e))
-                
-    async def delete_product_image(self, project_id: str, product_id: str, image_index: int, user_id: str) -> None:
-        async with self.uow as uow:
-            proj_uuid = UUID(project_id)
-            prod_uuid = UUID(product_id)
-            user_uuid = UUID(user_id)
-            await self._verify_project_access(proj_uuid, user_uuid)
-            
-            product_repo = ProductRepository(uow.session)
-            product = await product_repo.get(prod_uuid)
-            if not product or product.project_id != proj_uuid:
-                raise HTTPException(status_code=404, detail="Product not found")
-                
-            if not product.images or image_index >= len(product.images):
-                raise HTTPException(status_code=404, detail="Image not found")
-                
-            image = product.images[image_index]
-            await FileStorageService.delete_image(image.get("url", ""))
-            
-            images = product.images.copy()
-            images.pop(image_index)
-            for idx, img in enumerate(images):
-                img["order"] = idx + 1
-            product.images = images
-            
-            await uow.commit()
-
-    async def update_product_image(self, project_id: str, product_id: str, image_index: int, description: str, order: int, user_id: str) -> dict:
-        async with self.uow as uow:
-            proj_uuid = UUID(project_id)
-            prod_uuid = UUID(product_id)
-            user_uuid = UUID(user_id)
-            await self._verify_project_access(proj_uuid, user_uuid)
-            
-            product_repo = ProductRepository(uow.session)
-            product = await product_repo.get(prod_uuid)
-            if not product or product.project_id != proj_uuid:
-                raise HTTPException(status_code=404, detail="Product not found")
-                
-            if not product.images or image_index >= len(product.images):
-                raise HTTPException(status_code=404, detail="Image not found")
-                
-            images = product.images.copy()
-            if description is not None:
-                images[image_index]["description"] = description
-                
-            if order is not None and order != images[image_index].get("order"):
-                img = images.pop(image_index)
-                target_idx = max(0, min(order - 1, len(images)))
-                images.insert(target_idx, img)
-                for idx, im in enumerate(images):
-                    im["order"] = idx + 1
-                    
-            product.images = images
-            await uow.commit()
-            return {"message": "Image updated successfully"}

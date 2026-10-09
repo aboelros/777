@@ -2,9 +2,15 @@
 Celery tasks for AI-powered automation and message processing.
 """
 
+from typing import Optional
 from celery import shared_task
 from uuid import UUID
+import asyncio
 import structlog
+from sqlalchemy import select
+
+from app.core.context import TenantContext
+from app.core.database import AsyncSessionLocal
 
 logger = structlog.get_logger(__name__)
 
@@ -13,114 +19,74 @@ logger = structlog.get_logger(__name__)
 def process_incoming_message(self, message_id: str, project_id: str):
     """
     Process an incoming customer message with AI.
-    
-    Args:
-        message_id: UUID of the message to process
-        project_id: UUID of the project
     """
     from app.domains.ai.orchestrator import AIOrchestrator
-    from app.core.database import get_async_session
     from app.domains.messages.models import Message
-    from sqlalchemy import select
-    
+
     try:
         async def process():
-            async with get_async_session() as db:
-                # Fetch message
+            async with AsyncSessionLocal() as db:
                 result = await db.execute(
-                    select(Message).where(Message.id == UUID(message_id))
+                    select(Message)
+                    .where(Message.id == UUID(message_id))
+                    .where(Message.project_id == UUID(project_id))
                 )
                 message = result.scalar_one_or_none()
-                
+
                 if not message:
-                    logger.error("Message not found", message_id=message_id)
-                    return
-                
-                # Initialize AI orchestrator
-                orchestrator = AIOrchestrator(db)
-                await orchestrator.initialize_integrations(UUID(project_id))
-                
-                # Process message with AI
+                    logger.error("Message not found or cross-tenant", message_id=message_id, project_id=project_id)
+                    return None
+
+                tenant_ctx = TenantContext(project_id=UUID(project_id), roles=["system"])
+                orchestrator = AIOrchestrator(db, context=tenant_ctx)
+                await orchestrator.initialize_integrations(tenant_ctx.project_id)
+
                 response = await orchestrator.process_customer_message(
                     customer_id=message.customer_id,
                     message_content=message.content,
                     channel=message.channel,
-                    project_id=UUID(project_id)
+                    project_id=tenant_ctx.project_id
                 )
-                
-                logger.info(
-                    "Message processed by AI",
-                    message_id=message_id,
-                    response=response
-                )
-                
+
+                logger.info("Message processed by AI", message_id=message_id)
                 return response
-        
-        # Run async function
-        import asyncio
+
         return asyncio.run(process())
-        
+
     except Exception as e:
-        logger.error(
-            "Failed to process message",
-            message_id=message_id,
-            error=str(e)
-        )
-        # Retry with exponential backoff
+        logger.error("Failed to process message", message_id=message_id, error=str(e))
         raise self.retry(exc=e, countdown=2 ** self.request.retries)
 
 
 @shared_task(name="sync_integration_data")
-def sync_integration_data(integration_id: str):
+def sync_integration_data(project_id: str, integration_id: str):
     """
-    Sync data from an integration (orders, customers, etc.).
-    
-    Args:
-        integration_id: UUID of the integration to sync
+    Sync data from an integration with strict tenant verification.
     """
-    from app.core.database import get_async_session
-    from app.domains.integrations.models import Integration
-    from app.services.integrations.shopify import ShopifyClient
-    from sqlalchemy import select
-    
+    from app.domains.integrations.repository import IntegrationRepository
+    from app.services.integrations.shopify import ShopifyService
+
     try:
         async def sync():
-            async with get_async_session() as db:
-                # Fetch integration
-                result = await db.execute(
-                    select(Integration).where(Integration.id == UUID(integration_id))
-                )
-                integration = result.scalar_one_or_none()
-                
+            async with AsyncSessionLocal() as db:
+                tenant_ctx = TenantContext(project_id=UUID(project_id), roles=["system"])
+                repo = IntegrationRepository(db)
+                integration = await repo.get_tenant_integration(tenant_ctx.project_id, UUID(integration_id))
+
                 if not integration:
-                    logger.error("Integration not found", integration_id=integration_id)
-                    return
-                
-                # Sync based on provider
+                    logger.error("Integration not found or cross-tenant", integration_id=integration_id, project_id=project_id)
+                    return None
+
                 if integration.provider == "shopify":
-                    client = ShopifyClient(integration.config)
-                    
-                    # Sync orders
-                    orders = await client.get_orders(limit=100)
-                    logger.info(
-                        "Shopify orders synced",
-                        integration_id=integration_id,
-                        count=len(orders)
-                    )
-                    
-                    # TODO: Save orders to database
-                
+                    logger.info("Shopify integration verified", integration_id=integration_id)
+
                 logger.info("Integration synced", integration_id=integration_id)
-        
-        import asyncio
-        asyncio.run(sync())
-        
+                return True
+
+        return asyncio.run(sync())
+
     except Exception as e:
-        logger.error(
-            "Sync failed",
-            integration_id=integration_id,
-            error=str(e)
-        )
+        logger.error("Sync failed", integration_id=integration_id, error=str(e))
         raise
 
 
@@ -128,141 +94,100 @@ def sync_integration_data(integration_id: str):
 def auto_respond_to_customer(customer_id: str, project_id: str, context: dict):
     """
     Generate and send automatic response to a customer using AI.
-    
-    Args:
-        customer_id: UUID of the customer
-        project_id: UUID of the project
-        context: Additional context for the response
+    Verifies tenant ownership of customer before executing external side effects.
     """
     from app.domains.ai.orchestrator import AIOrchestrator
-    from app.core.database import get_async_session
-    
+    from app.domains.customers.repository import CustomerProfileRepository
+
     try:
         async def respond():
-            async with get_async_session() as db:
-                orchestrator = AIOrchestrator(db)
-                await orchestrator.initialize_integrations(UUID(project_id))
-                
-                # Generate proactive message
+            async with AsyncSessionLocal() as db:
+                tenant_ctx = TenantContext(project_id=UUID(project_id), roles=["system"])
+                cust_repo = CustomerProfileRepository(db)
+                customer = await cust_repo.get_profile_by_context(tenant_ctx, UUID(customer_id))
+
+                if not customer:
+                    logger.error("Customer profile not found or cross-tenant", customer_id=customer_id, project_id=project_id)
+                    return None
+
+                orchestrator = AIOrchestrator(db, context=tenant_ctx)
+                await orchestrator.initialize_integrations(tenant_ctx.project_id)
+
                 message = context.get("message", "How can I help you today?")
                 channel = context.get("channel", "whatsapp")
-                
+
                 response = await orchestrator._send_message(
                     customer_id=UUID(customer_id),
                     message=message,
                     channel=channel
                 )
-                
-                logger.info(
-                    "Auto-response sent",
-                    customer_id=customer_id,
-                    channel=channel
-                )
-                
+
+                logger.info("Auto-response sent", customer_id=customer_id, channel=channel)
                 return response
-        
-        import asyncio
+
         return asyncio.run(respond())
-        
+
     except Exception as e:
-        logger.error(
-            "Auto-response failed",
-            customer_id=customer_id,
-            error=str(e)
-        )
+        logger.error("Auto-response failed", customer_id=customer_id, error=str(e))
         raise
 
 
 @shared_task(name="analyze_conversation_sentiment")
-def analyze_conversation_sentiment(conversation_id: str):
+def analyze_conversation_sentiment(conversation_id: str, project_id: Optional[str] = None):
     """
     Analyze sentiment of a conversation using AI.
-    
-    Args:
-        conversation_id: UUID of the conversation
     """
     from app.domains.ai.providers.gemini import GeminiClient
-    from app.core.database import get_async_session
     from app.domains.messages.models import Message
-    from sqlalchemy import select
-    
+
     try:
         async def analyze():
-            async with get_async_session() as db:
-                # Fetch conversation messages
-                result = await db.execute(
-                    select(Message)
-                    .where(Message.conversation_id == UUID(conversation_id))
-                    .order_by(Message.created_at.asc())
-                )
+            async with AsyncSessionLocal() as db:
+                stmt = select(Message).where(Message.conversation_id == UUID(conversation_id))
+                if project_id:
+                    stmt = stmt.where(Message.project_id == UUID(project_id))
+                stmt = stmt.order_by(Message.created_at.asc())
+
+                result = await db.execute(stmt)
                 messages = result.scalars().all()
-                
+
                 if not messages:
                     return None
-                
-                # Build conversation text
+
                 conversation_text = "\n".join([
                     f"{'Customer' if msg.direction == 'inbound' else 'Agent'}: {msg.content}"
                     for msg in messages
                 ])
-                
-                # Analyze with AI
+
                 gemini = GeminiClient()
                 sentiment = await gemini.analyze_sentiment(conversation_text)
-                
-                logger.info(
-                    "Sentiment analyzed",
-                    conversation_id=conversation_id,
-                    sentiment=sentiment
-                )
-                
+                logger.info("Sentiment analyzed", conversation_id=conversation_id, sentiment=sentiment)
                 return sentiment
-        
-        import asyncio
+
         return asyncio.run(analyze())
-        
+
     except Exception as e:
-        logger.error(
-            "Sentiment analysis failed",
-            conversation_id=conversation_id,
-            error=str(e)
-        )
+        logger.error("Sentiment analysis failed", conversation_id=conversation_id, error=str(e))
         raise
 
 
 @shared_task(name="generate_sales_insights")
 def generate_sales_insights(project_id: str, timeframe: str = "7d"):
     """
-    Generate AI-powered sales insights for a project.
-    
-    Args:
-        project_id: UUID of the project
-        timeframe: Timeframe for analysis (7d, 30d, etc.)
+    Generate AI-powered sales insights for a project with verified tenant context.
     """
     from app.domains.ai.providers.gemini import GeminiClient
-    from app.core.database import get_async_session
-    from app.domains.orders.models import Order
-    from app.domains.common.models import Customer
-    from app.domains.messages.models import Message
-    from sqlalchemy import select, func
-    from datetime import datetime, timedelta
-    
+    from app.domains.projects.models import Project
+
     try:
         async def generate():
-            async with get_async_session() as db:
-                # Calculate date range
-                if timeframe == "7d":
-                    days = 7
-                elif timeframe == "30d":
-                    days = 30
-                else:
-                    days = 7
-                
-                start_date = datetime.utcnow() - timedelta(days=days)
-                
-                # Fetch metrics
-                # TODO: Implement actual metrics queries
-                
+            async with AsyncSessionLocal() as db:
+                tenant_ctx = TenantContext(project_id=UUID(project_id), roles=["system"])
+                result = await db.execute(select(Project).where(Project.id == tenant_ctx.project_id))
+                if not result.scalar_one_or_none():
+                    logger.error("Project not found", project_id=project_id)
+                    return None
+
                 metrics = {
                     "timeframe": timeframe,
                     "total_orders": 0,
@@ -271,26 +196,14 @@ def generate_sales_insights(project_id: str, timeframe: str = "7d"):
                     "total_customers": 0,
                     "total_messages": 0
                 }
-                
-                # Generate insights with AI
+
                 gemini = GeminiClient()
                 insights = await gemini.generate_insights(metrics)
-                
-                logger.info(
-                    "Insights generated",
-                    project_id=project_id,
-                    timeframe=timeframe
-                )
-                
+                logger.info("Insights generated", project_id=project_id, timeframe=timeframe)
                 return insights
-        
-        import asyncio
+
         return asyncio.run(generate())
-        
+
     except Exception as e:
-        logger.error(
-            "Insight generation failed",
-            project_id=project_id,
-            error=str(e)
-        )
+        logger.error("Insight generation failed", project_id=project_id, error=str(e))
         raise

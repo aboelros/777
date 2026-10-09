@@ -42,25 +42,6 @@ def _merge_settings(existing: Dict[str, Any], updates: Dict[str, Any]) -> Dict[s
             base[key] = value
     return base
 
-
-async def verify_project_access(project_id: UUID, user_id: str, db: AsyncSession) -> Project:
-    """Helper to verify user has access to project."""
-    result = await db.execute(
-        select(Project)
-        .where(Project.id == project_id)
-        .where(Project.owner_id == UUID(user_id))
-    )
-    project = result.scalar_one_or_none()
-    
-    if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found or access denied"
-        )
-    
-    return project
-
-
 @router.post("/{project_id}/connect", response_model=IntegrationResponse, status_code=status.HTTP_201_CREATED)
 async def connect_integration(
     project_id: UUID,

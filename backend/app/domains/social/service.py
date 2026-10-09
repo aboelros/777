@@ -1,41 +1,45 @@
 from typing import List, Optional, Any, Dict
 from uuid import UUID
-from fastapi import HTTPException, status
-from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.uow import UnitOfWork
+from app.core.context import TenantContext
 from app.domains.social.repository import SocialMediaCommentRepository, SocialMediaPostRepository
 from app.domains.social.models import SocialMediaComment, SocialMediaPost
-from app.domains.projects.repository import ProjectRepository
+
 
 class SocialMediaService:
-    def __init__(self, uow: UnitOfWork):
-        self.uow = uow
+    def __init__(self, session: AsyncSession, context: TenantContext):
+        self.session = session
+        self.context = context
+        self.comment_repo = SocialMediaCommentRepository(session, context)
+        self.post_repo = SocialMediaPostRepository(session, context)
 
-    async def _verify_project_access(self, project_id: UUID, user_id: UUID) -> Any:
-        project_repo = ProjectRepository(self.uow.session)
-        project = await project_repo.get(project_id)
-        if not project or project.owner_id != user_id:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Project not found or access denied"
-            )
-        return project
+    async def list_comments(
+        self,
+        platform: Optional[str] = None,
+        responded: Optional[bool] = None,
+        skip: int = 0,
+        limit: int = 50
+    ) -> List[SocialMediaComment]:
+        return await self.comment_repo.list_by_context(
+            context=self.context,
+            platform=platform,
+            responded=responded,
+            skip=skip,
+            limit=limit
+        )
 
-    async def list_comments(self, project_id: str, user_id: str) -> List[SocialMediaComment]:
-        async with self.uow as uow:
-            proj_uuid = UUID(project_id)
-            user_uuid = UUID(user_id)
-            await self._verify_project_access(proj_uuid, user_uuid)
-            
-            repo = SocialMediaCommentRepository(uow.session)
-            return await repo.get_by_project(proj_uuid)
+    async def get_comment(self, comment_id: UUID) -> Optional[SocialMediaComment]:
+        return await self.comment_repo.get_by_context(comment_id, context=self.context)
 
-    async def list_posts(self, project_id: str, user_id: str) -> List[SocialMediaPost]:
-        async with self.uow as uow:
-            proj_uuid = UUID(project_id)
-            user_uuid = UUID(user_id)
-            await self._verify_project_access(proj_uuid, user_uuid)
-            
-            repo = SocialMediaPostRepository(uow.session)
-            return await repo.get_by_project(proj_uuid)
+    async def create_comment(self, comment: SocialMediaComment) -> SocialMediaComment:
+        return await self.comment_repo.create_comment(comment, context=self.context)
+
+    async def get_comment_stats(self) -> Dict[str, Any]:
+        return await self.comment_repo.get_comment_stats(context=self.context)
+
+    async def list_posts(self, skip: int = 0, limit: int = 50) -> List[SocialMediaPost]:
+        return await self.post_repo.list_posts(context=self.context, skip=skip, limit=limit)
+
+    async def get_post(self, post_id: UUID) -> Optional[SocialMediaPost]:
+        return await self.post_repo.get_by_context(post_id, context=self.context)

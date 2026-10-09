@@ -10,7 +10,7 @@ from app.domains.customers.models import CustomerProfile
 class CustomerProfileRepository(BaseRepository[CustomerProfile]):
     def __init__(self, session: AsyncSession):
         super().__init__(CustomerProfile, session)
-        
+
     async def get_by_provider_id(self, project_id: UUID, provider: str, provider_id: str) -> Optional[CustomerProfile]:
         query = select(self.model).where(
             self.model.project_id == project_id,
@@ -26,7 +26,7 @@ class CustomerProfileRepository(BaseRepository[CustomerProfile]):
         return list(result.scalars().all())
 
     # --- Phase 1 Security Migration Methods ---
-    
+
     async def get_profile_by_context(self, context: 'TenantContext', profile_id: UUID) -> Optional[CustomerProfile]:
         """
         Retrieves a customer profile securely scoped to the authorized TenantContext.
@@ -38,3 +38,17 @@ class CustomerProfileRepository(BaseRepository[CustomerProfile]):
         )
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
+
+    async def toggle_ai_by_context(self, profile_id: UUID, enabled: bool, context: 'TenantContext') -> bool:
+        """
+        Toggles the AI enabled state securely scoped to the authorized TenantContext.
+        Enforces the invariant: profile_id -> profile.project_id -> context.project_id
+        """
+        from sqlalchemy import update
+        stmt = update(self.model).where(
+            self.model.id == profile_id,
+            self.model.project_id == context.project_id
+        ).values(ai_enabled=enabled)
+
+        result = await self.session.execute(stmt)
+        return result.rowcount > 0
