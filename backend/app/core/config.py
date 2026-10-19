@@ -266,7 +266,7 @@ class Settings(BaseSettings):
     # Additional API Keys 1-100: dynamically collected at startup
     # Set GEMINI_API_KEY_1 through GEMINI_API_KEY_100 in environment variables.
     # Use get_all_gemini_keys() property to access all keys.
-    GEMINI_MODEL: str = "gemini-1.5-flash"
+    GEMINI_MODEL: str = "gemini-2.5-flash"
     GEMINI_MAX_TOKENS: int = 8192
     GEMINI_TEMPERATURE: float = 0.7
     AI_PROVIDER: str = "gemini"

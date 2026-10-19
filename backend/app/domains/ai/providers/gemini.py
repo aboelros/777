@@ -187,9 +187,9 @@ class GeminiClient:
     
     def __init__(self):
         """Initialize Gemini client with multiple API keys."""
-        configured_model = settings.GEMINI_MODEL or "gemini-1.5-flash"
-        if configured_model in ["gemini-3.6-flash", "gemini-1.5-pro-latest", "gemini-pro"]:
-            configured_model = "gemini-1.5-flash"
+        configured_model = settings.GEMINI_MODEL or "gemini-2.5-flash"
+        if configured_model in ["gemini-1.5-flash", "gemini-3.6-flash", "gemini-1.5-pro-latest", "gemini-pro"]:
+            configured_model = "gemini-2.5-flash"
         self.model_name = configured_model
         
         # Load multiple API keys
@@ -1063,9 +1063,13 @@ class GeminiClient:
                         continue
 
                     elif "not found" in error_msg or "404" in error_msg:
-                        if model_name != "gemini-1.5-flash":
-                            logger.warning(f"Model {model_name} not found, retrying with gemini-1.5-flash")
-                            model_name = "gemini-1.5-flash"
+                        candidate_models = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.5-pro"]
+                        fallback_success = False
+                        for cand in candidate_models:
+                            if cand == model_name:
+                                continue
+                            logger.warning(f"Model {model_name} not found (404), retrying with {cand}")
+                            model_name = cand
                             try:
                                 if use_functions and tools:
                                     model = genai.GenerativeModel(model_name=model_name, generation_config=generation_config, tools=tools)
@@ -1073,8 +1077,23 @@ class GeminiClient:
                                     model = genai.GenerativeModel(model_name=model_name, generation_config=generation_config)
                             except Exception:
                                 model = genai.GenerativeModel(model_name=model_name, generation_config=generation_config)
-                            continue
-                        raise
+                            try:
+                                response = model.generate_content(content_parts)
+                                result = self._parse_response(response)
+                                if user_id:
+                                    await self._track_usage(
+                                        user_id=user_id,
+                                        prompt=full_prompt,
+                                        response=result.get("text", ""),
+                                        model=model_name
+                                    )
+                                logger.info("Gemini fallback model succeeded", model=model_name)
+                                return result
+                            except Exception as cand_err:
+                                logger.warning(f"Fallback candidate {cand} failed: {cand_err}")
+                                last_error = cand_err
+                                continue
+                        raise last_error or attempt_error
                         
                     else:
                         # Not a recoverable error, raise immediately

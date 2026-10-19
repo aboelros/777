@@ -80,7 +80,7 @@ async def query_assistant(
 
         tokens_used = response.get("tokens_used", 0)
         cost = response.get("cost", 0.0)
-        model = response.get("model", "gemini-1.5-pro")
+        model = response.get("model", "gemini-2.5-flash")
 
         try:
             await log_and_track_ai_usage(
@@ -110,7 +110,7 @@ async def query_assistant(
             function_calls=None,
             tokens_used=0,
             cost=0.0,
-            model="gemini-1.5-pro"
+            model="gemini-2.5-flash"
         )
 
 
@@ -167,7 +167,7 @@ async def generate_reply(
 
     tokens_used = response.get("tokens_used", 0)
     cost = response.get("cost", 0.0)
-    model = response.get("model", "gemini-1.5-pro")
+    model = response.get("model", "gemini-2.5-flash")
 
     await log_and_track_ai_usage(
         db, context, "/api/v1/assistant/generate-reply", "POST",
