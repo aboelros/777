@@ -14,6 +14,11 @@ router = APIRouter()
 logger = structlog.get_logger(__name__)
 
 @router.post("/inbound")
+@router.post("")
+@router.post("/")
+@router.post("/instagram")
+@router.post("/facebook")
+@router.post("/meta")
 async def inbound_webhook(
     request: Request,
     background_tasks: BackgroundTasks,
@@ -24,13 +29,18 @@ async def inbound_webhook(
     Centralized Webhook Gateway.
     All platforms should point here.
     """
-    logger.debug("Inbound webhook received", method=request.method, path=str(request.url.path))
+    logger.info("Inbound webhook received", method=request.method, path=str(request.url.path))
     from app.services.webhook_gateway import WebhookGateway
 
     gateway = WebhookGateway(db, background_tasks)
     return await gateway.handle_inbound(request, explicit_project_id=explicit_project_id)
 
 @router.get("/inbound")
+@router.get("")
+@router.get("/")
+@router.get("/instagram")
+@router.get("/facebook")
+@router.get("/meta")
 async def verify_inbound_webhook(request: Request) -> Any:
     """
     Verification endpoint for Meta (Facebook/WhatsApp).
@@ -41,6 +51,8 @@ async def verify_inbound_webhook(request: Request) -> Any:
     mode = request.query_params.get("hub.mode")
     token = request.query_params.get("hub.verify_token")
     challenge = request.query_params.get("hub.challenge")
+
+    logger.info("Meta webhook verification request", mode=mode, token=token, path=str(request.url.path))
 
     configured_token = getattr(settings, "META_VERIFY_TOKEN", None) or settings.WHATSAPP_VERIFY_TOKEN
     allowed_tokens = {
