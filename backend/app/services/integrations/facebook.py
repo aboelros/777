@@ -221,6 +221,27 @@ class FacebookClient:
         except Exception as e:
              logger.error("Exception subscribing app", error=str(e))
              return {"success": False, "error": str(e)}
+
+    async def subscribe_instagram_account(self, ig_id: str) -> Dict[str, Any]:
+        """Subscribe the App to Instagram Professional Account events."""
+        url = f"{self.api_base}/{ig_id}/subscribed_apps"
+        params = {
+            "access_token": self.access_token,
+            "subscribed_fields": "messages,messaging_postbacks,message_reactions,comments"
+        }
+        timeout = aiohttp.ClientTimeout(total=5)
+        try:
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.post(url, params=params) as response:
+                    data = await response.json()
+                    if response.status == 200 and data.get("success"):
+                        logger.info("App subscribed to Instagram account events successfully")
+                        return {"success": True}
+                    logger.error("Failed to subscribe app to Instagram account", error=data)
+                    return {"success": False, "error": data}
+        except Exception as e:
+            logger.error("Exception subscribing Instagram account", error=str(e))
+            return {"success": False, "error": str(e)}
     
     async def send_template(
         self,

@@ -780,7 +780,9 @@ async def _setup_instagram_integration(integration: Integration, db: AsyncSessio
             "access_token": access_token
         })
         await client.subscribe_app()
-        logger.info("Automatically subscribed Meta App to Instagram/Page events")
+        if ig_id:
+            await client.subscribe_instagram_account(ig_id)
+        logger.info("Automatically subscribed Meta App to Instagram and Page events")
     except Exception as e:
         logger.error("Failed auto-subscription during Instagram setup", error=str(e))
 
