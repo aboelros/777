@@ -19,12 +19,16 @@ class ProjectService:
             project_repo = ProjectRepository(uow.session)
             
             new_project = Project(
+                project_code=project_data.project_code,
                 name=project_data.name,
                 description=project_data.description,
+                timezone=getattr(project_data, "timezone", "UTC"),
+                settings=getattr(project_data, "settings", {}),
                 owner_id=UUID(user_id)
             )
             project_repo.add(new_project)
             await uow.commit()
+            await uow.session.refresh(new_project)
             
             result = new_project.__dict__.copy()
             result["role"] = ProjectRole.OWNER
@@ -104,7 +108,7 @@ class ProjectService:
             if not project:
                 raise HTTPException(status_code=404, detail="Project not found")
                 
-            await project_repo.delete(project)
+            await project_repo.delete(id=project.id)
             await uow.commit()
 
     async def list_project_members(self, tenant: TenantContext) -> List[dict]:

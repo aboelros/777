@@ -60,7 +60,7 @@ async def whatsapp_business_webhook(
 ) -> Any:
     """Legacy endpoint for WhatsApp Business API."""
     logger.debug("WhatsApp webhook received", method=request.method)
-    return await inbound_webhook(request, background_tasks, db, explicit_project_id=project_id)
+    return await inbound_webhook(request, background_tasks, db, explicit_project_id=None)
 
 @router.get("/whatsapp")
 async def verify_whatsapp_business_webhook(request: Request) -> Any:
@@ -118,7 +118,7 @@ async def go_whatsapp_webhook(
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """Legacy endpoint for Go WhatsApp."""
-    return await inbound_webhook(request, background_tasks, db, explicit_project_id=project_id)
+    return await inbound_webhook(request, background_tasks, db, explicit_project_id=None)
 
 @router.post("/whatsapp/go_whatsapp")
 async def go_whatsapp_webhook_alt(
@@ -127,7 +127,7 @@ async def go_whatsapp_webhook_alt(
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """Alternative legacy endpoint for Go WhatsApp."""
-    return await inbound_webhook(request, background_tasks, db, explicit_project_id=project_id)
+    return await inbound_webhook(request, background_tasks, db, explicit_project_id=None)
 
 @router.post("/wa-gateway/session")
 async def wa_gateway_session_webhook(
@@ -148,7 +148,7 @@ async def tiktok_webhook(
 ) -> Any:
     """Endpoint for TikTok Business Messages."""
     logger.debug("TikTok webhook received")
-    return await inbound_webhook(request, background_tasks, db, explicit_project_id=project_id)
+    return await inbound_webhook(request, background_tasks, db, explicit_project_id=None)
 
 @router.post("/discord")
 async def discord_webhook(
@@ -158,4 +158,4 @@ async def discord_webhook(
 ) -> Any:
     """Endpoint for Discord Interactions."""
     logger.debug("Discord webhook received")
-    return await inbound_webhook(request, background_tasks, db, explicit_project_id=project_id)
+    return await inbound_webhook(request, background_tasks, db, explicit_project_id=None)

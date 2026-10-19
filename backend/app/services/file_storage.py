@@ -166,7 +166,7 @@ class FileStorageService:
                     # Fall through to local storage
                     s3_service = None
             
-            else:
+            if not s3_service:
                 # Local Storage
                 # Create project directory
                 project_dir = UPLOAD_DIR / project_id

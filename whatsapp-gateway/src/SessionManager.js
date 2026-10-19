@@ -320,14 +320,21 @@ class SessionManager {
         // Send to backend webhook
         if (process.env.BACKEND_URL) {
             try {
+                const crypto = require('crypto');
+                const timestamp = Math.floor(Date.now() / 1000).toString();
+                const payloadStr = JSON.stringify(webhookData);
+                const secret = process.env.CALLBACK_SECRET || '';
+                const signature = crypto.createHmac('sha256', secret).update(timestamp + '.' + payloadStr).digest('hex');
+
                 const fetch = (await import('node-fetch')).default;
-                await fetch(`${process.env.BACKEND_URL}/api/v1/webhooks/whatsapp`, {
+                await fetch(`${process.env.BACKEND_URL}/api/v1/webhooks/wa_gateway`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-Callback-Secret': process.env.CALLBACK_SECRET || ''
+                        'X-WA-Signature': signature,
+                        'X-WA-Timestamp': timestamp
                     },
-                    body: JSON.stringify(webhookData)
+                    body: payloadStr
                 });
 
                 this.logger.info({ sessionId }, 'Webhook sent to backend');

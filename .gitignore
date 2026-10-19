@@ -86,3 +86,19 @@ backend/secret_key.txt
 !*.env.example.*
 railway.env
 RAILWAY.env
+
+# Temporary scratch and debug artifacts
+backend/debug_test.py
+backend/error.txt
+backend/pytest_output.txt
+apply_consume.py
+apply_consume_tiktok.py
+fix_user_id.py
+group5.txt
+patch.py
+routes_table.md
+storage_lines.txt
+wa_diagnosis.md
+agentic_code_reader/
+ai_analysis_*.md
+startup-support/

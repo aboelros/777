@@ -88,10 +88,10 @@ export const integrations = {
     return apiRequest(`/api/v1/integrations/${projectId}/meta/auth-url?redirect_uri=${encodeURIComponent(redirectUri)}`);
   },
 
-  handleMetaCallback: async (projectId, code, redirectUri, provider) => {
+  handleMetaCallback: async (projectId, code, redirectUri, provider, state) => {
     return apiRequest(`/api/v1/integrations/${projectId}/meta/callback`, {
       method: 'POST',
-      body: JSON.stringify({ code, redirect_uri: redirectUri, provider }),
+      body: JSON.stringify({ code, redirect_uri: redirectUri, provider, state }),
     });
   },
 
@@ -100,10 +100,10 @@ export const integrations = {
     return apiRequest(`/api/v1/integrations/${projectId}/tiktok/auth-url?redirect_uri=${encodeURIComponent(redirectUri)}`);
   },
 
-  handleTikTokCallback: async (projectId, code, redirectUri) => {
+  handleTikTokCallback: async (projectId, code, redirectUri, state) => {
     return apiRequest(`/api/v1/integrations/${projectId}/tiktok/callback`, {
       method: 'POST',
-      body: JSON.stringify({ code, redirect_uri: redirectUri }),
+      body: JSON.stringify({ code, redirect_uri: redirectUri, state }),
     });
   },
 

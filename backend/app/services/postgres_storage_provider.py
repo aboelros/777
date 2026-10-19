@@ -42,18 +42,21 @@ class PostgresStorageService:
     """
     
     def __init__(self):
-        self.db_url = settings.IMAGE_STORAGE_DATABASE_URL
+        from app.core.image_storage_guard import resolve_image_storage_database_url
+        from app.core.db_identity import normalize_db_identity
+
+        self.db_url = resolve_image_storage_database_url()
         if not self.db_url:
             raise ValueError("IMAGE_STORAGE_DATABASE_URL not configured")
-        
+
         # Create a dedicated engine for image storage
         # Supabase/pgbouncer compatibility: Disable prepared statement caching
         self.engine = create_async_engine(
             self.db_url,
             connect_args={"statement_cache_size": 0}
         )
-        display_host = self.db_url.split("@")[-1].split("/")[0] if "@" in self.db_url else "unknown"
-        logger.info("Initialized PostgresStorageService", db_host=display_host)
+        norm_id = normalize_db_identity(self.db_url, "IMAGE_STORAGE_DATABASE_URL")
+        logger.info("Initialized PostgresStorageService", db_host=f"{norm_id.host}:{norm_id.port}/{norm_id.database}")
 
     async def upload_image(self, file: UploadFile, key: str, content_type: str, project_id: str = None) -> str:
         """Upload image to Postgres and return the key."""

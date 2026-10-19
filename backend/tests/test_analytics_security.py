@@ -72,7 +72,7 @@ async def setup_test_analytics_environment():
             currency="USD",
             customer={"name": "Alice A", "email": "alice@a.com"},
             items=[{"sku": "SKU-A", "qty": 1}],
-            order_date=now - timedelta(hours=1),
+            order_date=now,
         )
         order_b = Order(
             id=uuid4(),
@@ -84,7 +84,7 @@ async def setup_test_analytics_environment():
             currency="USD",
             customer={"name": "Secret B", "email": "secret@b.com"},
             items=[{"sku": "SKU-B", "qty": 10}],
-            order_date=now - timedelta(hours=1),
+            order_date=now,
         )
         db.add_all([order_a, order_b])
 
@@ -98,7 +98,7 @@ async def setup_test_analytics_environment():
             content="Order confirmed A",
             ai_generated=True,
             extra_data={"is_escalation": True, "response_time": 1.5, "ai_generated": True},
-            created_at=now - timedelta(hours=1),
+            created_at=now,
         )
         msg_b = Message(
             id=uuid4(),
@@ -110,7 +110,7 @@ async def setup_test_analytics_environment():
             content="Confidential message B",
             ai_generated=True,
             extra_data={"is_escalation": True, "response_time": 5.0, "ai_generated": True},
-            created_at=now - timedelta(hours=1),
+            created_at=now,
         )
         db.add_all([msg_a, msg_b])
 

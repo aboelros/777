@@ -1,4 +1,4 @@
-﻿import hmac
+import hmac
 import hashlib
 import json
 from datetime import datetime
@@ -176,7 +176,8 @@ class MetaAdapter(BaseAdapter):
             payload={
                 "text": msg_text,
                 "media": msg_attachments,
-                "is_echo": message.get("is_echo", False)
+                "is_echo": message.get("is_echo", False),
+                "page_id": entry.get("id"),
             },
             raw_data=payload # Broad capture of metadata
         )
@@ -260,7 +261,8 @@ class MetaAdapter(BaseAdapter):
                 "text": message.get("text"),
                 "media": message.get("attachments"),
                 "is_echo": message.get("is_echo", False),
-                "profile_pic": messaging.get("sender", {}).get("profile_pic") # Proactive capture
+                "profile_pic": messaging.get("sender", {}).get("profile_pic"),
+                "page_id": entry.get("id"),
             },
             raw_data=payload
         )

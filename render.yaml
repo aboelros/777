@@ -26,6 +26,8 @@ services:
         sync: false
       - key: APP_DATABASE_URL
         sync: false
+      - key: IMAGE_STORAGE_DATABASE_URL
+        sync: false
       # ── Security ──
       - key: SECRET_KEY
         generateValue: true

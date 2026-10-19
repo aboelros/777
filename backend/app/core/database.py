@@ -3,7 +3,7 @@ Database connection and session management using SQLAlchemy 2.0 async.
 Single database architecture (simplified).
 """
 
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 import ssl
 from sqlalchemy.ext.asyncio import (
     create_async_engine,
@@ -19,21 +19,19 @@ from .config import settings
 # ============================================================================
 
 # SSL configuration for Railway PostgreSQL
-def get_connect_args():
+def get_connect_args(target_url: Optional[str] = None):
     """Get connection arguments with SSL support for Railway PostgreSQL."""
     connect_args = {}
+    check_url = target_url or settings.DATABASE_URL
     
     # Railway internal network doesn't need SSL (already secure)
     # Only external Railway connections need SSL
     if settings.ENVIRONMENT in ["production", "staging"]:
-        if "railway" in settings.DATABASE_URL.lower() and "railway.internal" not in settings.DATABASE_URL.lower():
+        if "railway" in check_url.lower() and "railway.internal" not in check_url.lower():
             # External Railway connection - use SSL with proper verification
             ssl_context = ssl.create_default_context()
-            # DO NOT disable hostname checking or cert verification in production
-            # ssl_context.check_hostname = False  # removed
-            # ssl_context.verify_mode = ssl.CERT_NONE  # removed
             connect_args["ssl"] = ssl_context
-        elif "railway.internal" in settings.DATABASE_URL.lower():
+        elif "railway.internal" in check_url.lower():
             # Internal Railway connection - disable SSL (already secure private network)
             connect_args["ssl"] = False
         
@@ -46,14 +44,18 @@ def get_connect_args():
     
     return connect_args
 
+from .database_guard import resolve_active_database_url
+
+active_database_url = resolve_active_database_url()
+
 # Create async engine
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    active_database_url,
     echo=settings.DB_ECHO,
     # Always use NullPool when connecting to a remote PgBouncer! 
     # PgBouncer does the pooling, SQLAlchemy shouldn't pool the virtual connections.
     poolclass=NullPool,
-    connect_args=get_connect_args(),
+    connect_args=get_connect_args(active_database_url),
 )
 
 # Create async session factory

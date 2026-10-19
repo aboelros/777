@@ -1,3 +1,5 @@
+import { motion } from 'framer-motion';
+import { Plus } from 'lucide-react';
 import Button from './Button';
 
 export default function EmptyState({

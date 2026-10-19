@@ -1,4 +1,4 @@
-﻿import structlog
+import structlog
 from typing import Dict, Any, Optional
 from uuid import UUID
 from fastapi import Request, HTTPException, BackgroundTasks
@@ -184,7 +184,9 @@ class WebhookGateway:
 
         # 3. Meta (Facebook/Instagram Pages)
         elif event.platform == "meta" and event.channel in ["facebook", "instagram"]:
-            page_id = event.payload.get("entry", [{}])[0].get("id")
+            raw_entry = (event.raw_data or {}).get("entry", [{}])[0] if isinstance((event.raw_data or {}).get("entry"), list) and (event.raw_data or {}).get("entry") else {}
+            payload_entry = event.payload.get("entry", [{}])[0] if isinstance(event.payload.get("entry"), list) and event.payload.get("entry") else {}
+            page_id = event.payload.get("page_id") or raw_entry.get("id") or payload_entry.get("id")
             if page_id:
                 query = select(Integration).where(
                     Integration.provider.in_(["facebook", "instagram"]),

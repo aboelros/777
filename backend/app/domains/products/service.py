@@ -124,7 +124,7 @@ class ProductService:
             
             
             product_repo = ProductRepository(uow.session)
-            product = await product_repo.get(prod_uuid)
+            product = await product_repo.get_tenant_product(proj_uuid, prod_uuid)
             if not product or product.project_id != proj_uuid:
                 raise HTTPException(status_code=404, detail="Product not found")
                 
@@ -160,11 +160,11 @@ class ProductService:
             
             
             product_repo = ProductRepository(uow.session)
-            product = await product_repo.get(prod_uuid)
+            product = await product_repo.get_tenant_product(proj_uuid, prod_uuid)
             if not product or product.project_id != proj_uuid:
                 raise HTTPException(status_code=404, detail="Product not found")
                 
-            update_dict = update_data.dict(exclude_unset=True)
+            update_dict = product_update.dict(exclude_unset=True)
             for field, value in update_dict.items():
                 setattr(product, field, value)
                 
@@ -178,11 +178,11 @@ class ProductService:
             
             
             product_repo = ProductRepository(uow.session)
-            product = await product_repo.get(prod_uuid)
+            product = await product_repo.get_tenant_product(proj_uuid, prod_uuid)
             if not product or product.project_id != proj_uuid:
                 raise HTTPException(status_code=404, detail="Product not found")
                 
-            await product_repo.delete(product)
+            await product_repo.delete(id=product.id)
             await uow.commit()
             return {"message": "Product deleted successfully"}
 

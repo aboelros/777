@@ -34,8 +34,8 @@ class ProductImageService:
             
             
             product_repo = ProductRepository(uow.session)
-            product = await product_repo.get(prod_uuid)
-            if not product or product.project_id != proj_uuid:
+            product = await product_repo.get_tenant_product(proj_uuid, prod_uuid)
+            if not product:
                 raise HTTPException(status_code=404, detail="Product not found")
                 
             try:
@@ -80,8 +80,8 @@ class ProductImageService:
             
             
             product_repo = ProductRepository(uow.session)
-            product = await product_repo.get(prod_uuid)
-            if not product or product.project_id != proj_uuid:
+            product = await product_repo.get_tenant_product(proj_uuid, prod_uuid)
+            if not product:
                 raise HTTPException(status_code=404, detail="Product not found")
                 
             if not product.images or image_index >= len(product.images):
@@ -105,8 +105,8 @@ class ProductImageService:
             
             
             product_repo = ProductRepository(uow.session)
-            product = await product_repo.get(prod_uuid)
-            if not product or product.project_id != proj_uuid:
+            product = await product_repo.get_tenant_product(proj_uuid, prod_uuid)
+            if not product:
                 raise HTTPException(status_code=404, detail="Product not found")
                 
             if not product.images or image_index >= len(product.images):

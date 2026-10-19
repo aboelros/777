@@ -1012,18 +1012,18 @@ ul {
 /* --- ANIMATIONS & TRANSITIONS --- */
 .animate-on-scroll {
     opacity: 0;
-    transition: all 1s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: opacity 0.8s ease-out, transform 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.fade-up { transform: translateY(50px); }
-.fade-left { transform: translateX(50px); }
-.fade-right { transform: translateX(-50px); }
-.fade-scale { transform: scale(0.95); }
+.fade-up { transform: translateY(60px); }
+.fade-left { transform: translateX(60px); }
+.fade-right { transform: translateX(-60px); }
+.fade-scale { transform: scale(0.92); }
 
 .is-visible { opacity: 1; transform: translate(0, 0) scale(1); }
-.delay-1 { transition-delay: 0.15s; }
-.delay-2 { transition-delay: 0.3s; }
-.delay-3 { transition-delay: 0.45s; }
+.delay-1 { transition-delay: 0.1s; }
+.delay-2 { transition-delay: 0.2s; }
+.delay-3 { transition-delay: 0.3s; }
 
 /* Page Transition Overlay */
 .page-transition {
@@ -1049,16 +1049,45 @@ ul {
 
 /* Spinner inside transition */
 .spinner {
-    width: 50px;
-    height: 50px;
-    border: 3px solid rgba(255, 255, 255, 0.1);
+    width: 60px;
+    height: 60px;
+    border: 3px solid transparent;
     border-top-color: var(--accent-primary);
+    border-bottom-color: var(--accent-secondary);
     border-radius: 50%;
-    animation: spin 1s linear infinite;
+    animation: spin 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+    position: relative;
+}
+
+.spinner::before {
+    content: '';
+    position: absolute;
+    top: 5px; left: 5px; right: 5px; bottom: 5px;
+    border: 3px solid transparent;
+    border-left-color: var(--accent-primary);
+    border-right-color: var(--accent-secondary);
+    border-radius: 50%;
+    animation: spin 2s linear infinite reverse;
+    opacity: 0.5;
+}
+
+.spinner::after {
+    content: '';
+    position: absolute;
+    top: 15px; left: 15px; right: 15px; bottom: 15px;
+    background: radial-gradient(circle, var(--accent-primary) 0%, transparent 70%);
+    border-radius: 50%;
+    animation: pulseGlow 1.5s ease-in-out infinite;
+    opacity: 0.2;
 }
 
 @keyframes spin {
     to { transform: rotate(360deg); }
+}
+
+@keyframes pulseGlow {
+    0%, 100% { transform: scale(0.8); opacity: 0.1; }
+    50% { transform: scale(1.2); opacity: 0.4; }
 }
 
 /* Image/Card Hover Scale */
@@ -1166,3 +1195,41 @@ ul {
 /* Fix for SVG icons blowing up on Android */
 .value-box svg { width: 32px !important; height: 32px !important; flex-shrink: 0; margin-bottom: 1.5rem; display: block; }
 
+
+/* Skeletal Shimmer Animation */
+.skeleton-shimmer {
+    position: relative;
+    overflow: hidden;
+}
+.skeleton-shimmer::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%; width: 50%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+    transform: skewX(-20deg);
+    animation: shimmer 3s infinite;
+    pointer-events: none;
+}
+@keyframes shimmer {
+    0% { left: -100%; }
+    20% { left: 200%; }
+    100% { left: 200%; }
+}
+
+/* --- EXTRA ANIMATIONS --- */
+.hero-orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.3; animation: floatOrb 12s infinite ease-in-out alternate; z-index: -1; pointer-events: none; }
+.orb-1 { width: 300px; height: 300px; background: var(--accent-primary); top: 10%; left: -5%; }
+.orb-2 { width: 400px; height: 400px; background: var(--accent-secondary); bottom: -10%; right: -5%; animation-delay: -6s; }
+@keyframes floatOrb { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(100px, -50px) scale(1.2); } }
+
+.chat-msg { opacity: 0; animation: slideInChat 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+.chat-sim .chat-msg:nth-child(1) { animation-delay: 1s; }
+.chat-sim .chat-msg:nth-child(2) { animation-delay: 2.5s; }
+.chat-sim .chat-msg:nth-child(3) { animation-delay: 4s; }
+.chat-sim .chat-msg:nth-child(4) { animation-delay: 5.5s; }
+.chat-sim .chat-msg:nth-child(5) { animation-delay: 7s; }
+@keyframes slideInChat { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+.spotlight-card { position: relative; overflow: hidden; }
+.spotlight-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), rgba(16, 185, 129, 0.1), transparent 40%); z-index: 0; opacity: 0; transition: opacity 0.5s; pointer-events: none; }
+.spotlight-card:hover::before { opacity: 1; }

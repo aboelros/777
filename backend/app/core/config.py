@@ -46,7 +46,7 @@ def _parse_cors_env_value(value):
 
 class LenientEnvSettingsSource(EnvSettingsSource):
     def decode_complex_value(self, field_name, field, value):
-        if field_name == "CORS_ORIGINS":
+        if field_name in ("CORS_ORIGINS", "ALLOWED_TEST_DATABASES", "ALLOWED_TEST_DATABASE_URLS", "ALLOWED_TEST_IMAGE_STORAGE_DATABASE_URLS"):
             parsed = _parse_cors_env_value(value)
             if parsed is not None:
                 return parsed
@@ -55,7 +55,7 @@ class LenientEnvSettingsSource(EnvSettingsSource):
 
 class LenientDotEnvSettingsSource(DotEnvSettingsSource):
     def decode_complex_value(self, field_name, field, value):
-        if field_name == "CORS_ORIGINS":
+        if field_name in ("CORS_ORIGINS", "ALLOWED_TEST_DATABASES", "ALLOWED_TEST_DATABASE_URLS", "ALLOWED_TEST_IMAGE_STORAGE_DATABASE_URLS"):
             parsed = _parse_cors_env_value(value)
             if parsed is not None:
                 return parsed
@@ -95,6 +95,14 @@ class Settings(BaseSettings):
     API_VERSION: str = "v1"
     TESTING_MODE: bool = False  # Disable for production security
     
+    # Test Isolation Guard
+    TESTING: bool = False
+    TEST_DATABASE_URL: Optional[str] = None
+    REQUIRE_TEST_DB_EXPLICIT_AUTHORIZATION: bool = False
+    APPROVED_TEST_DATABASE_URL: Optional[str] = None
+    ALLOWED_TEST_DATABASE_URLS: List[str] = Field(default_factory=list)
+    ALLOWED_TEST_DATABASES: List[str] = Field(default_factory=list)
+
     # Server
     HOST: str = "0.0.0.0"
     PORT: int = 8000
@@ -162,8 +170,11 @@ class Settings(BaseSettings):
     
     # Dedicated Image Storage Database
     IMAGE_STORAGE_DATABASE_URL: Optional[str] = Field(default=None)
-    
-    @validator("IMAGE_STORAGE_DATABASE_URL", pre=True)
+    TEST_IMAGE_STORAGE_DATABASE_URL: Optional[str] = Field(default=None)
+    APPROVED_TEST_IMAGE_STORAGE_DATABASE_URL: Optional[str] = Field(default=None)
+    ALLOWED_TEST_IMAGE_STORAGE_DATABASE_URLS: List[str] = Field(default_factory=list)
+
+    @validator("IMAGE_STORAGE_DATABASE_URL", "TEST_IMAGE_STORAGE_DATABASE_URL", "APPROVED_TEST_IMAGE_STORAGE_DATABASE_URL", pre=True)
     def convert_image_storage_url(cls, v):
         """Convert postgres:// to postgresql+asyncpg:// for the image database."""
         if not v:
@@ -208,6 +219,28 @@ class Settings(BaseSettings):
             v = v.replace("postgresql+asyncpg:postgresql://", "postgresql+asyncpg://", 1)
         
         return v
+
+    @validator("TEST_DATABASE_URL", "APPROVED_TEST_DATABASE_URL", pre=True)
+    def convert_test_database_url(cls, v):
+        """Convert postgres:// to postgresql+asyncpg:// for the test database."""
+        if not v:
+            return None
+        v = str(v).strip()
+        if not v:
+            return None
+        if v.startswith("postgres://"):
+            v = v.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif v.startswith("postgresql://") and "postgresql+asyncpg://" not in v:
+            v = v.replace("postgresql+asyncpg://", "postgresql+asyncpg://", 1)
+        elif "postgresql+asyncpg:postgresql://" in v:
+            v = v.replace("postgresql+asyncpg:postgresql://", "postgresql+asyncpg://", 1)
+        return v
+
+    @field_validator("ALLOWED_TEST_DATABASES", "ALLOWED_TEST_DATABASE_URLS", "ALLOWED_TEST_IMAGE_STORAGE_DATABASE_URLS", mode="before")
+    def parse_allowed_test_lists(cls, v) -> List[str]:
+        """Parse comma-separated or JSON list of allowed test database targets."""
+        parsed = _parse_cors_env_value(v)
+        return parsed if parsed is not None else []
     
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"

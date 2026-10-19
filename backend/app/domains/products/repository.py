@@ -51,3 +51,12 @@ class ProductRepository(BaseRepository[Product]):
             )
         )
         return result.scalar_one_or_none()
+
+    async def get_tenant_product(self, project_id: UUID, product_id: UUID) -> Optional[Product]:
+        result = await self.session.execute(
+            select(self.model).where(
+                self.model.id == product_id,
+                self.model.project_id == project_id
+            )
+        )
+        return result.scalar_one_or_none()

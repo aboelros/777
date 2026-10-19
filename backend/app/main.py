@@ -436,8 +436,16 @@ async def run_migrations(_: dict = Depends(require_role("admin"))):
     Manually trigger database migrations.
     Use this if migrations didn't run automatically.
     """
-    import subprocess
     import os
+    from app.core.migration_guard import evaluate_http_migration_policy
+    allowed, message = evaluate_http_migration_policy(settings.is_production)
+    if not allowed:
+        return {
+            "success": False,
+            "error": message,
+            "current_dir": os.getcwd()
+        }
+    import subprocess
     try:
         result = subprocess.run(
             ["alembic", "upgrade", "head"],

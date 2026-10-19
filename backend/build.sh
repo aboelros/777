@@ -7,35 +7,31 @@ echo "Installing Python dependencies..."
 pip install --upgrade pip
 pip install -r requirements.txt
 
-echo "Running database migrations..."
-# Wait for database to be ready
-python << END
-import time
-import asyncpg
-import os
+# Migration Governance Gate for Build Phase
+# Build-time execution of migrations against production databases is strictly prohibited.
+# Build artifacts must be immutable; schema changes belong to the release/deployment phase.
+ENVIRONMENT_LOWER=$(echo "${ENVIRONMENT:-development}" | tr '[:upper:]' '[:lower:]' | xargs)
 
-async def wait_for_db():
-    max_retries = 30
-    retry_count = 0
-    
-    while retry_count < max_retries:
-        try:
-            conn = await asyncpg.connect(os.environ['DATABASE_URL'])
-            await conn.close()
-            print("Database is ready!")
-            return
-        except Exception as e:
-            retry_count += 1
-            print(f"Waiting for database... ({retry_count}/{max_retries})")
-            time.sleep(2)
-    
-    raise Exception("Database not ready after 60 seconds")
-
-import asyncio
-asyncio.run(wait_for_db())
-END
-
-# Run migrations
-alembic upgrade head
+if [ "$ENVIRONMENT_LOWER" = "production" ] || [ "$ENVIRONMENT_LOWER" = "prod" ]; then
+    if [ "${RUN_MIGRATIONS_ON_BUILD:-false}" = "true" ]; then
+        echo "[BUILD GOVERNANCE] WARNING: RUN_MIGRATIONS_ON_BUILD=true was requested, but database migrations during build are strictly PROHIBITED in production."
+    fi
+    echo "[BUILD GOVERNANCE] Skipping database migrations during build in production. Schema changes must occur in the release phase."
+elif [ "$ENVIRONMENT_LOWER" = "staging" ] || [ "$ENVIRONMENT_LOWER" = "stage" ]; then
+    if [ "${RUN_MIGRATIONS_ON_BUILD:-false}" = "true" ]; then
+        echo "[BUILD GOVERNANCE] Explicit RUN_MIGRATIONS_ON_BUILD=true detected for staging build. Running migrations..."
+        alembic upgrade head
+    else
+        echo "[BUILD GOVERNANCE] Skipping database migrations during build in staging."
+    fi
+else
+    # Non-production (development, local, test)
+    if [ "${RUN_MIGRATIONS_ON_BUILD:-false}" = "true" ]; then
+        echo "[BUILD GOVERNANCE] Running database migrations during build..."
+        alembic upgrade head
+    else
+        echo "[BUILD GOVERNANCE] Skipping database migrations during build."
+    fi
+fi
 
 echo "Build complete!"

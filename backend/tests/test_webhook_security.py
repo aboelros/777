@@ -1,4 +1,4 @@
-﻿from unittest.mock import patch
+from unittest.mock import patch
 import pytest
 import uuid
 from httpx import AsyncClient, ASGITransport
@@ -23,9 +23,10 @@ async def setup_projects(db):
     await db.commit()
     return project_a, project_b, user_email
 
-async def teardown_projects(db, email):
-    await db.execute(delete(Integration))
-    await db.execute(delete(Project))
+async def teardown_projects(db, email, project_ids=None):
+    if project_ids:
+        await db.execute(delete(Integration).where(Integration.project_id.in_(project_ids)))
+        await db.execute(delete(Project).where(Project.id.in_(project_ids)))
     await db.execute(delete(User).where(User.email == email))
     await db.commit()
 
@@ -80,7 +81,7 @@ async def test_a_arbitrary_fallback_blocked():
         messages = await db.execute(select(Message).where(Message.project_id.in_([project_a.id, project_b.id])))
         assert len(messages.scalars().all()) == 0
             
-        await teardown_projects(db, email)
+        await teardown_projects(db, email, [project_a.id, project_b.id])
 
 @patch("app.services.webhook_adapters.WAGatewayAdapter.verify_signature", return_value=True)
 async def test_b_valid_deterministic_routing(mock_sig):
@@ -118,7 +119,7 @@ async def test_b_valid_deterministic_routing(mock_sig):
             assert data.get("status") == "processed"
             assert data.get("project_id") == str(project_b.id)
             
-        await teardown_projects(db, email)
+        await teardown_projects(db, email, [project_a.id, project_b.id])
 
 @patch("app.services.webhook_adapters.WAGatewayAdapter.verify_signature", return_value=True)
 async def test_c_ambiguous_routing_rejected(mock_sig):
@@ -169,7 +170,7 @@ async def test_c_ambiguous_routing_rejected(mock_sig):
         messages = await db.execute(select(Message).where(Message.project_id.in_([project_a.id, project_b.id])))
         assert len(messages.scalars().all()) == 0
             
-        await teardown_projects(db, email)
+        await teardown_projects(db, email, [project_a.id, project_b.id])
 
 async def test_d_legacy_routes_deleted():
     test_project_id = uuid.uuid4()

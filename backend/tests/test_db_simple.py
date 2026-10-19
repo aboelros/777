@@ -18,8 +18,10 @@ async def test_db():
         from app.db.models import User, Project
         from sqlalchemy import select, text
         
+        from app.core.db_identity import normalize_db_identity
+        active_target = normalize_db_identity(str(engine.url), "engine.url").sanitized_endpoint
         print(f"🔍 Testing database connection...")
-        print(f"📍 Database URL: {settings.DATABASE_URL[:50]}...")
+        print(f"📍 Database Target: {active_target}")
         print(f"🧪 Testing mode: {settings.TESTING_MODE}")
         
         # Test basic connection

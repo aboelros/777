@@ -451,6 +451,7 @@ function KnowledgeCard({ item, onEdit, onDelete }) {
 }
 
 function InstructionModal({ show, instruction, onClose, onSave }) {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     title: '',
     instruction: '',
@@ -547,6 +548,7 @@ function InstructionModal({ show, instruction, onClose, onSave }) {
 }
 
 function KnowledgeModal({ show, item, onClose, onSave }) {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     title: '',
     content: '',
@@ -637,6 +639,7 @@ function KnowledgeModal({ show, item, onClose, onSave }) {
 }
 
 function ScrapeModal({ show, onClose, onScrape, isLoading }) {
+  const { t } = useTranslation();
   const [url, setUrl] = useState('');
 
   if (!show) return null;

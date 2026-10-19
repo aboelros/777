@@ -13,12 +13,6 @@ export default function PostDetailDrawer({ isOpen, onClose, post, projectId }) {
     const queryClient = useQueryClient();
     const { t } = useTranslation();
 
-    if (!isOpen || !post) return null;
-
-    const comments = post.comments || []; // Assuming comments are passed or we fetch them here
-    // In a real app, you might want to fetch comments specifically for this post 
-    // if they aren't fully loaded in the feed object.
-
     // Send response mutation
     const sendMutation = useMutation({
         mutationFn: ({ commentId, text }) =>
@@ -43,11 +37,6 @@ export default function PostDetailDrawer({ isOpen, onClose, post, projectId }) {
         onSuccess: (data) => {
             toast.success('Response generated!');
             setGeneratingFor(null);
-            // Logic to pre-fill a reply box or show confirmation
-            // For simplicity, let's just alert or log it, or update local state if we had per-comment reply boxes
-            // But here we might want to fill the main reply box if replying to a specific comment?
-            // Actually, typically AI response is for a specific comment. 
-            // Let's assume we copy it to clipboard or show a modal.
             const response = data.generated_response;
             if (confirm(`Generated: ${response}\n\nSend now?`)) {
                 sendMutation.mutate({ commentId: data.comment_id, text: response });
@@ -58,6 +47,10 @@ export default function PostDetailDrawer({ isOpen, onClose, post, projectId }) {
             toast.error('Failed to generate response');
         },
     });
+
+    if (!isOpen || !post) return null;
+
+    const comments = post.comments || [];
 
 
     return (

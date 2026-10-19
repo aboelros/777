@@ -17,6 +17,21 @@ jobs:
       run:
         working-directory: ./backend
 
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: automind_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
     - uses: actions/checkout@v3
 
@@ -39,7 +54,29 @@ jobs:
         # exit-zero treats all errors as warnings
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-    # Enable tests once the test suite is configured
-    # - name: Test with pytest
-    #   run: |
-    #     pytest
+    - name: Apply database migrations
+      env:
+        TEST_DATABASE_URL: postgresql+asyncpg://postgres:testpassword@localhost:5432/automind_test
+        APPROVED_TEST_DATABASE_URL: postgresql+asyncpg://postgres:testpassword@localhost:5432/automind_test
+        TEST_IMAGE_STORAGE_DATABASE_URL: postgresql+asyncpg://postgres:testpassword@localhost:5432/automind_test
+        APPROVED_TEST_IMAGE_STORAGE_DATABASE_URL: postgresql+asyncpg://postgres:testpassword@localhost:5432/automind_test
+        REQUIRE_TEST_DB_EXPLICIT_AUTHORIZATION: "true"
+        DATABASE_URL: postgresql+asyncpg://postgres:testpassword@localhost:5432/automind_test
+        SECRET_KEY: "ci-test-secret-key-that-is-at-least-32-chars-long"
+        ENCRYPTION_KEY: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+      run: |
+        python -m alembic upgrade head
+
+    - name: Run backend tests
+      env:
+        TEST_DATABASE_URL: postgresql+asyncpg://postgres:testpassword@localhost:5432/automind_test
+        APPROVED_TEST_DATABASE_URL: postgresql+asyncpg://postgres:testpassword@localhost:5432/automind_test
+        TEST_IMAGE_STORAGE_DATABASE_URL: postgresql+asyncpg://postgres:testpassword@localhost:5432/automind_test
+        APPROVED_TEST_IMAGE_STORAGE_DATABASE_URL: postgresql+asyncpg://postgres:testpassword@localhost:5432/automind_test
+        REQUIRE_TEST_DB_EXPLICIT_AUTHORIZATION: "true"
+        TESTING: "true"
+        SECRET_KEY: "ci-test-secret-key-that-is-at-least-32-chars-long"
+        ENCRYPTION_KEY: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+        PYTHONPATH: "."
+      run: |
+        python -m pytest -q

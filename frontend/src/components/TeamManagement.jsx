@@ -51,7 +51,7 @@ export default function TeamManagement() {
 
     // Update Role
     const updateRoleMutation = useMutation({
-        mutationFn: ({ userId, role }) => projects.updateMemberRole(currentProject?.id, userId, role),
+        mutationFn: ({ userId, role }) => api.projects.updateMemberRole(currentProject?.id, userId, role),
         onSuccess: () => {
             queryClient.invalidateQueries(['project-members']);
             toast.success('Role updated');

@@ -39,12 +39,12 @@ class ProjectResponse(BaseModel):
     owner_name: Optional[str] = None
     project_code: str
     name: str
-    description: Optional[str]
-    timezone: str
-    settings: Dict[str, Any]
-    is_active: bool
+    description: Optional[str] = None
+    timezone: str = "UTC"
+    settings: Dict[str, Any] = Field(default_factory=dict)
+    is_active: bool = True
     created_at: datetime
-    updated_at: Optional[datetime]
+    updated_at: Optional[datetime] = None
     role: Optional[ProjectRole] = "owner"
     
     class Config:

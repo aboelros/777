@@ -99,15 +99,6 @@ class KnowledgeBase(Base):
     title = Column(String(255), nullable=False)
     content = Column(Text, nullable=False)
     
-    # Vector Embedding for RAG
-    # We use pgvector (Vector) for storing 1536-dimensional embeddings (OpenAI ada-002 compatible)
-    # The actual column creation needs the pgvector extension on the database
-    # For now, we define it as an ARRAY(Float) if pgvector is not fully setup or handle it loosely.
-    # A robust solution is using pgvector.sqlalchemy.Vector, but since it's a dependency, we will use ARRAY(Float) for simplicity if we can't install pgvector easily.
-    # To strictly follow the plan, let's use the Vector type.
-    # Wait, the plan says: pgvector embedding support. I will import it conditionally or use a string for now, but no, the standard is `from pgvector.sqlalchemy import Vector`
-    embedding = Column(ARRAY(Float))  # Fallback to ARRAY(Float) since pgvector might not be installed in the current environment yet.
-    
     source_type = Column(String(50), default="text")  # text, url, file, document
     source_url = Column(String(500))
     
@@ -175,4 +166,29 @@ class AutoResponseTemplate(Base):
     
     def __repr__(self):
         return f"<AutoResponseTemplate {self.name}>"
+
+
+class BotActivity(Base):
+    """Bot activity logging model for monitoring and feed tracking."""
+    __tablename__ = "bot_activities"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customer_profiles.id", ondelete="SET NULL"), nullable=True)
+    activity_type = Column(String(50), nullable=False)
+    description = Column(Text, nullable=True)
+    details = Column(JSONB, default=dict)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    # Relationships
+    project = relationship("Project", backref="bot_activities")
+    customer = relationship("CustomerProfile", backref="bot_activities")
+
+    # Indexes matching migration 034157d2ccf7
+    __table_args__ = (
+        Index("idx_bot_activity_project", "project_id", "created_at"),
+    )
+
+    def __repr__(self):
+        return f"<BotActivity {self.id} - {self.activity_type}>"
 

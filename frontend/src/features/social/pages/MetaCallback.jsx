@@ -25,6 +25,7 @@ export default function MetaCallback() {
     useEffect(() => {
         const code = searchParams.get('code');
         const error = searchParams.get('error');
+        const state = searchParams.get('state');
 
         if (error) {
             setStatus('error');
@@ -34,11 +35,11 @@ export default function MetaCallback() {
 
         if (code && currentProject && status === 'processing' && !exchangeAttempted.current) {
             exchangeAttempted.current = true;
-            handleCodeExchange(code);
+            handleCodeExchange(code, state);
         }
     }, [searchParams, currentProject]);
 
-    const handleCodeExchange = async (code) => {
+    const handleCodeExchange = async (code, state) => {
         try {
             const redirectUri = window.location.origin + '/integrations/meta/callback';
 
@@ -46,7 +47,8 @@ export default function MetaCallback() {
                 currentProject.id,
                 code,
                 redirectUri,
-                'facebook'
+                'facebook',
+                state
             );
 
             setAccessToken(response.access_token);
@@ -237,11 +239,11 @@ export default function MetaCallback() {
                                             activeTab === 'instagram' ? 'bg-sky-500/20 text-sky-400' :
                                                 'bg-green-500/20 text-green-400'
                                             }`}>
-                                            {activeTab === 'whatsapp' ? <MessageCircle className="w-5 h-5" /> : account.name.charAt(0)}
+                                            {activeTab === 'whatsapp' ? <MessageCircle className="w-5 h-5" /> : (activeTab === 'instagram' && account.instagram_business_account?.username ? account.instagram_business_account.username.charAt(0).toUpperCase() : account.name.charAt(0))}
                                         </div>
                                         <div>
                                             <h3 className="font-semibold text-white">
-                                                {activeTab === 'whatsapp' ? account.display_phone_number : account.name}
+                                                {activeTab === 'whatsapp' ? account.display_phone_number : (activeTab === 'instagram' && account.instagram_business_account?.username ? `@${account.instagram_business_account.username}` : account.name)}
                                             </h3>
                                             <p className="text-xs text-gray-400">
                                                 {activeTab === 'whatsapp' ? (

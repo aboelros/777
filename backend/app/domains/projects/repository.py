@@ -1,4 +1,4 @@
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Any
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
@@ -10,6 +10,14 @@ from app.domains.auth.models import User
 class ProjectRepository(BaseRepository[Project]):
     def __init__(self, session: AsyncSession):
         super().__init__(Project, session)
+
+    async def delete(self, *, id: Any) -> Optional[Project]:
+        project = await self.get(id=id)
+        if project:
+            await self.session.execute(delete(self.model).where(self.model.id == id))
+            self.session.expunge(project)
+            await self.session.flush()
+        return project
 
     async def get_by_code(self, project_code: str) -> Optional[Project]:
         result = await self.session.execute(
