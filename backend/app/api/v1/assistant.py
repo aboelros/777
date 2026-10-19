@@ -38,46 +38,67 @@ async def query_assistant(
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """Send a query to the AI assistant with strict tenant isolation."""
-    context = await resolve_tenant_context(query.project_id, UUID(user_id), db)
-    req_context = await build_assistant_context(db, context, query.context, query.order_id)
-    await check_ai_limit(db, context.user_id)
+    try:
+        context = await resolve_tenant_context(query.project_id, UUID(user_id), db)
+        req_context = await build_assistant_context(db, context, query.context, query.order_id)
+        await check_ai_limit(db, context.user_id)
 
-    gemini_client = get_gemini_without_tracking()
-    executor = BotFunctionExecutor(db, context.project_id, context.user_id)
+        gemini_client = get_gemini_without_tracking()
+        executor = BotFunctionExecutor(db, context.project_id, context.user_id)
 
-    response = await gemini_client.generate_response(
-        prompt=query.message,
-        context=req_context,
-        use_functions=query.use_function_calling,
-        user_id=None
-    )
+        response = await gemini_client.generate_response(
+            prompt=query.message,
+            context=req_context,
+            use_functions=query.use_function_calling,
+            user_id=None
+        )
 
-    function_calls = []
-    if response.get("function_calls"):
-        for fc in response["function_calls"]:
-            result = await executor.execute_function(fc["name"], fc.get("parameters", {}))
-            function_calls.append(FunctionCall(name=fc["name"], parameters=fc.get("parameters", {})))
-            if result.get("success") and "context_update" in result:
-                req_context.update(result["context_update"])
+        function_calls = []
+        if response.get("function_calls"):
+            for fc in response["function_calls"]:
+                try:
+                    result = await executor.execute_function(fc["name"], fc.get("parameters", {}))
+                    function_calls.append(FunctionCall(name=fc["name"], parameters=fc.get("parameters", {})))
+                    if result.get("success") and "context_update" in result:
+                        req_context.update(result["context_update"])
+                except Exception as fc_err:
+                    logger.warning("Failed executing function call", function=fc.get("name"), error=str(fc_err))
 
+        tokens_used = response.get("tokens_used", 0)
+        cost = response.get("cost", 0.0)
+        model = response.get("model", "gemini-1.5-pro")
 
-    tokens_used = response.get("tokens_used", 0)
-    cost = response.get("cost", 0.0)
-    model = response.get("model", "gemini-1.5-pro")
+        try:
+            await log_and_track_ai_usage(
+                db, context, "/api/v1/assistant/query", "POST",
+                {"query_length": len(query.message), "has_order": query.order_id is not None},
+                tokens_used, cost, model, response.get("text", "")
+            )
+        except Exception as log_err:
+            logger.warning("Failed tracking AI usage", error=str(log_err))
 
-    await log_and_track_ai_usage(
-        db, context, "/api/v1/assistant/query", "POST",
-        {"query_length": len(query.message), "has_order": query.order_id is not None},
-        tokens_used, cost, model, response.get("text", "")
-    )
+        reply_text = response.get("text") or "I processed your request."
 
-    return AssistantResponse(
-        reply=response.get("text", ""),
-        function_calls=function_calls if function_calls else None,
-        tokens_used=tokens_used,
-        cost=cost,
-        model=model
-    )
+        return AssistantResponse(
+            reply=reply_text,
+            function_calls=function_calls if function_calls else None,
+            tokens_used=tokens_used,
+            cost=cost,
+            model=model
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        logger.error("Assistant query failed", error=str(e), traceback=traceback.format_exc())
+        return AssistantResponse(
+            reply=f"I encountered a temporary issue processing your request: {str(e)}",
+            function_calls=None,
+            tokens_used=0,
+            cost=0.0,
+            model="gemini-1.5-pro"
+        )
+
 
 
 @router.post("/generate-reply", response_model=AssistantResponse)

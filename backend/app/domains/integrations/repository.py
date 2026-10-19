@@ -1,7 +1,7 @@
 from typing import List, Optional
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from app.core.repository import BaseRepository
 from app.domains.integrations.models import Integration, IntegrationProvider
 
@@ -43,3 +43,16 @@ class IntegrationRepository(BaseRepository[Integration]):
         )
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
+
+    async def delete_tenant_integration(
+        self,
+        project_id: UUID,
+        integration_id: UUID
+    ) -> bool:
+        stmt = delete(self.model).where(
+            self.model.id == integration_id,
+            self.model.project_id == project_id
+        )
+        result = await self.session.execute(stmt)
+        return result.rowcount > 0
+

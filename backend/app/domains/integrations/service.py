@@ -159,14 +159,14 @@ class IntegrationService:
     async def delete_integration(self, context: TenantContext, integration_id: str) -> None:
         async with self.uow as uow:
             proj_uuid = context.project_id
-            int_uuid = UUID(integration_id)
+            int_uuid = UUID(integration_id) if isinstance(integration_id, str) else integration_id
             repo = IntegrationRepository(uow.session)
-            integration = await repo.get_tenant_integration(proj_uuid, int_uuid)
+            deleted = await repo.delete_tenant_integration(proj_uuid, int_uuid)
             
-            if not integration:
+            if not deleted:
                 raise HTTPException(status_code=404, detail="Integration not found")
                 
-            await uow.session.delete(integration)
             await uow.commit()
+
 
 

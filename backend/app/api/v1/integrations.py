@@ -225,11 +225,12 @@ async def delete_integration(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Failed to disconnect integration", error=str(e), integration_id=str(integration_id))
+        logger.error("Failed to disconnect integration", error=str(e), integration_id=str(integration_id), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to disconnect integration"
+            detail=f"Failed to disconnect integration: {str(e)}"
         )
+
     
     return None
 
