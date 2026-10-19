@@ -98,60 +98,87 @@ class MetaAdapter(BaseAdapter):
         return None
 
     def _normalize_instagram(self, payload: Dict[str, Any]) -> Optional[WebhookEvent]:
-        entry = payload.get("entry", [])[0]
-
-        # Check for comments (they come in 'changes' instead of 'messaging')
-        if "changes" in entry:
-            change = entry["changes"][0]
-            if change.get("field") == "comments":
-                value = change.get("value", {})
-                from_user = value.get("from", {})
-                return WebhookEvent(
-                    event_id=value.get("id", "unknown_comment"),
-                    event_type=EventType.COMMENT_CREATED,
-                    timestamp=datetime.now(), # Instagram comments webhook might not have timestamp at the top level
-                    platform="meta",
-                    channel="instagram",
-                    sender_id=from_user.get("id"),
-                    sender_name=from_user.get("username"),
-                    payload={
-                        "text": value.get("text"),
-                        "is_comment": True,
-                        "media_id": value.get("media", {}).get("id")
-                    },
-                    raw_data=payload
-                )
+        print(f"DEBUG: Instagram payload received: {json.dumps(payload)}")
+        entries = payload.get("entry", [])
+        if not entries:
             return None
+        entry = entries[0]
 
-        messaging_list = entry.get("messaging", [])
+        # 1. Check for changes (comments or messages delivered via changes)
+        if "changes" in entry and entry["changes"]:
+            for change in entry.get("changes", []):
+                field = change.get("field")
+                value = change.get("value", {})
+                if field == "comments":
+                    from_user = value.get("from", {})
+                    return WebhookEvent(
+                        event_id=value.get("id", "unknown_comment"),
+                        event_type=EventType.COMMENT_CREATED,
+                        timestamp=datetime.now(),
+                        platform="meta",
+                        channel="instagram",
+                        sender_id=from_user.get("id"),
+                        sender_name=from_user.get("username"),
+                        payload={
+                            "text": value.get("text"),
+                            "is_comment": True,
+                            "media_id": value.get("media", {}).get("id")
+                        },
+                        raw_data=payload
+                    )
+                elif field == "messages":
+                    sender = value.get("sender", {}) or value.get("from", {})
+                    recipient = value.get("recipient", {})
+                    msg = value.get("message", value)
+                    if msg.get("is_echo"):
+                        print("DEBUG: Skipping Instagram echo message via changes")
+                        return None
+                    return WebhookEvent(
+                        event_id=msg.get("mid", f"ig_msg_{value.get('id', 'unknown')}"),
+                        event_type=EventType.MESSAGE_CREATED,
+                        timestamp=datetime.now(),
+                        platform="meta",
+                        channel="instagram",
+                        sender_id=sender.get("id"),
+                        sender_name=sender.get("username"),
+                        payload={
+                            "text": msg.get("text") or value.get("text"),
+                            "media": msg.get("attachments"),
+                            "is_echo": False,
+                            "page_id": recipient.get("id") or entry.get("id"),
+                        },
+                        raw_data=payload
+                    )
+
+        # 2. Check messaging and standby arrays
+        messaging_list = entry.get("messaging", []) or entry.get("standby", [])
         if not messaging_list:
+            print(f"DEBUG: No messaging or standby items in Instagram entry: {entry}")
             return None
 
         messaging = messaging_list[0]
-
         sender_id = messaging.get("sender", {}).get("id")
+        recipient_id = messaging.get("recipient", {}).get("id")
         message = messaging.get("message", {})
 
-        # Early echo rejection: skip messages sent BY the page (our own outbound)
         if message.get("is_echo"):
-            print(f"DEBUG: Skipping Instagram echo message (sent by page)")
+            print("DEBUG: Skipping Instagram echo message (sent by page)")
             return None
 
-        # Skip delivery notifications
         if "delivery" in messaging:
-            print(f"DEBUG: Skipping Instagram delivery notification")
+            print("DEBUG: Skipping Instagram delivery notification")
             return None
 
         if "read" in messaging:
             return WebhookEvent(
-                event_id=f"read_{sender_id}_{messaging['timestamp']}",
+                event_id=f"read_{sender_id}_{messaging.get('timestamp')}",
                 event_type=EventType.MESSAGE_READ,
                 timestamp=datetime.fromtimestamp(int(messaging.get("timestamp", 0)) / 1000),
                 platform="meta",
                 channel="instagram",
                 sender_id=sender_id,
                 sender_name=None,
-                payload={"read": True},
+                payload={"read": True, "page_id": recipient_id or entry.get("id")},
                 raw_data=payload
             )
 
@@ -162,7 +189,7 @@ class MetaAdapter(BaseAdapter):
         print(f"DEBUG: Instagram msg | mid={msg_mid} | text='{msg_text}' | has_attachments={bool(msg_attachments)}")
 
         if not msg_text and not msg_attachments:
-            print(f"DEBUG: Skipping Instagram message with no text and no attachments")
+            print("DEBUG: Skipping Instagram message with no text and no attachments")
             return None
 
         return WebhookEvent(
@@ -172,14 +199,14 @@ class MetaAdapter(BaseAdapter):
             platform="meta",
             channel="instagram",
             sender_id=sender_id,
-            sender_name=messaging.get("sender", {}).get("username"), # Instagram sometimes includes this
+            sender_name=messaging.get("sender", {}).get("username"),
             payload={
                 "text": msg_text,
                 "media": msg_attachments,
                 "is_echo": message.get("is_echo", False),
-                "page_id": entry.get("id"),
+                "page_id": recipient_id or entry.get("id"),
             },
-            raw_data=payload # Broad capture of metadata
+            raw_data=payload
         )
 
     def _normalize_facebook(self, payload: Dict[str, Any]) -> Optional[WebhookEvent]:

@@ -107,12 +107,13 @@ class WebhookProjectResolver:
             return None
 
         query = select(Integration).where(
-            Integration.provider.in_(["instagram", "meta"]),
+            Integration.provider.in_(["instagram", "facebook", "meta"]),
             Integration.status == IntegrationStatus.CONNECTED
         )
         result = await self.db.execute(query)
+        integrations = result.scalars().all()
         matched_projects: List[UUID] = []
-        for it in result.scalars().all():
+        for it in integrations:
             cfg = it.config or {}
             ext = it.extra_data or {}
             stored_ids = {
@@ -124,7 +125,17 @@ class WebhookProjectResolver:
             if target_ids & stored_ids:
                 matched_projects.append(it.project_id)
 
-        return self._deduplicate_match(matched_projects, f"instagram targets {target_ids}")
+        res = self._deduplicate_match(matched_projects, f"instagram targets {target_ids}")
+        if res:
+            return res
+
+        # Fallback: if only one project has a connected Instagram/Facebook integration, route to it
+        candidate_projects = list({it.project_id for it in integrations})
+        if len(candidate_projects) == 1:
+            logger.info("Fallback matched single connected Meta integration", project_id=str(candidate_projects[0]))
+            return str(candidate_projects[0])
+
+        return None
 
     async def _resolve_meta_facebook(self, event: WebhookEvent) -> Optional[str]:
         raw_entry = (event.raw_data or {}).get("entry", [{}])[0] if isinstance((event.raw_data or {}).get("entry"), list) and (event.raw_data or {}).get("entry") else {}
