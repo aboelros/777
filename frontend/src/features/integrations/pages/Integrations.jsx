@@ -32,6 +32,7 @@ import WhatsAppQRModal from '../../../components/WhatsAppQRModal';
 import api from '../../../services/api';
 import { useProjectStore } from '../../../store/projectStore';
 import { useTranslation } from '../../../lib/translations';
+import ConnectedIntegrationsList from '../components/ConnectedIntegrationsList';
 
 // Move availableIntegrations inside the component if needed or use a separate function
 // For simplicity, I'll pass t to a mapping function
@@ -653,6 +654,14 @@ export default function Integrations() {
           >
             {t('integrations.terminal')}
           </Button>
+
+          <Button
+            onClick={() => navigate('/integrations/manage')}
+            variant="secondary"
+            leftIcon={SettingsIcon}
+          >
+            Manage All
+          </Button>
         </div>
       </motion.div>
 
@@ -708,6 +717,8 @@ export default function Integrations() {
           const isPending = status === 'pending';
           const isError = status === 'error';
           const isConnecting = connectingProvider === integration.id;
+          const existingIntegrationId = getIntegrationId(integration.id);
+          const hasIntegration = Boolean(existingIntegrationId);
 
           return (
             <motion.div
@@ -757,12 +768,13 @@ export default function Integrations() {
                       </Button>
 
                       <Button
-                        onClick={() => handleDelete(getIntegrationId(integration.id))}
+                        onClick={() => handleDelete(existingIntegrationId || integration.id)}
                         disabled={deleteMutation.isPending}
                         variant="danger"
                         size="sm"
                         className="px-3"
                         isLoading={deleteMutation.isPending}
+                        title="Disconnect integration"
                       >
                         {!deleteMutation.isPending && <Trash2 className="w-4 h-4" />}
                       </Button>
@@ -799,18 +811,48 @@ export default function Integrations() {
                         >
                           {t('common.edit')}
                         </Button>
+
+                        {hasIntegration && (
+                          <Button
+                            onClick={() => handleDelete(existingIntegrationId)}
+                            disabled={deleteMutation.isPending}
+                            variant="danger"
+                            size="xs"
+                            className="px-2.5"
+                            isLoading={deleteMutation.isPending}
+                            title="Disconnect integration"
+                          >
+                            {!deleteMutation.isPending && <Trash2 className="w-3.5 h-3.5" />}
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ) : (
-                    <Button
-                      onClick={() => handleConnect(integration.id)}
-                      disabled={isConnecting || !currentProject}
-                      variant="primary"
-                      className="w-full"
-                      isLoading={isConnecting}
-                    >
-                      {t('integrations.connect')}
-                    </Button>
+                    <div className="flex gap-2 w-full">
+                      <Button
+                        onClick={() => handleConnect(integration.id)}
+                        disabled={isConnecting || !currentProject}
+                        variant={isError ? "secondary" : "primary"}
+                        className="flex-1"
+                        isLoading={isConnecting}
+                      >
+                        {isError ? "Reconnect" : t('integrations.connect')}
+                      </Button>
+
+                      {hasIntegration && (
+                        <Button
+                          onClick={() => handleDelete(existingIntegrationId)}
+                          disabled={deleteMutation.isPending}
+                          variant="danger"
+                          size="sm"
+                          className="px-3"
+                          isLoading={deleteMutation.isPending}
+                          title="Disconnect integration"
+                        >
+                          {!deleteMutation.isPending && <Trash2 className="w-4 h-4" />}
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -849,7 +891,17 @@ export default function Integrations() {
             </motion.div>
           );
         })}
-      </div >
+      </div>
+
+      {/* Active Connected Integrations List */}
+      <ConnectedIntegrationsList
+        integrations={connectedIntegrations}
+        onDelete={(id) => handleDelete(id)}
+        onSync={(id) => handleSync(id)}
+        isDeleting={deleteMutation.isPending}
+        isSyncing={syncMutation.isPending}
+        onManage={() => navigate('/integrations/manage')}
+      />
 
 
 
