@@ -25,12 +25,12 @@ class FacebookClient:
                 - app_secret: Facebook app secret (for webhook verification)
         """
         self.page_id = config.get("page_id")
-        self.access_token = config.get("access_token")
+        self.access_token = config.get("access_token") or config.get("api_key")
         self.app_secret = config.get("app_secret")
         self.api_base = "https://graph.facebook.com/v18.0"
         
         if not self.page_id or not self.access_token:
-            raise ValueError("Facebook config must include page_id and access_token")
+            raise ValueError(f"Facebook config missing required credentials: page_id={self.page_id}, token={'present' if self.access_token else 'missing'}")
     
     async def send_message(
         self,

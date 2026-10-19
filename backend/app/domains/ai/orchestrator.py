@@ -54,6 +54,32 @@ class AIOrchestrator:
             return TenantContext(project_id=project_id, roles=["system"])
         raise ValueError("TenantContext or project_id required for orchestrator operation")
     
+    def _build_client_config(self, integration: Integration) -> Dict[str, Any]:
+        """Normalize integration config and extra_data including decryption of access tokens."""
+        client_config = dict(integration.config or {})
+        ext = integration.extra_data or {}
+
+        # Fallback to api_key if access_token is missing
+        if not client_config.get("access_token") and client_config.get("api_key"):
+            client_config["access_token"] = client_config["api_key"]
+
+        # Check extra_data for encrypted or raw access_token
+        if not client_config.get("access_token") and ext.get("access_token"):
+            try:
+                from app.core.security import decrypt_pii
+                client_config["access_token"] = decrypt_pii(ext["access_token"])
+            except Exception:
+                client_config["access_token"] = ext["access_token"]
+
+        for k, v in ext.items():
+            if k not in client_config and k != "access_token":
+                client_config[k] = v
+
+        if integration.provider == "instagram" and not client_config.get("page_id"):
+            client_config["page_id"] = client_config.get("instagram_business_account_id") or ext.get("page_id")
+
+        return client_config
+
     async def initialize_integrations(self, project_id: UUID):
         """Load and initialize all active integrations for a project securely."""
         context = self._resolve_context(project_id)
@@ -61,18 +87,32 @@ class AIOrchestrator:
         int_repo = IntegrationRepository(self.db)
         all_integrations = await int_repo.get_project_integrations(context.project_id)
         integrations = [i for i in all_integrations if i.status == "connected"]
-        
+
         for integration in integrations:
             client = self._get_integration_client(integration)
             if client:
                 self.integration_clients[integration.provider] = client
-        
+
+            # If this is Facebook/Meta integration with linked Instagram, also register Instagram client!
+            if integration.provider in ["facebook", "meta"]:
+                cfg = self._build_client_config(integration)
+                ig_id = cfg.get("instagram_business_account_id") or (integration.extra_data or {}).get("instagram_business_account_id")
+                if ig_id and "instagram" not in self.integration_clients:
+                    ig_cfg = dict(cfg)
+                    ig_cfg["page_id"] = ig_id
+                    try:
+                        self.integration_clients["instagram"] = InstagramClient(ig_cfg)
+                        logger.info("Successfully registered Instagram client from linked Meta integration", ig_id=ig_id)
+                    except Exception as ig_err:
+                        logger.error("Failed creating Instagram client from linked Meta integration", error=str(ig_err))
+
         logger.info(
             "Integrations initialized",
             project_id=str(context.project_id),
-            count=len(self.integration_clients)
+            count=len(self.integration_clients),
+            channels=list(self.integration_clients.keys())
         )
-    
+
     def _get_integration_client(self, integration: Integration):
         """Create appropriate client for integration provider."""
         clients = {
@@ -82,10 +122,15 @@ class AIOrchestrator:
             "instagram": InstagramClient,
             "facebook": FacebookClient
         }
-        
+
         client_class = clients.get(integration.provider)
         if client_class:
-            return client_class(integration.config)
+            cfg = self._build_client_config(integration)
+            try:
+                return client_class(cfg)
+            except Exception as err:
+                logger.error("Failed instantiating integration client", provider=integration.provider, error=str(err))
+                return None
         return None
     
     async def process_customer_message(
@@ -951,10 +996,13 @@ DO NOT repeat the previous text. Just give the answer.
                 if quick_replies:
                     kwargs["quick_replies"] = quick_replies
                 
+            logger.info("Executing client.send_message", channel=channel, platform_id=platform_id, preview=message[:60])
             result = await client.send_message(platform_id, message, **kwargs)
-            
+            logger.info("Client send_message result", channel=channel, result=result)
+
             if result.get("status") == "error":
-                 return {"status": "error", "message": result.get("message")}
+                logger.error("Outbound send failed", channel=channel, error=result.get("message"))
+                return {"status": "error", "message": result.get("message")}
 
             # 4. Handle record updates/creation
             from app.domains.messages.models import Message

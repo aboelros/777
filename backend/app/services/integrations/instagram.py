@@ -23,12 +23,12 @@ class InstagramClient:
                 - page_id: Instagram business account ID
                 - access_token: Instagram Graph API access token
         """
-        self.page_id = config.get("page_id")
-        self.access_token = config.get("access_token")
+        self.page_id = config.get("page_id") or config.get("instagram_business_account_id")
+        self.access_token = config.get("access_token") or config.get("api_key")
         self.api_base = "https://graph.facebook.com/v18.0"
         
         if not self.page_id or not self.access_token:
-            raise ValueError("Instagram config must include page_id and access_token")
+            raise ValueError(f"Instagram config missing required credentials: page_id={self.page_id}, token={'present' if self.access_token else 'missing'}")
     
     async def send_message(
         self,
