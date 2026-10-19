@@ -29,6 +29,9 @@ class ProjectUpdate(BaseModel):
     description: Optional[str] = None
     timezone: Optional[str] = None
     settings: Optional[Dict[str, Any]] = None
+    bot_name: Optional[str] = None
+    bot_tone: Optional[str] = None
+    personality_prompt: Optional[str] = None
     is_active: Optional[bool] = None
 
 
@@ -42,6 +45,9 @@ class ProjectResponse(BaseModel):
     description: Optional[str] = None
     timezone: str = "UTC"
     settings: Dict[str, Any] = Field(default_factory=dict)
+    bot_name: Optional[str] = "Alex"
+    bot_tone: Optional[str] = "Professional"
+    personality_prompt: Optional[str] = None
     is_active: bool = True
     created_at: datetime
     updated_at: Optional[datetime] = None

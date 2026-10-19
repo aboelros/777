@@ -321,7 +321,9 @@ const translations = {
             title: "Bot Training Center",
             subtitle: "Supercharge your AI with custom instructions and knowledge",
             tabs: {
+                persona: "Human Persona & Voice",
                 instructions: "AI Instructions",
+                tools: "AI Tools & Capabilities",
                 knowledge: "Knowledge Base (RAG)"
             },
             buttons: {
@@ -1101,7 +1103,9 @@ const translations = {
             title: "مركز تدريب البوت",
             subtitle: "قم بتعزيز ذكاء البوت بتعليمات ومعرفة مخصصة",
             tabs: {
+                persona: "شخصية وهوية البائع البشري",
                 instructions: "تعليمات الذكاء الاصطناعي",
+                tools: "أدوات وقدرات البوت",
                 knowledge: "قاعدة المعرفة (RAG)"
             },
             buttons: {
