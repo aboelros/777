@@ -274,6 +274,11 @@ class Settings(BaseSettings):
     # Groq AI (Fast Inference & Vision)
     GROQ_API_KEY: Optional[str] = None
     
+    # OpenRouter AI
+    OPENROUTER_API_KEY: Optional[str] = None
+    OPENROUTER_MODEL: str = "google/gemini-2.0-flash-001"
+    OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
+    
     # Google Cloud / Vertex AI (Optional - if not using direct API key)
     GOOGLE_CLOUD_PROJECT: Optional[str] = None
     GOOGLE_APPLICATION_CREDENTIALS: Optional[str] = None

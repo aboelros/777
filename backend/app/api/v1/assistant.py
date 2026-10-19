@@ -19,6 +19,7 @@ from app.domains.ai.service import AIService
 from app.domains.ai.schemas import AssistantQuery, AssistantResponse, FunctionCall, GenerateReplyRequest
 from app.domains.orders.repository import OrderRepository
 from app.domains.messages.models import Message, MessageDirection
+from app.core.config import settings
 from app.services.service_factory import get_gemini_without_tracking
 from app.services.bot_function_executor import BotFunctionExecutor
 from app.api.v1.assistant_helpers import check_ai_limit, build_assistant_context, log_and_track_ai_usage
@@ -52,6 +53,19 @@ async def query_assistant(
             use_functions=query.use_function_calling,
             user_id=None
         )
+
+        if (response.get("error") or not response.get("text")) and settings.OPENROUTER_API_KEY:
+            from app.domains.ai.providers.openrouter import OpenRouterClient
+            openrouter_client = OpenRouterClient()
+            if openrouter_client.is_configured and gemini_client is not openrouter_client:
+                fallback_res = await openrouter_client.generate_response(
+                    prompt=query.message,
+                    context=req_context,
+                    use_functions=False,
+                    user_id=None
+                )
+                if fallback_res.get("text"):
+                    response = fallback_res
 
         function_calls = []
         if response.get("function_calls"):
@@ -139,6 +153,18 @@ async def generate_reply(
         conversation_history=conversation_history
     )
 
+    if (response.get("error") or not response.get("text")) and settings.OPENROUTER_API_KEY:
+        from app.domains.ai.providers.openrouter import OpenRouterClient
+        openrouter_client = OpenRouterClient()
+        if openrouter_client.is_configured and gemini_client is not openrouter_client:
+            fallback_res = await openrouter_client.generate_sales_reply(
+                customer_message=request.customer_message,
+                order_context=order_context,
+                conversation_history=conversation_history
+            )
+            if fallback_res.get("text"):
+                response = fallback_res
+
     tokens_used = response.get("tokens_used", 0)
     cost = response.get("cost", 0.0)
     model = response.get("model", "gemini-1.5-pro")
@@ -174,7 +200,15 @@ async def analyze_sentiment(
     await check_ai_limit(db, context.user_id)
 
     gemini_client = get_gemini_without_tracking()
-    analysis = await gemini_client.analyze_sentiment(message)
+    try:
+        analysis = await gemini_client.analyze_sentiment(message)
+    except Exception:
+        from app.domains.ai.providers.openrouter import OpenRouterClient
+        openrouter_client = OpenRouterClient()
+        if openrouter_client.is_configured:
+            analysis = await openrouter_client.analyze_sentiment(message)
+        else:
+            raise
 
     await log_and_track_ai_usage(
         db, context, "/api/v1/assistant/analyze-sentiment", "POST",
@@ -182,6 +216,7 @@ async def analyze_sentiment(
     )
 
     return analysis
+
 
 
 @router.get("/usage/{project_id}")

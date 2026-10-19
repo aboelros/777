@@ -195,8 +195,21 @@ class AnalyticsService:
                 if integration.project_id != ctx.project_id:
                     raise PermissionError("Cross-tenant integration access denied")
                 try:
+                    client_config = dict(integration.config or {})
+                    if not client_config.get("access_token") and integration.extra_data:
+                        ext_token = integration.extra_data.get("access_token")
+                        if ext_token:
+                            try:
+                                from app.core.security import decrypt_pii
+                                client_config["access_token"] = decrypt_pii(ext_token)
+                            except Exception:
+                                client_config["access_token"] = ext_token
+                    for k, v in (integration.extra_data or {}).items():
+                        if k not in client_config and k != "access_token":
+                            client_config[k] = v
+
                     if integration.provider == "facebook":
-                        fb_data = await fb_cls(integration.extra_data or {}).get_page_engagement()
+                        fb_data = await fb_cls(client_config).get_page_engagement()
                         if fb_data:
                             meta_stats["facebook"] = {
                                 "name": fb_data.get("name"),
@@ -204,7 +217,7 @@ class AnalyticsService:
                                 "fans": fb_data.get("fan_count"),
                             }
                     elif integration.provider == "instagram":
-                        ig_data = await ig_cls(integration.extra_data or {}).get_instagram_engagement()
+                        ig_data = await ig_cls(client_config).get_instagram_engagement()
                         if ig_data:
                             meta_stats["instagram"] = {
                                 "name": ig_data.get("name"),

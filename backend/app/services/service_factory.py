@@ -32,6 +32,9 @@ class ServiceFactory:
         if provider_name in {"gemini", "default"}:
             provider = GeminiProvider()
             provider.set_ai_optimizer(ai_optimizer)
+        elif provider_name == "openrouter":
+            from app.services.ai_providers.openrouter import OpenRouterProvider
+            provider = OpenRouterProvider()
         else:
             raise ValueError(f"Unsupported AI provider: {provider_name}")
 
@@ -52,11 +55,11 @@ class ServiceFactory:
     
     @classmethod
     def get_gemini_client(cls, db: AsyncSession = None):
-        """Temporary backward compatibility helper returning Gemini client."""
+        """Temporary backward compatibility helper returning active AI client."""
         provider = cls.get_ai_provider(db)
-        if isinstance(provider, GeminiProvider):
+        if hasattr(provider, "client"):
             return provider.client
-        raise RuntimeError("Current AI provider is not Gemini; update call sites to use get_ai_provider")
+        return GeminiClient()
 
     @classmethod
     def get_subscription_service(cls, db: AsyncSession) -> SubscriptionService:

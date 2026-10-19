@@ -9,6 +9,8 @@ from uuid import UUID
 from datetime import datetime
 
 from app.domains.ai.providers.gemini import GeminiClient
+from app.domains.ai.providers.openrouter import OpenRouterClient
+from app.core.config import settings
 from app.core.websockets import manager as ws_manager
 from app.services.integrations.shopify import ShopifyService
 from app.services.integrations.telegram import TelegramService
@@ -36,6 +38,7 @@ class AIOrchestrator:
         self.db = db
         self.context = context
         self.gemini = GeminiClient()
+        self.openrouter = OpenRouterClient()
         self.integration_clients = {}
         self.confidence_scorer = AIConfidenceScorer()
         self.source_attributor = SourceAttributor()
@@ -314,10 +317,11 @@ Respond to the customer now IN {customer_language}. If you need to check stock o
 """
             
             # Generate AI response using Gemini with function calling
-            logger.info("Generating AI response with Gemini (Sales Agent Persona)...")
+            use_openrouter = (settings.AI_PROVIDER == "openrouter") or (self.openrouter.is_configured and not getattr(self.gemini, "api_key", None))
+            ai_client = self.openrouter if use_openrouter else self.gemini
+            logger.info("Generating AI response (Sales Agent Persona)", provider="openrouter" if use_openrouter else "gemini")
             
-            # Use the new generate_response method that supports functions
-            response_data = await self.gemini.generate_response(
+            response_data = await ai_client.generate_response(
                 prompt=user_prompt,
                 context={
                     "persona": "custom",
@@ -328,6 +332,18 @@ Respond to the customer now IN {customer_language}. If you need to check stock o
                 media_url=media_url,
                 media_type=media_type
             )
+            
+            # Fallback to OpenRouter if Gemini failed with error and OpenRouter is configured
+            if (response_data.get("error") or not response_data.get("text")) and self.openrouter.is_configured and ai_client is not self.openrouter:
+                logger.warning("Gemini failed, automatically falling back to OpenRouter", error=response_data.get("error"))
+                ai_client = self.openrouter
+                response_data = await self.openrouter.generate_response(
+                    prompt=user_prompt,
+                    context={"persona": "custom", "persona_detail": system_prompt_with_products},
+                    use_functions=False,
+                    media_url=media_url,
+                    media_type=media_type
+                )
             
             ai_text = response_data.get("text", "")
             function_calls = response_data.get("function_calls", [])
@@ -348,8 +364,6 @@ Respond to the customer now IN {customer_language}. If you need to check stock o
                     ai_text = template_response
                     logger.info("Using pre-defined template response (Skipping 2nd AI call)")
                 else:
-                    # Generate a final response after function calls
-                    # This ensures we send exactly ONE message with the result
                     follow_up_prompt = f"""
 The following actions were taken:
 {json.dumps(function_results, indent=2)}
@@ -357,14 +371,13 @@ The following actions were taken:
 Based on these results, provide a final response to the customer.
 DO NOT repeat the previous text. Just give the answer.
 """
-                    final_response = await self.gemini.generate_response(
+                    final_response = await ai_client.generate_response(
                         prompt=follow_up_prompt,
                         context={"persona": "custom", "persona_detail": system_prompt_with_products},
-                        use_functions=False  # Don't loop infinitely
+                        use_functions=False
                     )
                     ai_text = final_response.get("text", "")
                     
-                    # Fallback: If second call returns empty, use initial text if available
                     if not ai_text and response_data.get("text"):
                         ai_text = response_data.get("text")
                         logger.warning("Second AI call returned empty, falling back to initial text")
