@@ -166,6 +166,7 @@ class IntegrationService:
             if not integration:
                 raise HTTPException(status_code=404, detail="Integration not found")
                 
-            await repo.delete(integration)
+            await uow.session.delete(integration)
             await uow.commit()
+
 

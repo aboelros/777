@@ -233,10 +233,19 @@ async def add_process_time_header(request: Request, call_next):
         return response
     except Exception as e:
         logger.error("Request failed", error=str(e), path=request.url.path)
+        origin = request.headers.get("origin")
+        headers = {}
+        if origin and (origin in cors_origins or origin.endswith(".vercel.app") or "localhost" in origin):
+            headers["Access-Control-Allow-Origin"] = origin
+            headers["Access-Control-Allow-Credentials"] = "true"
+            headers["Access-Control-Allow-Headers"] = "*"
+            headers["Access-Control-Allow-Methods"] = "*"
         return JSONResponse(
             status_code=500,
-            content={"detail": "Internal server error"}
+            content={"detail": "Internal server error"},
+            headers=headers
         )
+
 
 
 # ============================================================================

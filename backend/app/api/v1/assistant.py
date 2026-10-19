@@ -43,22 +43,23 @@ async def query_assistant(
     await check_ai_limit(db, context.user_id)
 
     gemini_client = get_gemini_without_tracking()
-    executor = BotFunctionExecutor(db, context.project_id)
-    system_instruction = gemini_client._build_sales_system_prompt(req_context)
+    executor = BotFunctionExecutor(db, context.project_id, context.user_id)
 
-    response = await gemini_client.generate_with_tools(
+    response = await gemini_client.generate_response(
         prompt=query.message,
-        tools=executor.get_tool_declarations() if query.use_function_calling else None,
-        system_instruction=system_instruction
+        context=req_context,
+        use_functions=query.use_function_calling,
+        user_id=None
     )
 
     function_calls = []
     if response.get("function_calls"):
         for fc in response["function_calls"]:
-            result = await executor.execute(fc["name"], fc["parameters"])
-            function_calls.append(FunctionCall(name=fc["name"], parameters=fc["parameters"]))
+            result = await executor.execute_function(fc["name"], fc.get("parameters", {}))
+            function_calls.append(FunctionCall(name=fc["name"], parameters=fc.get("parameters", {})))
             if result.get("success") and "context_update" in result:
                 req_context.update(result["context_update"])
+
 
     tokens_used = response.get("tokens_used", 0)
     cost = response.get("cost", 0.0)
