@@ -286,6 +286,10 @@ class AIOrchestrator:
             logger.debug("Fetching custom bot instructions...")
             instructions_context = await self._get_instructions_context(project_id, channel=channel)
             
+            # Extract shop type and specialized industry guidelines
+            shop_type = (project.settings or {}).get("shop_type", "general") if project else "general"
+            shop_guidelines = self._get_shop_type_guidelines(shop_type)
+            
             # Load product catalog for this project
             logger.debug("Loading product catalog for context...")
             product_catalog = await self._get_product_catalog(project_id)
@@ -318,7 +322,7 @@ class AIOrchestrator:
             catalog_instruction += "\n\n⚠️ INVENTORY: The above list is for your reference only. When a customer asks for the catalog or product list, you MUST call `check_inventory` with query='all' to get the latest real-time data. DO NOT just list products from memory."
             
             # Combine everything into the final system prompt
-            system_prompt_with_products = f"{system_prompt}\n{instructions_context}\n{product_catalog_text}{knowledge_context}{catalog_instruction}"
+            system_prompt_with_products = f"{system_prompt}\n{shop_guidelines}\n{instructions_context}\n{product_catalog_text}{knowledge_context}{catalog_instruction}"
             
             # Detect customer's language
             def detect_language(text: str) -> str:
@@ -1364,6 +1368,50 @@ DO NOT repeat the previous text. Just give the answer.
             })
         return history
     
+    def _get_shop_type_guidelines(self, shop_type: str) -> str:
+        """Return domain-specific sales guidelines and vocabulary for the project's shop type."""
+        st = (shop_type or "general").lower()
+        if st in ["fashion", "clothes", "clothing", "apparel"]:
+            return """
+👗 **INDUSTRY RULES: FASHION & CLOTHING STORE (متجر ملابس وأزياء)**
+- Always ask the customer politely for their preferred SIZE (e.g. S, M, L, XL, XXL or numerical) and COLOR variant before finalizing an order.
+- If the customer is unsure about sizing, ask for their height and weight (الطول والوزن) to recommend the best fit according to the store's size chart.
+- Highlight fabric quality, comfort, and care (e.g. 100% premium cotton, pre-shrunk, durable stitching).
+- Suggest matching items naturally (e.g. matching trousers, shoes, or accessories).
+"""
+        elif st in ["restaurant", "food", "cafe", "coffee"]:
+            return """
+🍔 **INDUSTRY RULES: RESTAURANT & FOOD SERVICE (مطعم وكافيه وجبات)**
+- Refer to catalog products as "Meals, Dishes, Sandwiches, Drinks, or Desserts" (وجبات، أطباق، سندوتشات، مشروبات، حلويات).
+- Proactively offer meal upgrades and add-ons politely:
+  - "تحب نخلي الوجبة كومبو مع بطاطس ومشروب غازي؟"
+  - "تحب تضيف صوصات إضافية أو مقبلات؟"
+- Ask for special preparation instructions (e.g. spicy vs regular, no onions, meat temperature).
+- For delivery orders, collect complete address details including street name, building number, floor, apartment, and nearby landmark (علامة مميزة) to ensure fast delivery.
+"""
+        elif st in ["pharmacy", "cosmetics", "skincare", "beauty"]:
+            return """
+💊 **INDUSTRY RULES: PHARMACY & COSMETICS (صيدلية ومستحضرات تجميل وعناية)**
+- Adopt a helpful, consultative demeanor.
+- For skincare and haircare inquiries, ask the customer for their skin type (دهنية، جافة، مختلطة، حساسة) or hair condition before recommending a product.
+- Explain the recommended routine clearly (e.g. Cleanser -> Serum -> Moisturizer -> Sunscreen / غسول -> سيروم -> ترطيب -> واقي شمس).
+- 🚨 **MEDICAL SAFETY RULE:** For therapeutic pharmaceutical medicines and prescription drugs, advise the customer to follow their physician's or clinical pharmacist's specific dosage. Assure them that all health and beauty products are 100% original and certified.
+"""
+        elif st in ["electronics", "tech", "mobile", "gadgets"]:
+            return """
+📱 **INDUSTRY RULES: ELECTRONICS & TECH (متجر إلكترونيات وأجهزة ذكية)**
+- Clearly explain key technical specifications simply without overwhelming the customer.
+- Confirm warranty status (e.g. 1-year certified official warranty / ضمان محلي معتمد).
+- Verify compatibility (e.g. with iOS, Android, Type-C, Windows).
+- Proactively recommend essential accessories (fast charger, protective case, tempered glass screen protector).
+"""
+        else:
+            return """
+🛍️ **INDUSTRY RULES: RETAIL & E-COMMERCE (متجر تجزئة عام)**
+- Present products with their key benefits, current discounts, and bundles.
+- Guide the customer smoothly through questions, check stock with `check_inventory`, and collect order details.
+"""
+
     async def _get_instructions_context(self, project_id: UUID, channel: Optional[str] = None) -> str:
         """Fetch active custom bot instructions for this project, sorted by priority."""
         context = self._resolve_context(project_id)
