@@ -51,7 +51,8 @@ class AIOrchestrator:
                 raise ValueError(f"Cross-tenant access violation: context {self.context.project_id} vs {project_id}")
             return self.context
         if project_id:
-            return TenantContext(project_id=project_id, roles=["system"])
+            self.context = TenantContext(project_id=project_id, roles=["system"])
+            return self.context
         raise ValueError("TenantContext or project_id required for orchestrator operation")
     
     def _build_client_config(self, integration: Integration) -> Dict[str, Any]:
@@ -186,8 +187,8 @@ class AIOrchestrator:
             
             # Send immediate visual feedback for Meta platforms
             if channel in ["instagram", "facebook"]:
-                await self._send_action(customer_id, "mark_seen", channel)
-                await self._send_action(customer_id, "typing_on", channel)
+                await self._send_action(customer_id, "mark_seen", channel, project_id=project_id)
+                await self._send_action(customer_id, "typing_on", channel, project_id=project_id)
 
             # Check for /reset command
             if message_content.strip().lower() == "/reset":
@@ -214,7 +215,7 @@ class AIOrchestrator:
             else:
                 # Get conversation history for context
                 logger.debug("Fetching conversation history...")
-                conversation_history = await self._get_conversation_history(customer_id, limit=5)
+                conversation_history = await self._get_conversation_history(customer_id, limit=5, project_id=project_id)
             
             logger.debug(f"Using {len(conversation_history)} previous messages for context")
             
@@ -362,7 +363,8 @@ Respond to the customer now IN {customer_language}. If you need to check stock o
 """
             
             # Generate AI response using Gemini with function calling
-            use_openrouter = (settings.AI_PROVIDER == "openrouter") or (self.openrouter.is_configured and not getattr(self.gemini, "api_key", None))
+            has_gemini = bool(getattr(self.gemini, "api_keys", None) or getattr(self.gemini, "api_key", None))
+            use_openrouter = (settings.AI_PROVIDER == "openrouter") or (self.openrouter.is_configured and not has_gemini)
             ai_client = self.openrouter if use_openrouter else self.gemini
             logger.info("Generating AI response (Sales Agent Persona)", provider="openrouter" if use_openrouter else "gemini")
             
@@ -378,17 +380,28 @@ Respond to the customer now IN {customer_language}. If you need to check stock o
                 media_type=media_type
             )
             
-            # Fallback to OpenRouter if Gemini failed with error and OpenRouter is configured
-            if (response_data.get("error") or not response_data.get("text")) and self.openrouter.is_configured and ai_client is not self.openrouter:
-                logger.warning("Gemini failed, automatically falling back to OpenRouter", error=response_data.get("error"))
-                ai_client = self.openrouter
-                response_data = await self.openrouter.generate_response(
-                    prompt=user_prompt,
-                    context={"persona": "custom", "persona_detail": system_prompt_with_products},
-                    use_functions=False,
-                    media_url=media_url,
-                    media_type=media_type
-                )
+            # Fallback to secondary provider if primary failed
+            if (response_data.get("error") or not response_data.get("text")):
+                if ai_client is not self.openrouter and self.openrouter.is_configured:
+                    logger.warning("Gemini failed, falling back to OpenRouter", error=response_data.get("error"))
+                    ai_client = self.openrouter
+                    response_data = await self.openrouter.generate_response(
+                        prompt=user_prompt,
+                        context={"persona": "custom", "persona_detail": system_prompt_with_products},
+                        use_functions=False,
+                        media_url=media_url,
+                        media_type=media_type
+                    )
+                elif ai_client is self.openrouter and has_gemini:
+                    logger.warning("OpenRouter failed, falling back to Gemini", error=response_data.get("error"))
+                    ai_client = self.gemini
+                    response_data = await self.gemini.generate_response(
+                        prompt=user_prompt,
+                        context={"persona": "custom", "persona_detail": system_prompt_with_products},
+                        use_functions=False,
+                        media_url=media_url,
+                        media_type=media_type
+                    )
             
             ai_text = response_data.get("text", "")
             function_calls = response_data.get("function_calls", [])
@@ -452,7 +465,7 @@ DO NOT repeat the previous text. Just give the answer.
                 
                 # Stop typing indicator before sending
                 if channel in ["instagram", "facebook"]:
-                    await self._send_action(customer_id, "typing_off", channel)
+                    await self._send_action(customer_id, "typing_off", channel, project_id=project_id)
                 
                 # Add Quick Replies for Meta platforms to improve Reviewer experience
                 quick_replies = None
@@ -1091,7 +1104,7 @@ DO NOT repeat the previous text. Just give the answer.
             if not customer:
                 return {"status": "error", "message": "Customer not found"}
                 
-            platform_id = customer.platform_accounts.get(channel) or customer.customer_id
+            platform_id = (customer.platform_accounts or {}).get(channel) or customer.customer_id
             return await client.send_action(platform_id, action)
         except Exception as e:
             logger.error(f"Failed to send action {action}", error=str(e))

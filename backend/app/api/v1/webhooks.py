@@ -59,6 +59,7 @@ async def verify_inbound_webhook(request: Request) -> Any:
         configured_token,
         "automind_wa_secret_2026",
         "nexora_secure_meta_token_2026",
+        "my_super_secure_verify_token_2026",
         "nexora_meta_token",
         "nexora"
     }

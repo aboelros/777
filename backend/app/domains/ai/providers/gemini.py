@@ -187,11 +187,15 @@ class GeminiClient:
     
     def __init__(self):
         """Initialize Gemini client with multiple API keys."""
-        self.model_name = settings.GEMINI_MODEL
+        configured_model = settings.GEMINI_MODEL or "gemini-1.5-flash"
+        if configured_model in ["gemini-3.6-flash", "gemini-1.5-pro-latest", "gemini-pro"]:
+            configured_model = "gemini-1.5-flash"
+        self.model_name = configured_model
         
         # Load multiple API keys
         self.api_keys = self._load_api_keys()
         self.current_key_index = 0
+        self.api_key = self.api_keys[0] if self.api_keys else None
         
         if self.api_keys:
             # Configure with first key initially
@@ -1057,9 +1061,23 @@ class GeminiClient:
                     elif "model output must contain either output text or tool calls" in error_msg:
                         logger.warning("Gemini returned empty response, retrying...")
                         continue
+
+                    elif "not found" in error_msg or "404" in error_msg:
+                        if model_name != "gemini-1.5-flash":
+                            logger.warning(f"Model {model_name} not found, retrying with gemini-1.5-flash")
+                            model_name = "gemini-1.5-flash"
+                            try:
+                                if use_functions and tools:
+                                    model = genai.GenerativeModel(model_name=model_name, generation_config=generation_config, tools=tools)
+                                else:
+                                    model = genai.GenerativeModel(model_name=model_name, generation_config=generation_config)
+                            except Exception:
+                                model = genai.GenerativeModel(model_name=model_name, generation_config=generation_config)
+                            continue
+                        raise
                         
                     else:
-                        # Not a rate limit error, raise immediately
+                        # Not a recoverable error, raise immediately
                         raise
 
             

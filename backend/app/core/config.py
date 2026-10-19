@@ -266,7 +266,7 @@ class Settings(BaseSettings):
     # Additional API Keys 1-100: dynamically collected at startup
     # Set GEMINI_API_KEY_1 through GEMINI_API_KEY_100 in environment variables.
     # Use get_all_gemini_keys() property to access all keys.
-    GEMINI_MODEL: str = "gemini-3.6-flash"
+    GEMINI_MODEL: str = "gemini-1.5-flash"
     GEMINI_MAX_TOKENS: int = 8192
     GEMINI_TEMPERATURE: float = 0.7
     AI_PROVIDER: str = "gemini"
@@ -276,7 +276,7 @@ class Settings(BaseSettings):
     
     # OpenRouter AI
     OPENROUTER_API_KEY: Optional[str] = None
-    OPENROUTER_MODEL: str = "google/gemini-2.0-flash-001"
+    OPENROUTER_MODEL: str = "minimax/minimax-m3.1-flash:free"
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
     
     # Google Cloud / Vertex AI (Optional - if not using direct API key)

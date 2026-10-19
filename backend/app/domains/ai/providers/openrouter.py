@@ -78,30 +78,35 @@ class OpenRouterClient:
             "temperature": settings.GEMINI_TEMPERATURE or 0.7,
             "max_tokens": 1024
         }
-
+        candidate_models = list(dict.fromkeys([self.model, "minimax/minimax-m3.1-flash:free"]))
         url = f"{self.base_url}/chat/completions"
+        last_error = ""
 
         try:
             timeout = aiohttp.ClientTimeout(total=45)
             async with aiohttp.ClientSession(timeout=timeout) as session:
-                async with session.post(url, json=payload, headers=headers) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        choices = data.get("choices", [])
-                        if choices:
-                            message_obj = choices[0].get("message", {})
-                            content = message_obj.get("content", "")
-                            return {
-                                "text": content.strip() if content else "",
-                                "function_calls": [],
-                                "model": self.model,
-                                "provider": "openrouter"
-                            }
-                        return {"text": "", "error": "No completion choice returned"}
+                for cand_model in candidate_models:
+                    payload["model"] = cand_model
+                    async with session.post(url, json=payload, headers=headers) as response:
+                        if response.status == 200:
+                            data = await response.json()
+                            choices = data.get("choices", [])
+                            if choices:
+                                message_obj = choices[0].get("message", {})
+                                content = message_obj.get("content", "")
+                                return {
+                                    "text": content.strip() if content else "",
+                                    "function_calls": [],
+                                    "model": cand_model,
+                                    "provider": "openrouter"
+                                }
+                            return {"text": "", "error": "No completion choice returned"}
 
-                    error_body = await response.text()
-                    logger.error("OpenRouter API error", status=response.status, body=error_body)
-                    return {"text": "", "error": f"OpenRouter HTTP {response.status}: {error_body}"}
+                        last_error = await response.text()
+                        logger.warning("OpenRouter model attempt failed", model=cand_model, status=response.status, error=last_error)
+
+                logger.error("All OpenRouter models failed", error=last_error)
+                return {"text": "", "error": f"OpenRouter error: {last_error}"}
         except Exception as e:
             logger.error("OpenRouter request failed", error=str(e))
             return {"text": "", "error": str(e)}

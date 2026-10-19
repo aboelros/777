@@ -47,18 +47,15 @@ class InstagramClient:
             messaging_type: RESPONSE, MESSAGE_TAG, or HUMAN_AGENT
             tag: Required if messaging_type is MESSAGE_TAG
         """
-        url = f"{self.api_base}/{self.page_id}/messages"
-        
         message_data = {"text": message}
-        
         if quick_replies:
             message_data["quick_replies"] = [
                 {
                     "content_type": "text",
-                    "title": reply["title"],
-                    "payload": reply["payload"]
+                    "title": str(reply.get("title", ""))[:20],
+                    "payload": str(reply.get("payload", ""))
                 }
-                for reply in quick_replies
+                for reply in quick_replies[:13]
             ]
             
         payload = {
@@ -66,7 +63,6 @@ class InstagramClient:
             "message": message_data,
             "messaging_type": messaging_type
         }
-        
         if tag:
             payload["tag"] = tag
             
@@ -75,36 +71,61 @@ class InstagramClient:
             "Content-Type": "application/json"
         }
         
+        candidate_urls = [f"{self.api_base}/{self.page_id}/messages", f"{self.api_base}/me/messages"]
+        last_error = ""
+
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, json=payload, headers=headers) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        logger.info(
-                            "Instagram message sent",
-                            customer_id=str(customer_id),
-                            message_id=data.get("message_id"),
-                            type=messaging_type
-                        )
-                        return {
-                            "status": "success",
-                            "id": data.get("message_id"),
-                            "platform": "instagram"
-                        }
-                    else:
-                        error_data = await response.text()
-                        logger.error(
-                            "Instagram send failed",
+            timeout = aiohttp.ClientTimeout(total=15)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                for target_url in candidate_urls:
+                    async with session.post(target_url, json=payload, headers=headers) as response:
+                        if response.status == 200:
+                            data = await response.json()
+                            logger.info(
+                                "Instagram message sent",
+                                customer_id=str(customer_id),
+                                message_id=data.get("message_id"),
+                                type=messaging_type
+                            )
+                            return {
+                                "status": "success",
+                                "id": data.get("message_id"),
+                                "platform": "instagram"
+                            }
+                        last_error = await response.text()
+                        logger.warning(
+                            "Instagram send attempt failed",
+                            url=target_url,
                             status=response.status,
-                            error=error_data
+                            error=last_error
                         )
-                        return {
-                            "status": "error",
-                            "message": f"API error: {response.status}",
-                            "details": error_data
-                        }
+
+                # If failed and quick_replies were included, retry once with clean text
+                if quick_replies:
+                    clean_payload = {
+                        "recipient": {"id": str(customer_id)},
+                        "message": {"text": message},
+                        "messaging_type": messaging_type
+                    }
+                    for target_url in candidate_urls:
+                        async with session.post(target_url, json=clean_payload, headers=headers) as retry_resp:
+                            if retry_resp.status == 200:
+                                retry_data = await retry_resp.json()
+                                logger.info("Instagram fallback text-only message sent successfully")
+                                return {
+                                    "status": "success",
+                                    "id": retry_data.get("message_id"),
+                                    "platform": "instagram"
+                                }
+
+                logger.error("Instagram all send attempts failed", error=last_error)
+                return {
+                    "status": "error",
+                    "message": f"API error: {last_error}",
+                    "details": last_error
+                }
         except Exception as e:
-            logger.error("Instagram exception", error=str(e))
+            logger.error("Instagram exception during send", error=str(e))
             return {"status": "error", "message": str(e)}
 
     async def send_action(
@@ -130,7 +151,8 @@ class InstagramClient:
         }
         
         try:
-            async with aiohttp.ClientSession() as session:
+            timeout = aiohttp.ClientTimeout(total=10)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
                 async with session.post(url, json=payload, headers=headers) as response:
                     if response.status == 200:
                         return {"status": "success"}
