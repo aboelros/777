@@ -5,14 +5,20 @@
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
-// Helper function to get auth token
+/** Retrieves the stored JWT access token from localStorage. */
 const getAuthToken = () => {
   const token = localStorage.getItem('access_token');
-  console.log('[DEBUG] getAuthToken:', token ? 'Token exists' : 'No token');
   return token;
 };
 
-// Helper function for API requests
+/**
+ * Core fetch wrapper for all API requests.
+ * Handles 204 No Content gracefully and maps 404 on DELETE to success.
+ *
+ * @param {string} endpoint - API path, e.g. "/api/v1/integrations/..."
+ * @param {RequestInit} options - fetch options (method, body, etc.)
+ * @returns {Promise<any>} Parsed JSON body, or null for empty responses (204/205)
+ */
 async function apiRequest(endpoint, options = {}) {
   const token = getAuthToken();
 
@@ -27,8 +33,18 @@ async function apiRequest(endpoint, options = {}) {
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
+  // 204 / 205 No Content — success with empty body
+  if (response.status === 204 || response.status === 205) {
+    return null;
+  }
+
+  // 404 on DELETE is idempotent success (already deleted)
+  if (response.status === 404 && config.method === 'DELETE') {
+    return null;
+  }
+
   if (!response.ok) {
-    // Handle 401 Unauthorized - redirect to login
+    // 401 Unauthorized — clear session and redirect to login
     if (response.status === 401) {
       if (!window.location.pathname.includes('/login')) {
         localStorage.removeItem('access_token');
@@ -38,11 +54,12 @@ async function apiRequest(endpoint, options = {}) {
       throw new Error('Authentication required. Please log in again.');
     }
 
-    const error = await response.json().catch(() => ({ detail: 'Request failed' }));
-    throw new Error(error.detail || `HTTP ${response.status}`);
+    const errorBody = await response.json().catch(() => ({ detail: 'Request failed' }));
+    throw new Error(errorBody.detail || `HTTP ${response.status}`);
   }
 
-  return response.json();
+  // Parse JSON body for all other success responses
+  return response.json().catch(() => null);
 }
 
 export { apiRequest, API_BASE_URL, getAuthToken };

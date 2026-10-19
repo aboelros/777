@@ -313,7 +313,7 @@ export default function Integrations() {
       queryClient.invalidateQueries(['integrations', currentProject?.id]);
     },
     onError: (error) => {
-      toast.error(error.response?.data?.detail || 'Delete failed');
+      toast.error(error.message || 'Delete failed');
     },
   });
 

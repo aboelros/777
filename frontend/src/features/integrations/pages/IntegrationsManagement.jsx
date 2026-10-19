@@ -79,7 +79,7 @@ export default function IntegrationsManagement() {
       queryClient.invalidateQueries(['integrations']);
     },
     onError: (error) => {
-      toast.error(error.response?.data?.detail || 'Failed to delete integration');
+      toast.error(error.message || 'Failed to delete integration');
     },
   });
 
