@@ -63,8 +63,8 @@ jobs:
         REQUIRE_TEST_DB_EXPLICIT_AUTHORIZATION: "true"
         DATABASE_URL: postgresql+asyncpg://postgres:testpassword@localhost:5432/automind_test
         SECRET_KEY: "ci-test-secret-key-that-is-at-least-32-chars-long"
-        ENCRYPTION_KEY: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
       run: |
+        export ENCRYPTION_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
         python -m alembic upgrade head
 
     - name: Run backend tests
@@ -76,7 +76,7 @@ jobs:
         REQUIRE_TEST_DB_EXPLICIT_AUTHORIZATION: "true"
         TESTING: "true"
         SECRET_KEY: "ci-test-secret-key-that-is-at-least-32-chars-long"
-        ENCRYPTION_KEY: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
         PYTHONPATH: "."
       run: |
+        export ENCRYPTION_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
         python -m pytest -q

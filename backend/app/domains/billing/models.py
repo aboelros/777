@@ -88,7 +88,6 @@ class Subscription(Base):
     
     # Indexes
     __table_args__ = (
-        Index("idx_subscription_user", "user_id"),
         Index("idx_subscription_tier", "tier"),
         Index("idx_subscription_status", "status"),
         Index("idx_subscription_expires", "expires_at"),
