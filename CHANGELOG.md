@@ -5,6 +5,41 @@ All notable changes to AI Sales Commander will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2026-10-21
+
+### Added & Architecture
+- 👑 **Enterprise Admin Command Center**: Comprehensive administration suite in `admin-panel` featuring executive telemetry, user management, store fleet oversight, billing overrides, AI fleet control, webhook inspector, system diagnostics, and platform toggles.
+- ⚙️ **Modular Backend Admin Services**: Introduced `AdminService` and `AdminTelemetryService` in `backend/app/services/` cleanly decoupled from endpoint routers with strict Pydantic V2 data validation schemas (`admin_schemas.py`).
+- 📁 **Feature-Driven Frontend Architecture**: Divided `admin-panel` strictly by feature (`/features/auth`, `/features/dashboard`, `/features/users`, `/features/projects`, `/features/billing`, `/features/ai-fleet`, `/features/webhooks`, `/features/system`, `/features/settings`) adhering to strict $\le 250$ LOC per file limits.
+- ⚡ **Lightweight Global State & Path Aliasing**: Powered by Zustand store (`useAdminStore`) and configured `@/` path aliasing across Vite and IDE configs.
+- 🛡️ **Role-Based Cross-Navigation**: Added conditional "Admin Commander" access in the main `frontend` sidebar dynamically surfaced for authenticated root administrators.
+
+## [2.2.0] - 2026-10-20
+
+### Added & Rebranded
+- 🌐 **Automio Brand Ecosystem & Domain Routing**: Rebranded identity to **Automio** across all platform touchpoints. Connected production apex marketing site `https://automio.online` and dedicated web console `https://app.automio.online` with active Vercel DNS and SSL.
+- 🛡️ **Authentication Resilience**: Implemented defensive runtime API endpoint resolution preventing masked secret failures (`[SENSITIVE]`), null-safe store state guards, and accessible form standards.
+- 🔗 **Cross-Platform Navigation**: Seamless bi-directional launching between marketing landing views (`automio-website`) and secure console workflows (`frontend`).
+
+## [2.1.0] - 2026-10-20
+
+### Enhanced
+- 🌊 **Liquid Glass Modern Architecture**: Upgraded visual identity from flat minimalism to high-depth liquid glassmorphism.
+- 🔮 **Specular Light Bloom & Ambient Auroras**: Multi-layered chromatic meshes (`sky-500`, `indigo-600`, `emerald-500`) with ultra-fine directional top-edge reflection lines (`border-t-white/28`).
+- 💫 **Refractive Component Primitives**: Frosted `GlassCard`, `btn-starlight` fluid gradient buttons, translucent glowing badges, and `input-fluid` frosted input beds.
+- ⚡ **Vibrant Data Visualizations**: Multi-stop luminous gradient curves for AreaCharts, glowing cylindrical bar charts, and technical intelligence scanning gauges.
+
+## [2.0.0] - 2026-10-20
+
+### Added
+- 💎 **Automio Design System 2.0**: Unified design token architecture (`tokens.css`, `themes.css`, `components.css`)
+- 🎨 **Canonical Color System**: Restrained enterprise palette with semantic brand, surface, text, and status tokens
+- 📐 **Modular Architecture**: 100% component decoupling with strict $\le 250$ lines of code per file across all frontend pages
+- 🚀 **Standardized UI Primitives**: Enterprise-grade `Button`, `Input`, `Badge`, `Card`, `GlassCard`, `EmptyState`, `Alert`, `LoadingSpinner`, and `SkeletonLoader`
+- 🛡️ **WCAG 2.2 AA Contrast Compliance**: Enhanced text contrast ratios, visible keyboard focus rings, and explicit form labeling
+- 📱 **Adaptive Multi-Platform Layouts**: Fully responsive navigation and data views from 360px mobile to 1440px+ ultra-wide displays
+- 🌐 **Robust i18n Fallback**: Safe translation resolution preventing raw dotted keys across multi-language views
+
 ## [1.0.0] - 2025-01-12
 
 ### Added

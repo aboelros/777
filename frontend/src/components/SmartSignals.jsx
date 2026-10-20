@@ -131,8 +131,8 @@ export default function SmartSignals() {
                     {signals.map((signal) => (
                         <motion.div
                             key={signal.id}
-                            initial={{ opacity: 0, x: -20, filter: 'blur(10px)' }}
-                            animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, scale: 0.95 }}
                             transition={{ type: "spring", stiffness: 300, damping: 25 }}
                             className="group relative"

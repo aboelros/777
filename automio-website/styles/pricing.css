@@ -1,0 +1,92 @@
+/* --- Pricing Section --- */
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 2.2rem;
+    margin-top: 3.5rem;
+}
+
+.pricing-card {
+    background: var(--bg-surface);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    padding: 3.2rem 2.4rem;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: var(--shadow-liquid);
+    transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.pricing-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-liquid-hover);
+}
+
+.pricing-card.popular {
+    border-color: rgba(56, 189, 248, 0.45);
+    background: linear-gradient(180deg, rgba(56, 189, 248, 0.08) 0%, rgba(10, 18, 38, 0.85) 100%);
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 35px rgba(56, 189, 248, 0.25), inset 0 1px 0 0 rgba(255, 255, 255, 0.35);
+}
+
+.pricing-card.popular::before {
+    content: 'Most Popular';
+    position: absolute;
+    top: -13px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #4f46e5 100%);
+    color: #ffffff;
+    padding: 4px 18px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+}
+
+.pricing-tier {
+    font-size: 1.6rem;
+    margin-bottom: 0.6rem;
+    font-weight: 700;
+}
+
+.pricing-price {
+    font-size: 3.4rem;
+    font-weight: 800;
+    font-family: var(--font-heading);
+    margin-bottom: 1.1rem;
+    letter-spacing: -0.04em;
+    color: #ffffff;
+}
+
+.pricing-price span {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.pricing-desc {
+    color: var(--text-secondary);
+    margin-bottom: 2.2rem;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.pricing-features {
+    flex-grow: 1;
+    margin-bottom: 2.4rem;
+}
+
+.pricing-features li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1.1rem;
+    color: var(--text-secondary);
+    font-size: 0.98rem;
+}

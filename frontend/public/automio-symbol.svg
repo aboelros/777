@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none">
+  <defs>
+    <!-- Background Radial Gradient -->
+    <radialGradient id="am-sym-bg" cx="50%" cy="25%" r="80%" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0F1F38"/>
+      <stop offset="55%" stop-color="#080E1D"/>
+      <stop offset="100%" stop-color="#03060E"/>
+    </radialGradient>
+
+    <!-- Rim Bevel Border -->
+    <linearGradient id="am-sym-border" x1="2" y1="2" x2="38" y2="38" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.8"/>
+      <stop offset="35%" stop-color="#2563EB" stop-opacity="0.4"/>
+      <stop offset="70%" stop-color="#1E293B" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#0284C7" stop-opacity="0.6"/>
+    </linearGradient>
+
+    <!-- Apex Delta Wing ("A") -->
+    <linearGradient id="am-sym-apex" x1="12" y1="8" x2="28" y2="18" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="45%" stop-color="#0EA5E9"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+
+    <!-- Left Wing ("M" Left) -->
+    <linearGradient id="am-sym-left" x1="8" y1="19" x2="19" y2="31" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0284C7"/>
+      <stop offset="60%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#1D4ED8"/>
+    </linearGradient>
+
+    <!-- Right Wing ("M" Right) -->
+    <linearGradient id="am-sym-right" x1="21" y1="19" x2="32" y2="31" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="50%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#4F46E5"/>
+    </linearGradient>
+
+    <!-- Cognitive Core Prism -->
+    <linearGradient id="am-sym-core" x1="20" y1="16.5" x2="20" y2="25.5" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="40%" stop-color="#E0F2FE"/>
+      <stop offset="100%" stop-color="#38BDF8"/>
+    </linearGradient>
+
+    <filter id="am-sym-blur" x="12" y="14" width="16" height="16" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="1.5"/>
+    </filter>
+  </defs>
+
+  <!-- Obsidian Squircle Container -->
+  <rect x="2" y="2" width="36" height="36" rx="10" fill="url(#am-sym-bg)"/>
+  <rect x="2" y="2" width="36" height="36" rx="10" stroke="url(#am-sym-border)" stroke-width="1.2"/>
+
+  <!-- Top Specular Rim Reflection -->
+  <path d="M6 10C6 6.68629 8.68629 4 12 4H28C31.3137 4 34 6.68629 34 10V14C34 14 26 12 20 12C14 12 6 14 6 14V10Z" fill="white" fill-opacity="0.04"/>
+
+  <!-- Ambient Cognitive Core Glow -->
+  <circle cx="20" cy="21" r="4.5" fill="#38BDF8" fill-opacity="0.4" filter="url(#am-sym-blur)"/>
+
+  <!-- Apex Delta Wing ("A" Crown) -->
+  <path d="M20 7.5L27.5 17H23L20 13.2L17 17H12.5L20 7.5Z" fill="url(#am-sym-apex)"/>
+
+  <!-- Left Neuro-Wing ("M" Left) -->
+  <path d="M12.5 18.5L17 18.5L18.5 23.5H16L12.5 31H8L12.5 18.5Z" fill="url(#am-sym-left)"/>
+
+  <!-- Right Neuro-Wing ("M" Right) -->
+  <path d="M27.5 18.5L23 18.5L21.5 23.5H24L27.5 31H32L27.5 18.5Z" fill="url(#am-sym-right)"/>
+
+  <!-- Neural Bus Crossbar -->
+  <path d="M14.5 27H25.5L24.5 28.5H15.5L14.5 27Z" fill="#38BDF8" fill-opacity="0.35"/>
+
+  <!-- Cognitive Core (Diamond Prism) -->
+  <path d="M20 16.5L22.8 21L20 25.5L17.2 21Z" fill="url(#am-sym-core)"/>
+</svg>

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <defs>
+    <radialGradient id="am-fav-bg" cx="50%" cy="25%" r="80%" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0F1F38"/>
+      <stop offset="60%" stop-color="#080E1D"/>
+      <stop offset="100%" stop-color="#03060E"/>
+    </radialGradient>
+    <linearGradient id="am-fav-border" x1="1" y1="1" x2="31" y2="31" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#2563EB" stop-opacity="0.5"/>
+    </linearGradient>
+    <linearGradient id="am-fav-apex" x1="10" y1="6" x2="22" y2="15" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+    <linearGradient id="am-fav-left" x1="6" y1="15" x2="16" y2="25" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0284C7"/>
+      <stop offset="100%" stop-color="#1D4ED8"/>
+    </linearGradient>
+    <linearGradient id="am-fav-right" x1="16" y1="15" x2="26" y2="25" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#4F46E5"/>
+    </linearGradient>
+    <linearGradient id="am-fav-core" x1="16" y1="13" x2="16" y2="21" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#38BDF8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Container -->
+  <rect x="1" y="1" width="30" height="30" rx="8" fill="url(#am-fav-bg)"/>
+  <rect x="1" y="1" width="30" height="30" rx="8" stroke="url(#am-fav-border)" stroke-width="1.2"/>
+
+  <!-- Mark Geometry -->
+  <path d="M16 6L22 13.5H18.5L16 10.5L13.5 13.5H10L16 6Z" fill="url(#am-fav-apex)"/>
+  <path d="M10 14.5L13.5 14.5L15 19H13L10 25H6.5L10 14.5Z" fill="url(#am-fav-left)"/>
+  <path d="M22 14.5L18.5 14.5L17 19H19L22 25H25.5L22 14.5Z" fill="url(#am-fav-right)"/>
+  <path d="M16 13L18.2 16.5L16 20L13.8 16.5Z" fill="url(#am-fav-core)"/>
+</svg>

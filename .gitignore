@@ -102,3 +102,14 @@ wa_diagnosis.md
 agentic_code_reader/
 ai_analysis_*.md
 startup-support/
+
+# Media recordings and local test renders
+*.mp4
+*.png
+*.mp3
+*.vtt
+recordings/
+meta_review_videos/
+after_effects/
+admin-panel/dist/
+

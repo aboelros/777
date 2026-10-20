@@ -85,13 +85,21 @@ function MainLayout() {
   }, [loadProjects]);
 
   return (
-    <div className="flex h-screen bg-dark-950 overflow-hidden selection:bg-accent-500/30 selection:text-white">
+    <div className="flex h-screen bg-[#030712] overflow-hidden selection:bg-sky-500/30 selection:text-white relative">
+      {/* Liquid Ambient Auroras & Chromatic Light Leaks */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute -top-[12%] left-[12%] w-[700px] h-[700px] bg-gradient-to-br from-sky-500/20 via-blue-600/12 to-transparent rounded-full blur-[140px] animate-pulse" style={{ animationDuration: '9s' }} />
+        <div className="absolute top-[30%] -right-[8%] w-[650px] h-[650px] bg-gradient-to-bl from-indigo-500/18 via-purple-600/10 to-transparent rounded-full blur-[150px] animate-pulse" style={{ animationDuration: '11s' }} />
+        <div className="absolute -bottom-[15%] left-[25%] w-[800px] h-[800px] bg-gradient-to-tr from-cyan-500/14 via-emerald-600/8 to-transparent rounded-full blur-[160px]" />
+      </div>
+
       <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0 relative overflow-hidden bg-dark-900/40 backdrop-blur-xl border-l border-white/5">
+      <div className="flex-1 flex flex-col min-w-0 relative overflow-hidden bg-[#070b18]/65 backdrop-blur-2xl border-l border-white/10 z-10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)]">
         <Header />
         {testingMode && (
-          <div className="bg-yellow-500/10 border-b border-yellow-500/30 px-6 py-2 text-yellow-400 text-sm font-medium">
-            🧪 Testing Mode Active - Authentication Disabled
+          <div className="bg-amber-500/10 border-b border-amber-500/30 px-6 py-2 text-amber-300 text-xs font-semibold tracking-wide backdrop-blur-md flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+            🧪 Testing Mode Active — Authentication Bypass Active
           </div>
         )}
         <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar">

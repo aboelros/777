@@ -49,6 +49,12 @@ const translations = {
             email: "Email Address",
             password: "Password",
             login: "Sign In",
+            logout: "Sign Out",
+            roles: {
+                admin: "Administrator",
+                manager: "Manager",
+                agent: "Sales Agent"
+            },
             forgot_password: "Forgot Password?",
             no_account: "Don't have an account?",
             sign_up: "Sign Up"
@@ -86,6 +92,8 @@ const translations = {
         projects: {
             title: "Projects",
             description: "Manage your business units and configurations.",
+            select_project: "Select Project",
+            add: "Create Project",
             create_new: "Create Project",
             no_projects: "No projects found. Create one to get started.",
             active: "Active",
@@ -310,12 +318,19 @@ const translations = {
             }
         },
         settings: {
-            title: "Properties",
+            title: "Settings",
+            subtitle: "Manage your business configurations and workspace preferences",
             general: "General",
             account: "Account",
             notifications: "Notifications",
             theme: "Appearance",
-            language: "Language"
+            language: "Language",
+            themes: {
+                dark_modern: "Dark Modern",
+                dark_elegance: "Dark Elegance",
+                light_classic: "Light Classic",
+                light_vibrant: "Light Vibrant"
+            }
         },
         bot_training: {
             title: "Bot Training Center",
@@ -1580,15 +1595,54 @@ export const useTranslation = () => {
     const { language } = useThemeStore();
 
     const t = useCallback((key) => {
+        if (!key || typeof key !== 'string') return '';
         const keys = key.split('.');
-        let result = translations[language] || translations['en'];
 
-        for (const k of keys) {
-            result = result?.[k];
-            if (!result) break;
+        // 1. Try active language
+        let result = translations[language];
+        if (result) {
+            for (const k of keys) {
+                result = result?.[k];
+                if (!result) break;
+            }
         }
 
-        return result || key;
+        // 2. Fallback to English if active language missing key
+        if (!result && language !== 'en') {
+            let enResult = translations['en'];
+            for (const k of keys) {
+                enResult = enResult?.[k];
+                if (!enResult) break;
+            }
+            if (enResult) return enResult;
+        }
+
+        if (result) return result;
+
+        // 3. Known common fallbacks dictionary
+        const fallbackDictionary = {
+            'projects.select_project': 'Select Project',
+            'projects.add': 'Create Project',
+            'auth.roles.admin': 'Administrator',
+            'auth.roles.manager': 'Manager',
+            'auth.roles.agent': 'Sales Agent',
+            'auth.logout': 'Sign Out',
+            'settings.subtitle': 'Manage your workspace settings and preferences',
+            'settings.theme': 'Appearance',
+            'sidebar.intelligence': 'Intelligence Feed',
+            'inbox.chat.intelligence': 'AI Insights & Suggestions',
+        };
+        if (fallbackDictionary[key]) return fallbackDictionary[key];
+
+        // 4. Humanize last segment rather than leaking raw dot notation
+        const lastPart = keys[keys.length - 1];
+        if (lastPart) {
+            return lastPart
+                .replace(/_/g, ' ')
+                .replace(/\b\w/g, (c) => c.toUpperCase());
+        }
+
+        return key;
     }, [language]);
 
     return { t, language };

@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  GraduationCap, Plus, Search, AlertCircle, BookOpen,
+  GraduationCap, Plus, Search, BookOpen,
   Sparkles, User, Wrench, Zap
 } from 'lucide-react';
-import { useProjectStore } from '../../../store/projectStore';
-import { useTranslation } from '../../../lib/translations';
+import { useProjectStore } from '@/store/projectStore';
+import { useTranslation } from '@/lib/translations';
+import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
+import { NoProjectState } from '@/components/ui/EmptyState';
 
 import PersonaSettingsTab from '../components/PersonaSettingsTab';
 import InstructionsTab from '../components/InstructionsTab';
@@ -41,15 +44,7 @@ export default function BotTraining() {
   } = useBotTrainingData(currentProject, activeTab);
 
   if (!currentProject) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-2">No Project Selected</h2>
-          <p className="text-gray-400">Please select a project to train the AI bot</p>
-        </div>
-      </div>
-    );
+    return <NoProjectState subtitle={t('bot_training.subtitle') || 'Select a project to train AI persona, knowledge base, and automated actions'} />;
   }
 
   const filteredInstructions = instructions.filter(
@@ -70,45 +65,47 @@ export default function BotTraining() {
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3 text-white">
-            <GraduationCap className="w-8 h-8 text-accent-primary" />
+          <h1 className="text-3xl font-bold flex items-center gap-3 text-text-primary tracking-tight">
+            <span className="p-2.5 rounded-xl bg-brand-primary/10 border border-brand-primary/20 text-brand-primary">
+              <GraduationCap className="w-6 h-6" />
+            </span>
             {t('bot_training.title')}
           </h1>
-          <p className="text-gray-400 mt-1">{t('bot_training.subtitle')}</p>
+          <p className="text-sm text-text-secondary mt-1">{t('bot_training.subtitle')}</p>
         </div>
 
         <div className="flex items-center gap-2">
           {activeTab === 'instructions' && (
-            <button
+            <Button
               onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-accent-primary text-white rounded-xl hover:bg-accent-600 transition-all font-bold text-sm shadow-lg shadow-accent-primary/20"
+              variant="primary"
+              leftIcon={Plus}
             >
-              <Plus className="w-4 h-4" />
-              {t('bot_training.buttons.add_instruction')}
-            </button>
+              {t('bot_training.buttons.add_instruction') || 'Add Instruction'}
+            </Button>
           )}
           {activeTab === 'knowledge' && (
             <>
-              <button
+              <Button
                 onClick={() => setShowScrapeModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-bold text-sm hover:from-emerald-600 hover:to-teal-700 transition-all"
+                variant="secondary"
+                leftIcon={Zap}
               >
-                <Zap className="w-4 h-4" />
-                {t('bot_training.buttons.scrape_url')}
-              </button>
-              <button
+                {t('bot_training.buttons.scrape_url') || 'Scrape URL'}
+              </Button>
+              <Button
                 onClick={() => setShowAddModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-accent-primary text-white rounded-xl hover:bg-accent-600 transition-all font-bold text-sm shadow-lg shadow-accent-primary/20"
+                variant="primary"
+                leftIcon={Plus}
               >
-                <Plus className="w-4 h-4" />
-                {t('bot_training.buttons.add_knowledge')}
-              </button>
+                {t('bot_training.buttons.add_knowledge') || 'Add Knowledge'}
+              </Button>
             </>
           )}
         </div>
       </div>
 
-      <div className="flex items-center gap-2 border-b border-white/10 pb-2 overflow-x-auto">
+      <div className="flex items-center gap-2 border-b border-border pb-2 overflow-x-auto">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -116,14 +113,14 @@ export default function BotTraining() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all relative ${
-                isActive ? 'text-white bg-white/10' : 'text-gray-400 hover:text-white hover:bg-white/5'
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all relative ${
+                isActive ? 'text-text-primary bg-surface-subtle border border-border' : 'text-text-muted hover:text-text-primary hover:bg-surface-subtle/50'
               }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-accent-primary' : ''}`} />
+              <Icon className={`w-4 h-4 ${isActive ? 'text-brand-primary' : ''}`} />
               {tab.label}
               {isActive && (
-                <motion.div layoutId="trainingTabIndicator" className="absolute bottom-0 left-2 right-2 h-0.5 bg-accent-primary" />
+                <motion.div layoutId="trainingTabIndicator" className="absolute bottom-0 left-2 right-2 h-0.5 bg-brand-primary" />
               )}
             </button>
           );
@@ -131,14 +128,12 @@ export default function BotTraining() {
       </div>
 
       {(activeTab === 'instructions' || activeTab === 'knowledge') && (
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <input
-            type="text"
-            placeholder={t('bot_training.search_placeholder')}
+        <div className="glass-panel p-3 rounded-2xl border border-border">
+          <Input
+            icon={Search}
+            placeholder={t('bot_training.search_placeholder') || 'Filter entries...'}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-primary/50 text-white font-medium"
           />
         </div>
       )}
@@ -151,7 +146,7 @@ export default function BotTraining() {
           onAdd={() => setShowAddModal(true)}
           onEdit={(inst) => setEditingInstruction(inst)}
           onDelete={(id) => {
-            if (window.confirm('هل أنت متأكد من حذف هذه التعليمات؟')) {
+            if (window.confirm('Delete this instruction?')) {
               deleteInstructionMutation.mutate(id);
             }
           }}
@@ -168,7 +163,7 @@ export default function BotTraining() {
           onAdd={() => setShowAddModal(true)}
           onEdit={(item) => setEditingKnowledge(item)}
           onDelete={(id) => {
-            if (window.confirm('هل أنت متأكد من حذف هذا العنصر؟')) {
+            if (window.confirm('Delete this knowledge item?')) {
               deleteKnowledgeMutation.mutate(id);
             }
           }}

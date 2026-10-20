@@ -1,0 +1,54 @@
+/* ==========================================================================
+   AUTOMIND DESIGN SYSTEM TOKENS - LIQUID GLASS MODERN THEME
+   ========================================================================== */
+
+:root {
+  /* Brand Core Palette - Radiant Electric Liquid Sky */
+  --color-brand-primary: 14 165 233;   /* #0EA5E9 Vivid Sky */
+  --color-brand-hover: 2 132 199;     /* #0284C7 Deep Sky */
+  --color-brand-active: 37 99 235;    /* #2563EB Royal Cobalt */
+  --color-brand-accent: 56 189 248;   /* #38BDF8 Electric Cyan */
+  --color-brand-glow: 14 165 233;
+
+  /* Liquid Obsidian Canvas & Translucent Surfaces */
+  --color-bg-main: 3 7 18;             /* #030712 Deepest Midnight Obsidian */
+  --color-bg-secondary: 8 14 29;       /* #080E1D Translucent Frosted Canvas */
+  --color-bg-card: 12 19 38;          /* #0C1326 Liquid Glass Base */
+  --color-bg-subtle: 18 28 54;        /* #121C36 Elevated Component Bed */
+  --color-bg-hover: 28 42 78;         /* #1C2A4E Interactive Glass Hover */
+
+  /* Semantic Typography Hierarchy */
+  --color-text-primary: 255 255 255;  /* #FFFFFF Pure Luminescent White */
+  --color-text-secondary: 165 180 206;/* #A5B4CE Crystal Slate */
+  --color-text-muted: 110 130 160;    /* #6E82A0 Muted Ice */
+  --color-text-disabled: 75 85 105;   /* #4B5569 */
+  --color-text-inverse: 3 7 18;
+
+  /* Status Colors with Refractive Halos */
+  --color-status-success: 16 185 129; /* #10B981 Emerald */
+  --color-status-warning: 245 158 11; /* #F59E0B Amber */
+  --color-status-danger: 244 63 94;   /* #F43F5E Rose */
+  --color-status-info: 56 189 248;    /* #38BDF8 Electric Sky */
+
+  /* Liquid Glass Refraction Borders */
+  --color-border-subtle: 255 255 255; /* with opacity 0.10 */
+  --color-border-default: 255 255 255;/* with opacity 0.16 */
+  --color-border-strong: 56 189 248;  /* with opacity 0.45 */
+  --color-focus-ring: 56 189 248;
+
+  /* Backward Compatibility Aliases */
+  --bg-main: var(--color-bg-main);
+  --bg-secondary: var(--color-bg-secondary);
+  --bg-card: var(--color-bg-card);
+  --text-primary: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --text-tertiary: var(--color-text-muted);
+  --accent-primary: var(--color-brand-glow);
+  --accent-light: var(--color-brand-accent);
+  --accent-dark: var(--color-brand-hover);
+  --border-color: 56 189 248;
+  --border-opacity: 0.16;
+  --glass-bg: var(--color-bg-main);
+  --glass-opacity: 0.75;
+  --glass-blur: 24px;
+}

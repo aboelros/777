@@ -1,0 +1,154 @@
+/* ==========================================================================
+   AUTOMIND UI COMPONENT STYLES - LIQUID GLASS MODERN ARCHITECTURE
+   ========================================================================== */
+
+/* ---- Liquid Glass Surface Panel ---- */
+.glass-panel {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.02) 60%,
+    rgba(14, 165, 233, 0.03) 100%
+  ), rgba(10, 16, 32, 0.78);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.2),
+              0 12px 40px -4px rgba(0, 0, 0, 0.5),
+              0 0 24px -2px rgba(14, 165, 233, 0.1);
+  border-radius: 1.25rem;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ---- Liquid Glass Structured Card ---- */
+.glass-card {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.02) 40%,
+    rgba(14, 165, 233, 0.02) 100%
+  ), rgba(12, 19, 38, 0.75);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 1.25rem;
+  box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.18),
+              0 8px 32px 0 rgba(0, 0, 0, 0.45),
+              0 0 20px -2px rgba(14, 165, 233, 0.08);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s ease,
+              box-shadow 0.25s ease;
+}
+
+.glass-card:hover {
+  border-color: rgba(56, 189, 248, 0.45);
+  border-top-color: rgba(56, 189, 248, 0.7);
+  box-shadow: inset 0 1px 2px 0 rgba(255, 255, 255, 0.3),
+              0 16px 40px -4px rgba(0, 0, 0, 0.55),
+              0 0 32px rgba(56, 189, 248, 0.22);
+}
+
+/* ---- Liquid Starlight Button ---- */
+.btn-starlight {
+  background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 50%, #4f46e5 100%);
+  color: #FFFFFF;
+  position: relative;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4),
+              0 4px 14px rgba(14, 165, 233, 0.4),
+              0 0 20px rgba(56, 189, 248, 0.25);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.btn-starlight:hover:not(:disabled) {
+  background: linear-gradient(135deg, #38bdf8 0%, #1d4ed8 50%, #4338ca 100%);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.5),
+              0 6px 20px rgba(14, 165, 233, 0.55),
+              0 0 30px rgba(56, 189, 248, 0.4);
+  transform: translateY(-1.5px) scale(1.015);
+}
+
+.btn-starlight:active:not(:disabled) {
+  transform: translateY(0) scale(0.99);
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+}
+
+/* ---- Liquid Frosted Ghost Button ---- */
+.btn-ghost-glow {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(12px);
+  color: rgb(var(--color-text-secondary));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.75rem;
+  padding: 0.625rem 1.25rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-ghost-glow:hover:not(:disabled) {
+  color: #FFFFFF;
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.45);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
+}
+
+/* ---- Liquid Translucent Input Field ---- */
+.input-fluid {
+  background: rgba(10, 16, 34, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-top: 1px solid rgba(255, 255, 255, 0.22);
+  color: #FFFFFF;
+  border-radius: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
+}
+
+.input-fluid:focus {
+  border-color: rgb(var(--color-brand-accent));
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25),
+              0 0 20px rgba(56, 189, 248, 0.2);
+  outline: none;
+}
+
+.input-fluid::placeholder {
+  color: rgb(var(--color-text-muted));
+}
+
+/* ---- Shimmer Skeleton ---- */
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(56, 189, 248, 0.12) 50%,
+    rgba(255, 255, 255, 0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: 0.75rem;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}

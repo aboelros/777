@@ -141,7 +141,10 @@ app.add_middleware(SlowAPIMiddleware)
 cors_origins = [
     "https://777-self.vercel.app",
     "https://frontend-beryl-eta-37.vercel.app",
+    "https://admin-panel-ten-henna.vercel.app",
     "https://aisalescommander.com",
+    "https://app.automio.online",
+    "https://automio.online",
     "http://localhost:3000",
     "http://localhost:5173",
     "http://localhost:5174",
@@ -156,6 +159,7 @@ if settings.CORS_ORIGINS:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

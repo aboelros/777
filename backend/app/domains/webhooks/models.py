@@ -7,6 +7,7 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
+from app.domains.apps.models import AppInstallation
 
 class WebhookEndpoint(Base):
     """External endpoints subscribed to receive platform events."""

@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const RAW_API_URL = import.meta.env.VITE_API_URL;
+const API_URL = (RAW_API_URL && RAW_API_URL !== '[SENSITIVE]' && RAW_API_URL.startsWith('http'))
+  ? RAW_API_URL
+  : (import.meta.env.PROD ? 'https://ai-sales-bot-api-vdr6.onrender.com' : 'http://localhost:8000');
 
 // Create axios instance with cookie support
 const api = axios.create({

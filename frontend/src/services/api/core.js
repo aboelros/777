@@ -3,7 +3,10 @@
  * Complete implementation with all endpoints
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+const RAW_API_URL = import.meta.env.VITE_API_URL;
+const API_BASE_URL = (RAW_API_URL && RAW_API_URL !== '[SENSITIVE]' && RAW_API_URL.startsWith('http'))
+  ? RAW_API_URL
+  : (import.meta.env.PROD ? 'https://ai-sales-bot-api-vdr6.onrender.com' : 'http://localhost:8000');
 
 /** Retrieves the stored JWT access token from localStorage. */
 const getAuthToken = () => {

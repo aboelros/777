@@ -1,6 +1,10 @@
+import React from 'react';
 import { motion } from 'framer-motion';
-import { cn } from '../../lib/utils';
+import { cn } from '@/lib/utils';
 
+/**
+ * Standardized Automio Glass Panel / Elevated Card Component
+ */
 export default function GlassCard({
   children,
   className,
@@ -13,18 +17,18 @@ export default function GlassCard({
 }) {
   const Component = animate ? motion.div : 'div';
 
-  const pulseClass = pulse ? 'neon-glow-pulse ring-1 ring-sky-500/30' : '';
-  const glowClass = glow ? 'neon-glow' : '';
+  const pulseClass = pulse ? 'ring-1 ring-brand-accent/40 shadow-brand-glow' : '';
+  const glowClass = glow ? 'shadow-brand-glow border-brand-accent/30' : '';
 
   const motionProps = animate ? {
-    initial: { opacity: 0, y: 16, scale: 0.98 },
-    animate: { opacity: 1, y: 0, scale: 1 },
+    initial: { opacity: 0, y: 12 },
+    animate: { opacity: 1, y: 0 },
     transition: {
-      duration: 0.45,
+      duration: 0.35,
       delay,
-      ease: [0.25, 0.46, 0.45, 0.94]
+      ease: [0.16, 1, 0.3, 1]
     },
-    whileHover: hover ? { y: -3, transition: { duration: 0.25 } } : {},
+    whileHover: hover ? { y: -2, transition: { duration: 0.2 } } : {},
   } : {};
 
   return (
@@ -33,9 +37,11 @@ export default function GlassCard({
       {...motionProps}
       {...props}
     >
-      {/* Top edge light reflection */}
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />
-      {/* Content */}
+      {/* Top specular liquid reflection */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none" />
+      {/* Subtle liquid chromatic corner glow */}
+      <div className="absolute -top-12 -right-12 w-28 h-28 bg-sky-500/8 rounded-full blur-2xl pointer-events-none group-hover:bg-sky-500/20 transition-all duration-500" />
+      {/* Content Container */}
       <div className="relative z-10">
         {children}
       </div>

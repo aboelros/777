@@ -97,11 +97,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const navbar = document.querySelector('.navbar');
     window.addEventListener('scroll', () => {
         if (window.scrollY > 50) {
-            navbar.style.background = 'rgba(5, 5, 5, 0.95)';
-            navbar.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.5)';
+            navbar.style.background = 'rgba(3, 7, 18, 0.88)';
+            navbar.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.6)';
         } else {
-            navbar.style.background = 'rgba(5, 5, 5, 0.8)';
-            navbar.style.boxShadow = 'none';
+            navbar.style.background = 'rgba(3, 7, 18, 0.72)';
+            navbar.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.4)';
         }
     });
 

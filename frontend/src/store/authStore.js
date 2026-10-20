@@ -15,7 +15,10 @@ export const useAuthStore = create((set, get) => ({
   // Load projects and set default
   loadProjects: async () => {
     try {
-      const projectsList = await api.projects.list();
+      const raw = await api.projects.list();
+      const projectsList = Array.isArray(raw)
+        ? raw
+        : (Array.isArray(raw?.projects) ? raw.projects : (Array.isArray(raw?.data) ? raw.data : []));
 
       const projectStore = useProjectStore.getState();
       projectStore.setProjects(projectsList);
@@ -29,15 +32,22 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-  // Initialize auth by checking if user is authenticated via cookies
+  // Initialize auth by checking if user is authenticated
   initialize: async () => {
     try {
-      // Try to fetch user - cookies will be automatically sent
-      const user = await api.auth.getCurrentUser();
-      set({ user, isAuthenticated: true, isLoading: false });
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        set({ user: null, isAuthenticated: false, isLoading: false });
+        return;
+      }
 
-      // Load projects after auth
-      await get().loadProjects();
+      const user = await api.auth.getCurrentUser();
+      if (user && (user.id || user.email)) {
+        set({ user, isAuthenticated: true, isLoading: false });
+        await get().loadProjects();
+      } else {
+        set({ user: null, isAuthenticated: false, isLoading: false });
+      }
     } catch (error) {
       // Not authenticated or token expired
       set({ user: null, isAuthenticated: false, isLoading: false });

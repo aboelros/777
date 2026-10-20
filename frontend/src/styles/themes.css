@@ -1,0 +1,72 @@
+/* ==========================================================================
+   AUTOMIND THEME VARIANTS (Dark Elegance, Light Classic, Light Vibrant)
+   ========================================================================== */
+
+/* Dark Elegance: Pure Carbon & Minimal Monochrome */
+body.theme-dark-elegance {
+  --color-brand-primary: 59 130 246;
+  --color-brand-hover: 37 99 235;
+  --color-brand-accent: 96 165 250;
+  --color-brand-glow: 59 130 246;
+
+  --color-bg-main: 0 0 0;              /* #000000 True Black */
+  --color-bg-secondary: 10 10 10;      /* #0A0A0A */
+  --color-bg-card: 18 18 18;           /* #121212 */
+  --color-bg-subtle: 28 28 28;         /* #1C1C1C */
+  --color-bg-hover: 38 38 38;
+
+  --color-text-primary: 255 255 255;
+  --color-text-secondary: 161 161 170;
+  --color-text-muted: 113 113 122;
+
+  --color-border-subtle: 255 255 255;
+  --color-border-default: 255 255 255;
+}
+
+/* Light Classic: Clean Enterprise Slate & Paper White */
+body.theme-light-classic {
+  --color-brand-primary: 37 99 235;    /* #2563EB */
+  --color-brand-hover: 29 78 216;
+  --color-brand-accent: 2 132 199;
+  --color-brand-glow: 37 99 235;
+
+  --color-bg-main: 248 250 252;        /* #F8FAFC Canvas */
+  --color-bg-secondary: 241 245 249;   /* #F1F5F9 Raised */
+  --color-bg-card: 255 255 255;        /* #FFFFFF Surface */
+  --color-bg-subtle: 226 232 240;      /* #E2E8F0 Component */
+  --color-bg-hover: 241 245 249;
+
+  --color-text-primary: 15 23 42;      /* #0F172A Sharp dark */
+  --color-text-secondary: 71 85 105;   /* #475569 Slate body */
+  --color-text-muted: 100 116 139;     /* #64748B Secondary */
+  --color-text-disabled: 148 163 184;
+  --color-text-inverse: 248 250 252;
+
+  --color-border-subtle: 15 23 42;     /* with opacity 0.06 */
+  --color-border-default: 15 23 42;    /* with opacity 0.12 */
+  --color-border-strong: 37 99 235;
+  --color-focus-ring: 37 99 235;
+  --border-color: 203 213 225;
+}
+
+/* Light Vibrant: High-Contrast Pure White with Cobalt Highlights */
+body.theme-light-vibrant {
+  --color-brand-primary: 37 99 235;
+  --color-brand-hover: 29 78 216;
+  --color-brand-accent: 14 165 233;
+  --color-brand-glow: 37 99 235;
+
+  --color-bg-main: 255 255 255;        /* Pure White */
+  --color-bg-secondary: 248 250 252;
+  --color-bg-card: 255 255 255;
+  --color-bg-subtle: 241 245 249;
+  --color-bg-hover: 238 242 246;
+
+  --color-text-primary: 2 6 23;
+  --color-text-secondary: 51 65 85;
+  --color-text-muted: 100 116 139;
+
+  --color-border-subtle: 0 0 0;
+  --color-border-default: 0 0 0;
+  --border-color: 226 232 240;
+}

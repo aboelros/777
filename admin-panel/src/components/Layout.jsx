@@ -1,27 +1,40 @@
-import { Navigate, Outlet } from 'react-router-dom';
-import Sidebar from './Sidebar';
+/**
+ * Master layout shell for the administrative command center.
+ */
+
+import React, { useEffect } from 'react';
+import { Outlet, Navigate } from 'react-router-dom';
+import Sidebar from '@/components/Sidebar';
+import Header from '@/components/Header';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
+import { useAdminStore } from '@/store/adminStore';
 
 export default function Layout() {
-  const token = localStorage.getItem('admin_token');
-  
-  // Protect routes - redirect to login if no token
-  if (!token) {
+  const { isAuthenticated } = useAdminStore();
+
+  if (!isAuthenticated && !localStorage.getItem('admin_token')) {
     return <Navigate to="/login" replace />;
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-base)' }}>
       <Sidebar />
-      <main style={{ 
-        flex: 1, 
-        marginLeft: 'var(--sidebar-width)', 
-        padding: '2rem 3rem',
-        width: 'calc(100% - var(--sidebar-width))'
-      }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <Outlet />
-        </div>
-      </main>
+      <div
+        style={{
+          marginLeft: 'var(--sidebar-width)',
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          minWidth: 0,
+        }}
+      >
+        <Header />
+        <main style={{ padding: '2rem', flex: 1 }}>
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
+        </main>
+      </div>
     </div>
   );
 }

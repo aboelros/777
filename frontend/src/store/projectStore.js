@@ -19,31 +19,29 @@ export const useProjectStore = create(
       loadProjects: async () => {
         try {
           set({ isLoading: true });
-          const projects = await api.projects.list();
-          set({ projects: projects || [] });
+          const raw = await api.projects.list();
+          const projectsList = Array.isArray(raw)
+            ? raw
+            : (Array.isArray(raw?.projects) ? raw.projects : (Array.isArray(raw?.data) ? raw.data : []));
+
+          set({ projects: projectsList });
 
           const current = get().currentProject;
 
           // If we have a current project, verify it still exists
           if (current) {
-            const exists = projects?.find(p => p.id === current.id);
+            const exists = projectsList.find(p => p && p.id === current.id);
             if (!exists) {
-              // Current project no longer exists (deleted or invalid)
-              const nextProject = projects?.length > 0 ? projects[0] : null;
+              const nextProject = projectsList.length > 0 ? projectsList[0] : null;
               set({ currentProject: nextProject });
               if (nextProject) {
                 toast.error('Previous project not found. Switched to ' + nextProject.name);
-              } else {
-                toast.error('Previous project not found. Please create a new project.');
               }
             } else {
-              // Update current project with latest data
               set({ currentProject: exists });
             }
-          }
-          // If no current project but we have projects, select first one
-          else if (projects?.length > 0) {
-            set({ currentProject: projects[0] });
+          } else if (projectsList.length > 0) {
+            set({ currentProject: projectsList[0] });
           }
         } catch (error) {
           console.error('Failed to load projects:', error);
