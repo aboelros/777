@@ -126,3 +126,53 @@ ul {
 .mt-4 { margin-top: 2rem; }
 .mb-4 { margin-bottom: 1rem; }
 .text-center { text-align: center; }
+
+/* Page Transition Overlay */
+.page-transition {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background-color: var(--bg-color);
+    z-index: 99999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+    transition: opacity 0.5s cubic-bezier(0.8, 0, 0.2, 1);
+}
+
+.page-transition.fade-out {
+    opacity: 0;
+}
+
+.page-transition.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.spinner {
+    width: 54px;
+    height: 54px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top-color: var(--accent-primary);
+    border-bottom-color: var(--accent-secondary);
+    border-radius: 50%;
+    animation: spin 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Spotlight Card Mouse Glow */
+.spotlight-card { position: relative; overflow: hidden; }
+.spotlight-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(56, 189, 248, 0.15), transparent 40%);
+    z-index: 0;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+.spotlight-card:hover::before { opacity: 1; }

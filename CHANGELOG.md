@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 📁 **Feature-Driven Frontend Architecture**: Divided `admin-panel` strictly by feature (`/features/auth`, `/features/dashboard`, `/features/users`, `/features/projects`, `/features/billing`, `/features/ai-fleet`, `/features/webhooks`, `/features/system`, `/features/settings`) adhering to strict $\le 250$ LOC per file limits.
 - ⚡ **Lightweight Global State & Path Aliasing**: Powered by Zustand store (`useAdminStore`) and configured `@/` path aliasing across Vite and IDE configs.
 - 🛡️ **Role-Based Cross-Navigation**: Added conditional "Admin Commander" access in the main `frontend` sidebar dynamically surfaced for authenticated root administrators.
+- 📱 **Mobile Founder & Executive Card Responsiveness**: Resolved horizontal overflow on mobile viewports for the founder profile and footer signatures across marketing pages, ensuring seamless readability in native portrait mobile mode without requiring desktop mode.
 
 ## [2.2.0] - 2026-10-20
 

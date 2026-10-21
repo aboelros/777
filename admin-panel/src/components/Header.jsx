@@ -8,6 +8,8 @@ import { adminApi } from '@/lib/api';
 import { useAdminStore } from '@/store/adminStore';
 import Badge from '@/components/ui/Badge';
 
+const MAIN_APP_URL = import.meta.env.VITE_MAIN_APP_URL || (import.meta.env.PROD ? 'https://app.automio.online' : 'http://localhost:5173');
+
 export default function Header() {
   const { systemHealth, setSystemHealth } = useAdminStore();
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -92,7 +94,7 @@ export default function Header() {
 
         {/* Link back to Main App */}
         <a
-          href="http://localhost:5173"
+          href={MAIN_APP_URL}
           target="_blank"
           rel="noopener noreferrer"
           style={{

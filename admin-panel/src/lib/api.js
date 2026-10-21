@@ -4,7 +4,12 @@
 
 import axios from 'axios';
 
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+const RAW_API_URL = import.meta.env.VITE_API_URL;
+export const API_URL = (RAW_API_URL && RAW_API_URL.startsWith('http'))
+  ? RAW_API_URL
+  : (import.meta.env.PROD
+      ? 'https://ai-sales-bot-api-vdr6.onrender.com/api/v1'
+      : 'http://localhost:8000/api/v1');
 
 export const api = axios.create({
   baseURL: API_URL,
