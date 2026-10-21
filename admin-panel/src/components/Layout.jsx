@@ -1,8 +1,9 @@
 /**
- * Master layout shell for the administrative command center.
+ * Master responsive layout shell for the administrative command center.
+ * Controls mobile sidebar drawer state and responsive padding.
  */
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Outlet, Navigate } from 'react-router-dom';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
@@ -20,16 +21,17 @@ export default function Layout() {
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-base)' }}>
       <Sidebar />
       <div
+        className="admin-layout-content"
         style={{
-          marginLeft: 'var(--sidebar-width)',
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
           minWidth: 0,
+          transition: 'margin-left 0.25s ease',
         }}
       >
         <Header />
-        <main style={{ padding: '2rem', flex: 1 }}>
+        <main className="admin-layout-main" style={{ flex: 1, minWidth: 0 }}>
           <ErrorBoundary>
             <Outlet />
           </ErrorBoundary>

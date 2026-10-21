@@ -1,5 +1,6 @@
 /**
  * Subscription table displaying merchant tiers, limits, and manual override actions.
+ * Fully responsive with mobile horizontal touch scrolling.
  */
 
 import React from 'react';
@@ -35,48 +36,53 @@ export default function SubscriptionTable({ subscriptions = [], loading = false,
       case 'starter':
         return 'warning';
       default:
-        return 'neutral';
+        return 'outline';
     }
   };
 
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+    <div className="table-responsive-container">
+      <table style={{ width: '100%', minWidth: '680px', borderCollapse: 'collapse', textAlign: 'left' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255, 255, 255, 0.02)' }}>
-            <th style={{ padding: '0.85rem 1.5rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Merchant</th>
-            <th style={{ padding: '0.85rem 1.5rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Current Plan</th>
-            <th style={{ padding: '0.85rem 1.5rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Status</th>
-            <th style={{ padding: '0.85rem 1.5rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Monthly Limits</th>
-            <th style={{ padding: '0.85rem 1.5rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Revenue</th>
-            <th style={{ padding: '0.85rem 1.5rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
+            <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Merchant</th>
+            <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Current Plan</th>
+            <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Status</th>
+            <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Monthly Limits</th>
+            <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Revenue</th>
+            <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
           {subscriptions.map((s) => (
             <tr key={s.id} style={{ borderBottom: '1px solid var(--border)' }}>
-              <td style={{ padding: '1rem 1.5rem' }}>
+              <td style={{ padding: '0.9rem 1.25rem' }}>
                 <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem' }}>
                   {s.user_name || 'Merchant'}
                 </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{s.user_email}</div>
-              </td>
-              <td style={{ padding: '1rem 1.5rem' }}>
-                <Badge variant={getTierVariant(s.tier)}>{s.tier || 'Free'}</Badge>
-              </td>
-              <td style={{ padding: '1rem 1.5rem' }}>
-                <Badge variant={s.status === 'active' ? 'success' : 'danger'}>{s.status || 'Active'}</Badge>
-              </td>
-              <td style={{ padding: '1rem 1.5rem' }}>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  💬 {s.limit_messages?.toLocaleString() || 100} msgs • 🛒 {s.limit_orders || 10} orders
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  {s.user_email}
                 </div>
               </td>
-              <td style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', fontWeight: 600, color: '#10B981' }}>
-                ${(s.total_paid || 0).toFixed(2)}
+              <td style={{ padding: '0.9rem 1.25rem' }}>
+                <Badge variant={getTierVariant(s.plan_type)}>
+                  {(s.plan_type || 'FREE').toUpperCase()}
+                </Badge>
               </td>
-              <td style={{ padding: '1rem 1.5rem', textAlign: 'right' }}>
-                <Button variant="secondary" size="sm" icon={Sliders} onClick={() => onOverride(s)}>
+              <td style={{ padding: '0.9rem 1.25rem' }}>
+                <Badge variant={s.is_active ? 'success' : 'danger'}>
+                  {s.is_active ? 'Active' : 'Cancelled'}
+                </Badge>
+              </td>
+              <td style={{ padding: '0.9rem 1.25rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                {s.order_limit ? `${s.order_limit.toLocaleString()} orders` : 'Unlimited'}
+              </td>
+              <td style={{ padding: '0.9rem 1.25rem', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                ${s.price_monthly || 0}/mo
+              </td>
+              <td style={{ padding: '0.9rem 1.25rem', textAlign: 'right' }}>
+                <Button variant="secondary" size="sm" onClick={() => onOverride?.(s)}>
+                  <Sliders size={14} style={{ marginRight: '0.35rem' }} />
                   Override
                 </Button>
               </td>

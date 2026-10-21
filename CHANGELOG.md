@@ -5,6 +5,14 @@ All notable changes to AI Sales Commander will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2026-10-21
+
+### Added & Enhanced
+- 📱 **Mobile-First Responsive Engine for Admin Commander**: Implemented dynamic off-canvas slide drawer navigation with mobile backdrop overlay, auto-closing route changes, touch-friendly min 44px tap targets, and high-contrast hamburger navigation bar.
+- 🎨 **Unified Automio Visual Identity**: Integrated canonical Neuro-Prism Brand Mark (`Logo` and `LogoSymbol`) and migrated design tokens from generic purple to Automio's electric sky cyan (`#0ea5e9`, `#38bdf8`) and deep obsidian slate surfaces (`#020617`, `rgba(15, 23, 42, 0.85)`).
+- 📊 **Responsive Data Tables & Grid Wrappers**: Added `.table-responsive-container` with smooth horizontal touch momentum across user accounts, store fleet, billing subscriptions, webhooks, and audit log tables to prevent column compression on phone screens.
+- 🛡️ **Pydantic Validation Guard for Enterprise Domains**: Enhanced `UserListItem` schema to support custom enterprise, development, and internal domain email addresses (`.local`, staging environments).
+
 ## [2.3.0] - 2026-10-21
 
 ### Added & Architecture

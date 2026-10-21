@@ -1,17 +1,21 @@
 /**
  * Administrative header with live system indicators and quick controls.
+ * Features responsive hamburger navigation trigger and touch-optimized controls.
  */
 
 import React, { useEffect, useState } from 'react';
-import { Activity, RefreshCw, ExternalLink, Shield } from 'lucide-react';
+import { RefreshCw, ExternalLink, Menu } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import { useAdminStore } from '@/store/adminStore';
 import Badge from '@/components/ui/Badge';
+import LogoSymbol from '@/components/brand/LogoSymbol';
 
-const MAIN_APP_URL = import.meta.env.VITE_MAIN_APP_URL || (import.meta.env.PROD ? 'https://app.automio.online' : 'http://localhost:5173');
+const MAIN_APP_URL =
+  import.meta.env.VITE_MAIN_APP_URL ||
+  (import.meta.env.PROD ? 'https://app.automio.online' : 'http://localhost:5173');
 
 export default function Header() {
-  const { systemHealth, setSystemHealth } = useAdminStore();
+  const { systemHealth, setSystemHealth, toggleMobileNav } = useAdminStore();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchHealth = async () => {
@@ -36,8 +40,9 @@ export default function Header() {
     <header
       style={{
         height: 'var(--header-height)',
-        background: 'rgba(21, 26, 34, 0.85)',
+        background: 'rgba(15, 23, 42, 0.85)',
         backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
         borderBottom: '1px solid var(--border)',
         position: 'sticky',
         top: 0,
@@ -45,32 +50,70 @@ export default function Header() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 2rem',
+        padding: '0 1.25rem',
+        boxSizing: 'border-box',
+        width: '100%',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <Badge variant="primary">Platform Control Center</Badge>
-        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-          Environment: <strong style={{ color: 'var(--text-secondary)' }}>Production Ready</strong>
-        </span>
+      {/* Left Section: Mobile Menu Trigger + Brand/Pill */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+        <button
+          onClick={toggleMobileNav}
+          className="mobile-only"
+          style={{
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--text-primary)',
+            minWidth: 'var(--touch-target-min)',
+            minHeight: 'var(--touch-target-min)',
+            display: 'none',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+          aria-label="Open navigation menu"
+        >
+          <Menu size={20} />
+        </button>
+
+        {/* Brand symbol shown on mobile when sidebar is closed */}
+        <div className="mobile-only" style={{ display: 'none', alignItems: 'center', gap: '0.5rem' }}>
+          <LogoSymbol size={28} />
+          <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#FFFFFF' }}>
+            AUTO<span style={{ color: 'var(--primary)' }}>MIO</span>
+          </span>
+        </div>
+
+        {/* Desktop title pills */}
+        <div className="desktop-only" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <Badge variant="primary">Mission Control</Badge>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            Environment: <strong style={{ color: 'var(--text-secondary)' }}>Production</strong>
+          </span>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-        {/* System Health Indicators */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Badge
-            variant={systemHealth?.database?.status === 'healthy' ? 'success' : 'danger'}
-          >
+      {/* Right Section: Telemetry Indicators + Quick Actions */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        {/* Health Indicators (Desktop) */}
+        <div className="desktop-only" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Badge variant={systemHealth?.database?.status === 'healthy' ? 'success' : 'danger'}>
             DB: {systemHealth?.database?.latency_ms || 0}ms
           </Badge>
-          <Badge
-            variant={systemHealth?.ai_engine?.status === 'healthy' ? 'success' : 'warning'}
-          >
+          <Badge variant={systemHealth?.ai_engine?.status === 'healthy' ? 'success' : 'warning'}>
             AI: {systemHealth?.ai_engine?.primary_model || 'active'}
           </Badge>
         </div>
 
-        {/* Refresh Button */}
+        {/* Compact Status Indicator (Mobile) */}
+        <div className="mobile-only" style={{ display: 'none', alignItems: 'center' }}>
+          <Badge variant={systemHealth?.database?.status === 'healthy' ? 'success' : 'warning'}>
+            ● Live
+          </Badge>
+        </div>
+
+        {/* Refresh Telemetry */}
         <button
           onClick={fetchHealth}
           disabled={isRefreshing}
@@ -79,12 +122,16 @@ export default function Header() {
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius-md)',
             color: 'var(--text-secondary)',
-            padding: '0.45rem',
+            minWidth: 'var(--touch-target-min)',
+            minHeight: 'var(--touch-target-min)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s ease',
           }}
           title="Refresh telemetry"
+          aria-label="Refresh telemetry"
         >
           <RefreshCw
             size={16}
@@ -92,7 +139,7 @@ export default function Header() {
           />
         </button>
 
-        {/* Link back to Main App */}
+        {/* Link to Main App */}
         <a
           href={MAIN_APP_URL}
           target="_blank"
@@ -102,16 +149,19 @@ export default function Header() {
             alignItems: 'center',
             gap: '0.4rem',
             fontSize: '0.8rem',
-            fontWeight: 500,
+            fontWeight: 600,
             color: 'var(--primary)',
             textDecoration: 'none',
-            padding: '0.45rem 0.8rem',
+            minHeight: 'var(--touch-target-min)',
+            padding: '0 0.85rem',
             background: 'var(--primary-light)',
             borderRadius: 'var(--radius-md)',
-            border: '1px solid rgba(99, 102, 241, 0.3)',
+            border: '1px solid var(--border-brand)',
+            transition: 'all 0.2s ease',
+            whiteSpace: 'nowrap',
           }}
         >
-          <span>Open Main App</span>
+          <span className="desktop-only">App</span>
           <ExternalLink size={14} />
         </a>
       </div>

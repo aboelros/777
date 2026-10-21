@@ -1,14 +1,16 @@
 /**
  * Administrative login portal with credentials verification and admin role guard.
+ * Features Automio Neuro-Prism branding and mobile-optimized touch form controls.
  */
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Lock, Mail, AlertCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAdminStore } from '@/store/adminStore';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import Logo from '@/components/brand/Logo';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -73,8 +75,9 @@ export default function LoginPage() {
         alignItems: 'center',
         justifyContent: 'center',
         minHeight: '100vh',
-        background: 'radial-gradient(circle at 50% -20%, #1a1a2e 0%, var(--bg-base) 60%)',
-        padding: '1.5rem',
+        background: 'radial-gradient(circle at 50% 15%, rgba(14, 165, 233, 0.12) 0%, #020617 75%)',
+        padding: '1.25rem',
+        boxSizing: 'border-box',
       }}
     >
       <div
@@ -82,34 +85,17 @@ export default function LoginPage() {
         style={{
           width: '100%',
           maxWidth: '420px',
-          padding: '2.5rem',
+          padding: '2.25rem 1.75rem',
           borderRadius: 'var(--radius-lg)',
-          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)',
-          animation: 'fade-in 0.3s ease-out',
+          boxShadow: '0 24px 64px rgba(0, 0, 0, 0.6)',
+          border: '1px solid var(--border)',
+          animation: 'fadeIn 0.3s ease-out',
         }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
-          <div
-            style={{
-              width: '64px',
-              height: '64px',
-              borderRadius: '16px',
-              background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              boxShadow: '0 8px 24px rgba(99, 102, 241, 0.4)',
-              marginBottom: '1rem',
-            }}
-          >
-            <ShieldCheck size={36} />
-          </div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-            Admin Commander
-          </h1>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-            Root portal for platform operators
+          <Logo size={42} variant="full" subtitle="ADMIN COMMANDER" />
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.85rem', textAlign: 'center' }}>
+            Root infrastructure & operational console
           </p>
         </div>
 
@@ -118,14 +104,15 @@ export default function LoginPage() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.75rem',
+              gap: '0.6rem',
+              padding: '0.75rem 1rem',
               marginBottom: '1.5rem',
-              background: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
+              background: 'rgba(244, 63, 94, 0.12)',
+              border: '1px solid rgba(244, 63, 94, 0.35)',
               borderRadius: 'var(--radius-md)',
               color: 'var(--danger)',
               fontSize: '0.825rem',
+              lineHeight: 1.4,
             }}
           >
             <AlertCircle size={18} style={{ flexShrink: 0 }} />
@@ -154,7 +141,13 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
 
-          <Button type="submit" variant="primary" size="lg" isLoading={loading} style={{ marginTop: '0.5rem' }}>
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            isLoading={loading}
+            style={{ marginTop: '0.5rem', width: '100%' }}
+          >
             Enter Command Center
           </Button>
         </form>

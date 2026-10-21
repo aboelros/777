@@ -1,5 +1,6 @@
 /**
  * Recent platform activity table displaying live events and transactions.
+ * Responsive horizontal scroll container with touch momentum support.
  */
 
 import React from 'react';
@@ -19,29 +20,29 @@ export default function RecentActivityTable({ activities = [] }) {
 
   return (
     <Card title="Live Platform Activity" subtitle="Real-time operational events across all tenants" noPadding>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+      <div className="table-responsive-container">
+        <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255, 255, 255, 0.02)' }}>
-              <th style={{ padding: '0.85rem 1.5rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Event</th>
-              <th style={{ padding: '0.85rem 1.5rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Details</th>
-              <th style={{ padding: '0.85rem 1.5rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Source</th>
-              <th style={{ padding: '0.85rem 1.5rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Time</th>
+              <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Event</th>
+              <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Details</th>
+              <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Source</th>
+              <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Time</th>
             </tr>
           </thead>
           <tbody>
             {displayList.map((item, idx) => (
               <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
-                <td style={{ padding: '1rem 1.5rem' }}>
+                <td style={{ padding: '0.9rem 1.25rem' }}>
                   <Badge variant="primary">{item.type || item.action}</Badge>
                 </td>
-                <td style={{ padding: '1rem 1.5rem', fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                <td style={{ padding: '0.9rem 1.25rem', fontSize: '0.85rem', color: 'var(--text-primary)' }}>
                   {item.detail || item.details}
                 </td>
-                <td style={{ padding: '1rem 1.5rem', fontSize: '0.825rem', color: 'var(--text-secondary)' }}>
+                <td style={{ padding: '0.9rem 1.25rem', fontSize: '0.825rem', color: 'var(--text-secondary)' }}>
                   {item.user || item.performed_by}
                 </td>
-                <td style={{ padding: '1rem 1.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                <td style={{ padding: '0.9rem 1.25rem', fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                   {item.time || item.timestamp?.slice(11, 19)}
                 </td>
               </tr>

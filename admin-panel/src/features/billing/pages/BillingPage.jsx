@@ -18,12 +18,12 @@ export default function BillingPage() {
   const paidAccountsCount = subscriptions.filter((s) => s.tier && s.tier.toLowerCase() !== 'free').length;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', minWidth: 0 }}>
       <div>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+        <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
           Billing & Subscription Controls
         </h1>
-        <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
           Monitor SaaS recurring revenue, manage plan tiers, and grant custom operational quotas
         </p>
       </div>
@@ -49,8 +49,8 @@ export default function BillingPage() {
           value={paidAccountsCount}
           subtitle={`Out of ${total} total registered accounts`}
           icon={Award}
-          color="#6366F1"
-          bg="rgba(99, 102, 241, 0.15)"
+          color="#0EA5E9"
+          bg="rgba(14, 165, 233, 0.15)"
         />
         <MetricCard
           title="Free Tier Merchants"

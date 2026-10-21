@@ -17,6 +17,7 @@ export const useAdminStore = create((set) => ({
   systemHealth: null,
   notification: null,
   sidebarOpen: true,
+  mobileNavOpen: false,
 
   setUser: (user, token) => {
     if (token) localStorage.setItem('admin_token', token);
@@ -27,7 +28,7 @@ export const useAdminStore = create((set) => ({
   logout: () => {
     localStorage.removeItem('admin_token');
     localStorage.removeItem('admin_user');
-    set({ user: null, isAuthenticated: false });
+    set({ user: null, isAuthenticated: false, mobileNavOpen: false });
     window.location.href = '/login';
   },
 
@@ -38,4 +39,10 @@ export const useAdminStore = create((set) => ({
   clearNotification: () => set({ notification: null }),
 
   toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
+
+  setMobileNavOpen: (open) => set({ mobileNavOpen: open }),
+
+  toggleMobileNav: () => set((state) => ({ mobileNavOpen: !state.mobileNavOpen })),
+
+  closeMobileNav: () => set({ mobileNavOpen: false }),
 }));

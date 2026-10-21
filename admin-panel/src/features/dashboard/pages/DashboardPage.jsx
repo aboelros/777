@@ -1,9 +1,10 @@
 /**
  * Executive platform overview dashboard page.
+ * Responsive mobile layout with adaptive stat card grid.
  */
 
 import React, { useState } from 'react';
-import { Users, Store, ShoppingBag, MessageSquare, Bot, DollarSign } from 'lucide-react';
+import { Users, Store, ShoppingBag, MessageSquare } from 'lucide-react';
 import { useDashboardMetrics } from '../hooks/useDashboardMetrics';
 import MetricCard from '../components/MetricCard';
 import SystemHealthWidget from '../components/SystemHealthWidget';
@@ -28,16 +29,16 @@ export default function DashboardPage() {
       value: metrics?.total_users || 0,
       subtitle: `${metrics?.active_users || 0} active accounts`,
       icon: Users,
-      color: '#6366F1',
-      bg: 'rgba(99, 102, 241, 0.15)',
+      color: '#0EA5E9',
+      bg: 'rgba(14, 165, 233, 0.15)',
     },
     {
       title: 'Connected Stores (Fleet)',
       value: metrics?.total_projects || 0,
       subtitle: 'Multi-tenant brand accounts',
       icon: Store,
-      color: '#0EA5E9',
-      bg: 'rgba(14, 165, 233, 0.15)',
+      color: '#38BDF8',
+      bg: 'rgba(56, 189, 248, 0.15)',
     },
     {
       title: 'Processed Orders',
@@ -58,24 +59,33 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', minWidth: 0 }}>
       {/* Page Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '1rem',
+        }}
+      >
         <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+          <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
             Operations Mission Control
           </h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-            System-wide operational metrics, health, and multi-tenant performance
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+            Multi-tenant infrastructure telemetry and merchant fleet performance
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           <select
             value={timeframe}
             onChange={(e) => setTimeframe(Number(e.target.value))}
             style={{
-              padding: '0.5rem 1rem',
+              minHeight: 'var(--touch-target-min)',
+              padding: '0 0.85rem',
               background: 'var(--bg-surface)',
               border: '1px solid var(--border)',
               borderRadius: 'var(--radius-md)',
@@ -99,8 +109,8 @@ export default function DashboardPage() {
         <div
           style={{
             padding: '1rem',
-            background: 'rgba(239, 68, 68, 0.1)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
+            background: 'rgba(244, 63, 94, 0.12)',
+            border: '1px solid rgba(244, 63, 94, 0.3)',
             borderRadius: 'var(--radius-md)',
             color: 'var(--danger)',
             fontSize: '0.875rem',
@@ -115,7 +125,7 @@ export default function DashboardPage() {
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: '1.25rem',
+          gap: '1rem',
         }}
       >
         {statCards.map((card, idx) => (

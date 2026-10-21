@@ -34,7 +34,7 @@ class ResetPasswordRequest(BaseModel):
 class UserListItem(BaseModel):
     """Response model for user listing."""
     id: UUID
-    email: EmailStr
+    email: str
     name: Optional[str] = None
     role: UserRole
     is_active: bool

@@ -1,5 +1,6 @@
 /**
  * Project fleet table displaying store codes, bot profiles, and active status switches.
+ * Fully responsive with mobile horizontal touch scrolling.
  */
 
 import React from 'react';
@@ -25,22 +26,22 @@ export default function ProjectTable({ projects = [], loading = false, onInspect
   }
 
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+    <div className="table-responsive-container">
+      <table style={{ width: '100%', minWidth: '650px', borderCollapse: 'collapse', textAlign: 'left' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255, 255, 255, 0.02)' }}>
-            <th style={{ padding: '0.85rem 1.5rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Store / Brand</th>
-            <th style={{ padding: '0.85rem 1.5rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Store Code</th>
-            <th style={{ padding: '0.85rem 1.5rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>AI Persona</th>
-            <th style={{ padding: '0.85rem 1.5rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Fleet Status</th>
-            <th style={{ padding: '0.85rem 1.5rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Created</th>
-            <th style={{ padding: '0.85rem 1.5rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
+            <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Store / Brand</th>
+            <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Store Code</th>
+            <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>AI Persona</th>
+            <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Fleet Status</th>
+            <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Created</th>
+            <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
           {projects.map((p) => (
             <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
-              <td style={{ padding: '1rem 1.5rem' }}>
+              <td style={{ padding: '0.9rem 1.25rem' }}>
                 <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem' }}>
                   {p.name}
                 </div>
@@ -48,35 +49,37 @@ export default function ProjectTable({ projects = [], loading = false, onInspect
                   Timezone: {p.timezone || 'UTC'}
                 </div>
               </td>
-              <td style={{ padding: '1rem 1.5rem' }}>
+              <td style={{ padding: '0.9rem 1.25rem' }}>
                 <span style={{ fontFamily: 'monospace', fontSize: '0.8rem', background: 'rgba(255, 255, 255, 0.05)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
                   {p.project_code}
                 </span>
               </td>
-              <td style={{ padding: '1rem 1.5rem' }}>
+              <td style={{ padding: '0.9rem 1.25rem' }}>
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                   {p.bot_name || 'Alex'} <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>({p.bot_tone || 'Standard'})</span>
                 </div>
               </td>
-              <td style={{ padding: '1rem 1.5rem' }}>
+              <td style={{ padding: '0.9rem 1.25rem' }}>
                 <Badge variant={p.is_active ? 'success' : 'danger'}>
-                  {p.is_active ? 'Online' : 'Disabled'}
+                  {p.is_active ? 'Active' : 'Disabled'}
                 </Badge>
               </td>
-              <td style={{ padding: '1rem 1.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              <td style={{ padding: '0.9rem 1.25rem', fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                 {p.created_at ? new Date(p.created_at).toLocaleDateString() : 'N/A'}
               </td>
-              <td style={{ padding: '1rem 1.5rem', textAlign: 'right' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                  <Button variant="ghost" size="sm" icon={Eye} onClick={() => onInspect(p)} title="Inspect Store" />
+              <td style={{ padding: '0.9rem 1.25rem', textAlign: 'right' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem' }}>
+                  <Button variant="ghost" size="sm" onClick={() => onInspect?.(p)} title="Inspect Store">
+                    <Eye size={15} />
+                  </Button>
                   <Button
-                    variant={p.is_active ? 'danger' : 'secondary'}
+                    variant="ghost"
                     size="sm"
-                    icon={Power}
-                    onClick={() => onToggleStatus(p.id, !p.is_active)}
-                    title={p.is_active ? 'Disable Store' : 'Enable Store'}
+                    onClick={() => onToggleStatus?.(p)}
+                    title={p.is_active ? 'Disable' : 'Enable'}
+                    style={{ color: p.is_active ? 'var(--danger)' : 'var(--success)' }}
                   >
-                    {p.is_active ? 'Disable' : 'Enable'}
+                    <Power size={15} />
                   </Button>
                 </div>
               </td>
