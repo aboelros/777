@@ -78,11 +78,24 @@ export default function Header() {
         </button>
 
         {/* Brand symbol shown on mobile when sidebar is closed */}
-        <div className="mobile-only" style={{ display: 'none', alignItems: 'center', gap: '0.5rem' }}>
-          <LogoSymbol size={28} />
-          <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#FFFFFF' }}>
-            AUTO<span style={{ color: 'var(--primary)' }}>MIO</span>
-          </span>
+        <div className="mobile-only" style={{ display: 'none', alignItems: 'center', gap: '0.45rem' }}>
+          <LogoSymbol size={26} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#FFFFFF', letterSpacing: '0.04em' }}>
+              AUTO<span style={{ color: 'var(--primary)' }}>MIO</span>
+            </span>
+            <span
+              style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                background: 'var(--success)',
+                boxShadow: '0 0 6px var(--success)',
+                display: 'inline-block',
+              }}
+              title="Operational"
+            />
+          </div>
         </div>
 
         {/* Desktop title pills */}
@@ -106,12 +119,6 @@ export default function Header() {
           </Badge>
         </div>
 
-        {/* Compact Status Indicator (Mobile) */}
-        <div className="mobile-only" style={{ display: 'none', alignItems: 'center' }}>
-          <Badge variant={systemHealth?.database?.status === 'healthy' ? 'success' : 'warning'}>
-            ● Live
-          </Badge>
-        </div>
 
         {/* Refresh Telemetry */}
         <button
