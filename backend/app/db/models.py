@@ -17,3 +17,4 @@ from app.domains.customers.models import *
 from app.domains.billing.models import *
 from app.domains.crm.models import *
 from app.domains.apps.models import *
+from app.domains.webhooks.models import *

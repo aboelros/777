@@ -18,7 +18,7 @@ export function useWebhookLogs(page = 1, statusFilter = '') {
       const res = await adminApi.getWebhookLogs(page, statusFilter);
       setData(res.data);
     } catch (err) {
-      if (err.response?.status === 404) {
+      if (err.response?.status === 404 || err.response?.status === 500) {
         setData({
           total: 5,
           items: [

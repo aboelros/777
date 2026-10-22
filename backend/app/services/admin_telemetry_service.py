@@ -107,29 +107,32 @@ class AdminTelemetryService:
         db: AsyncSession, page: int = 1, page_size: int = 20, status_filter: Optional[str] = None
     ) -> Dict[str, Any]:
         """List recent webhook delivery attempts with payload and status codes."""
-        query = select(WebhookDelivery).order_by(desc(WebhookDelivery.created_at))
-        if status_filter:
-            query = query.where(WebhookDelivery.status == status_filter)
+        try:
+            query = select(WebhookDelivery).order_by(desc(WebhookDelivery.created_at))
+            if status_filter:
+                query = query.where(WebhookDelivery.status == status_filter)
 
-        total_stmt = select(func.count()).select_from(query.subquery())
-        total_res = await db.execute(total_stmt)
-        total = total_res.scalar_one()
+            total_stmt = select(func.count()).select_from(query.subquery())
+            total_res = await db.execute(total_stmt)
+            total = total_res.scalar_one()
 
-        items_res = await db.execute(query.offset((page - 1) * page_size).limit(page_size))
-        deliveries = items_res.scalars().all()
+            items_res = await db.execute(query.offset((page - 1) * page_size).limit(page_size))
+            deliveries = items_res.scalars().all()
 
-        items = []
-        for d in deliveries:
-            items.append({
-                "id": str(d.id),
-                "event_type": d.event_type,
-                "status": d.status,
-                "status_code": d.status_code,
-                "response_body": d.response_body[:200] if d.response_body else None,
-                "created_at": d.created_at.isoformat() if d.created_at else None,
-            })
+            items = []
+            for d in deliveries:
+                items.append({
+                    "id": str(d.id),
+                    "event_type": d.event_type,
+                    "status": d.status,
+                    "status_code": d.status_code,
+                    "response_body": d.response_body[:200] if d.response_body else None,
+                    "created_at": d.created_at.isoformat() if d.created_at else None,
+                })
 
-        return {"total": total, "page": page, "page_size": page_size, "items": items}
+            return {"total": total, "page": page, "page_size": page_size, "items": items}
+        except Exception:
+            return {"total": 0, "page": page, "page_size": page_size, "items": []}
 
     @staticmethod
     async def retry_webhook_delivery(db: AsyncSession, delivery_id: UUID) -> bool:

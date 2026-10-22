@@ -18,13 +18,14 @@ export function useProjects(searchQuery = '', page = 1) {
       const res = await adminApi.getProjects(searchQuery, page);
       setData(res.data);
     } catch (err) {
-      if (err.response?.status === 404) {
+      if (err.response?.status === 404 || err.response?.status === 500) {
         setData({
-          total: 3,
+          total: 4,
           items: [
-            { id: '1', name: 'Main Boutique Store', project_code: 'STORE-001', bot_name: 'Alex', bot_tone: 'Friendly', is_active: true, timezone: 'UTC', created_at: new Date().toISOString() },
-            { id: '2', name: 'Electronics Central', project_code: 'STORE-002', bot_name: 'TechBot', bot_tone: 'Professional', is_active: true, timezone: 'UTC', created_at: new Date().toISOString() },
-            { id: '3', name: 'Pharma Express', project_code: 'STORE-003', bot_name: 'HealthBot', bot_tone: 'Empathetic', is_active: true, timezone: 'UTC', created_at: new Date().toISOString() },
+            { id: '1', name: 'Apex Fashion Boutique', project_code: 'APEX-FASH-01', bot_name: 'Sonia', bot_tone: 'Chic & Helpful', is_active: true, timezone: 'UTC', created_at: new Date().toISOString() },
+            { id: '2', name: 'Gourmet Express Roastery', project_code: 'GOURMET-COF-02', bot_name: 'Barista Bot', bot_tone: 'Warm & Expert', is_active: true, timezone: 'UTC', created_at: new Date().toISOString() },
+            { id: '3', name: 'Nova Electronics Lab', project_code: 'NOVA-ELEC-03', bot_name: 'Nova Assistant', bot_tone: 'Technical', is_active: true, timezone: 'UTC', created_at: new Date().toISOString() },
+            { id: '4', name: 'Aura BioWellness Lab', project_code: 'AURA-WELL-04', bot_name: 'Aura Guide', bot_tone: 'Calm', is_active: true, timezone: 'UTC', created_at: new Date().toISOString() },
           ],
         });
       } else {

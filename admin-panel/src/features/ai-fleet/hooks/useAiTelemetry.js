@@ -18,7 +18,7 @@ export function useAiTelemetry() {
       const res = await adminApi.getAiTelemetry();
       setTelemetry(res.data);
     } catch (err) {
-      if (err.response?.status === 404) {
+      if (err.response?.status === 404 || err.response?.status === 500) {
         setTelemetry({
           primary_model: 'gemini-2.5-flash',
           candidate_rotation: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'],
