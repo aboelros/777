@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 44" fill="none">
+  <defs>
+    <!-- Background Radial Gradient -->
+    <radialGradient id="am-logo-bg" cx="50%" cy="25%" r="80%" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0F1F38"/>
+      <stop offset="55%" stop-color="#080E1D"/>
+      <stop offset="100%" stop-color="#03060E"/>
+    </radialGradient>
+
+    <!-- Rim Bevel Border -->
+    <linearGradient id="am-logo-border" x1="2" y1="2" x2="38" y2="38" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.8"/>
+      <stop offset="35%" stop-color="#2563EB" stop-opacity="0.4"/>
+      <stop offset="70%" stop-color="#1E293B" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#0284C7" stop-opacity="0.6"/>
+    </linearGradient>
+
+    <!-- Apex Delta Wing -->
+    <linearGradient id="am-logo-apex" x1="12" y1="8" x2="28" y2="18" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="45%" stop-color="#0EA5E9"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+
+    <!-- Left Wing -->
+    <linearGradient id="am-logo-left" x1="8" y1="19" x2="19" y2="31" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0284C7"/>
+      <stop offset="60%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#1D4ED8"/>
+    </linearGradient>
+
+    <!-- Right Wing -->
+    <linearGradient id="am-logo-right" x1="21" y1="19" x2="32" y2="31" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="50%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#4F46E5"/>
+    </linearGradient>
+
+    <!-- Cognitive Core -->
+    <linearGradient id="am-logo-core" x1="20" y1="16.5" x2="20" y2="25.5" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="40%" stop-color="#E0F2FE"/>
+      <stop offset="100%" stop-color="#38BDF8"/>
+    </linearGradient>
+
+    <!-- Wordmark Gradient -->
+    <linearGradient id="am-text-grad" x1="102" y1="15" x2="155" y2="30" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#60A5FA"/>
+    </linearGradient>
+
+    <filter id="am-logo-blur" x="12" y="14" width="16" height="16" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="1.5"/>
+    </filter>
+  </defs>
+
+  <!-- 1. Mark Container (x=2, y=2) -->
+  <g transform="translate(0, 2)">
+    <rect x="2" y="0" width="36" height="36" rx="10" fill="url(#am-logo-bg)"/>
+    <rect x="2" y="0" width="36" height="36" rx="10" stroke="url(#am-logo-border)" stroke-width="1.2"/>
+    <path d="M6 8C6 4.68629 8.68629 2 12 2H28C31.3137 2 34 4.68629 34 8V12C34 12 26 10 20 10C14 10 6 12 6 12V8Z" fill="white" fill-opacity="0.04"/>
+    <circle cx="20" cy="19" r="4.5" fill="#38BDF8" fill-opacity="0.4" filter="url(#am-logo-blur)"/>
+    <path d="M20 5.5L27.5 15H23L20 11.2L17 15H12.5L20 5.5Z" fill="url(#am-logo-apex)"/>
+    <path d="M12.5 16.5L17 16.5L18.5 21.5H16L12.5 29H8L12.5 16.5Z" fill="url(#am-logo-left)"/>
+    <path d="M27.5 16.5L23 16.5L21.5 21.5H24L27.5 29H32L27.5 16.5Z" fill="url(#am-logo-right)"/>
+    <path d="M14.5 25H25.5L24.5 26.5H15.5L14.5 25Z" fill="#38BDF8" fill-opacity="0.35"/>
+    <path d="M20 14.5L22.8 19L20 23.5L17.2 19Z" fill="url(#am-logo-core)"/>
+  </g>
+
+  <!-- 2. Typographic Wordmark -->
+  <text x="50" y="26" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="700" font-size="20" letter-spacing="0.04em" fill="#FFFFFF">
+    AUTO<tspan fill="url(#am-text-grad)">MIO</tspan>
+  </text>
+
+  <!-- 3. Subtitle Tag with Live Dot -->
+  <circle cx="52" cy="35" r="2.5" fill="#10B981"/>
+  <text x="59" y="38" font-family="'Inter', -apple-system, BlinkMacSystemFont, sans-serif" font-weight="600" font-size="8.5" letter-spacing="0.22em" fill="#94A3B8">
+    AI SALES PLATFORM
+  </text>
+</svg>
