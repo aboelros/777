@@ -37,6 +37,7 @@ const Payments = lazy(() => import('./features/billing/pages/Payments'));
 const Reports = lazy(() => import('./features/analytics/pages/Reports'));
 const Subscription = lazy(() => import('./features/billing/pages/Subscription'));
 const UsageDashboard = lazy(() => import('./features/analytics/pages/UsageDashboard'));
+const FinancialCommandCenter = lazy(() => import('./features/finance/pages/FinancialCommandCenter'));
 const Settings = lazy(() => import('./features/common/pages/Settings'));
 const About = lazy(() => import('./features/common/pages/About'));
 
@@ -179,6 +180,7 @@ function App() {
               <Route path="/reports" element={<Reports />} />
               <Route path="/subscription" element={<Subscription />} />
               <Route path="/usage" element={<UsageDashboard />} />
+              <Route path="/finance" element={<FinancialCommandCenter />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/about" element={<About />} />
               <Route path="*" element={<Navigate to="/" replace />} />

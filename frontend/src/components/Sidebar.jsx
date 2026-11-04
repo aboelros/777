@@ -19,7 +19,8 @@ import {
   Trello,
   GitBranch,
   ExternalLink,
-  ShieldCheck
+  ShieldCheck,
+  TrendingUp
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -71,6 +72,7 @@ export default function Sidebar() {
     { name: t('sidebar.campaigns'), to: '/campaigns', icon: GitBranch },
     { name: t('sidebar.payments'), to: '/payments', icon: CreditCard },
     { name: t('sidebar.reports'), to: '/reports', icon: BarChart3 },
+    { name: t('sidebar.finance') || 'Financial Engine', to: '/finance', icon: TrendingUp },
     { name: t('sidebar.usage'), to: '/usage', icon: Activity },
     { name: t('sidebar.subscription'), to: '/subscription', icon: CreditCard },
     { name: t('sidebar.settings'), to: '/settings', icon: Settings },

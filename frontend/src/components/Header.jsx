@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useTranslation } from '@/lib/translations';
 import ProjectSelector from '@/components/header/ProjectSelector';
 import NotificationBell from '@/components/header/NotificationBell';
+import LanguageToggle from '@/components/header/LanguageToggle';
 import CreateProjectModal from '@/components/CreateProjectModal';
 
 /**
@@ -41,6 +42,9 @@ export default function Header() {
 
           {/* Notifications */}
           <NotificationBell />
+
+          {/* Bilingual Language Switcher */}
+          <LanguageToggle />
 
           {/* User Profile & Session Controls */}
           <div className="pl-3 border-l border-white/10 flex items-center gap-3">

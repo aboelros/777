@@ -24,7 +24,7 @@ from app.core.seed import seed_database
 from app.core.error_handlers import setup_error_handlers
 from app.api.v1 import (
     admin, auth, assistant, bot_training, chat_bot, deals, drip_campaigns,
-    enhanced_bot, integrations, knowledge, messages, order_management,
+    enhanced_bot, finance, integrations, knowledge, messages, order_management,
     orders, payments_invoicing, photos, products, projects, reports,
     social_media, storage, subscriptions, webhooks
 )
@@ -618,6 +618,7 @@ app.include_router(knowledge.router, prefix=f"/api/{settings.API_VERSION}/knowle
 app.include_router(payments_invoicing.router, prefix=f"/api/{settings.API_VERSION}/payments", tags=["Payments & Invoicing"])
 app.include_router(deals.router, prefix=f"/api/{settings.API_VERSION}/deals", tags=["Sales Pipeline"])
 app.include_router(drip_campaigns.router, prefix=f"/api/{settings.API_VERSION}/drip-campaigns", tags=["Drip Campaigns"])
+app.include_router(finance.router, prefix=f"/api/{settings.API_VERSION}/finance", tags=["Financial Intelligence & Valuation"])
 
 
 if __name__ == "__main__":
