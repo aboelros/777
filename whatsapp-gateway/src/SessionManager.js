@@ -2,7 +2,7 @@
  * Session Manager - Handles WhatsApp session lifecycle
  */
 
-const { default: makeWASocket, DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, Browsers } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
@@ -73,7 +73,7 @@ class SessionManager {
             auth: state,
             printQRInTerminal: false,
             logger: pino({ level: 'silent' }),
-            browser: ['Chrome (Linux)', '', ''],
+            browser: Browsers.ubuntu('Chrome'),
             connectTimeoutMs: 60000,
             retryRequestDelayMs: 5000,
             markOnlineOnConnect: false,

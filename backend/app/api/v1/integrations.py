@@ -1067,12 +1067,33 @@ async def get_wa_gateway_qr(
             detail="WhatsApp integration not found"
         )
     
-    # Get QR URL from extra_data
     extra = integration.extra_data or {}
+    session_id = extra.get("session_id") or (integration.config or {}).get("session_id") or str(integration.id)
+
+    # Try syncing live session status and fresh QR from gateway
+    try:
+        from app.api.v1.whatsapp_session_helpers import sync_linked_device_session
+        sync_result = await sync_linked_device_session(db, integration, session_id)
+        if sync_result.get("status") == "connected" or sync_result.get("connected"):
+            return {
+                "status": "connected",
+                "session_id": session_id,
+                "connected": True,
+                "qr_url": None,
+                "message": "WhatsApp connected successfully"
+            }
+        if sync_result.get("qr_code"):
+            return {
+                "status": "success",
+                "session_id": session_id,
+                "qr_url": sync_result.get("qr_code"),
+                "message": "Scan QR code with WhatsApp mobile app"
+            }
+    except Exception as e:
+        logger.warning("Could not sync live session status", error=str(e), session_id=session_id)
+
     qr_url = extra.get("qr_url")
-    session_id = extra.get("session_id")
-    
-    if not qr_url or not session_id:
+    if not qr_url:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="QR code not found. Please start a session first."

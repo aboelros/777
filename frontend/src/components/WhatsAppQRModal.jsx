@@ -23,26 +23,33 @@ export default function WhatsAppQRModal({
       if (!projectId || !integrationId) return null;
       try {
         return await api.integrations.waGateway.getQR(projectId, integrationId);
-      } catch {
-        return await api.integrations.waGateway.startSession(projectId, integrationId);
+      } catch (err) {
+        if (!qrCode) {
+          return await api.integrations.waGateway.startSession(projectId, integrationId);
+        }
+        throw err;
       }
     },
     onSuccess: (data) => {
       const qr = data?.qr_url || data?.qr_code || data?.qr;
-      if (qr) {
+      if (data?.status === 'connected' || data?.connected) {
+        setConnectionStatus('connected');
+        setQrCode(null);
+        queryClient.invalidateQueries(['integrations', projectId]);
+      } else if (qr) {
         setQrCode(qr);
         setConnectionStatus('ready');
         setErrorMessage('');
-      } else if (data?.status === 'connected') {
-        setConnectionStatus('connected');
       }
     },
     onError: (err) => {
-      const sanitized = (err.response?.data?.detail || err.message || 'Unable to load QR')
-        .replace(/Bearer\s+[^\s]+/gi, '[REDACTED]')
-        .replace(/https?:\/\/[^\s]+/gi, '[URL]');
-      setErrorMessage(sanitized);
-      setConnectionStatus('error');
+      if (!qrCode) {
+        const sanitized = (err.response?.data?.detail || err.message || 'Unable to load QR')
+          .replace(/Bearer\s+[^\s]+/gi, '[REDACTED]')
+          .replace(/https?:\/\/[^\s]+/gi, '[URL]');
+        setErrorMessage(sanitized);
+        setConnectionStatus('error');
+      }
     },
   });
 
@@ -58,13 +65,23 @@ export default function WhatsAppQRModal({
   });
 
   useEffect(() => {
-    if (isOpen && !initialQRCode && projectId && integrationId) {
+    if (!isOpen || !projectId || !integrationId) return;
+
+    if (!initialQRCode && !qrCode) {
       setConnectionStatus('loading');
       fetchQRMutation.mutate();
-    } else if (isOpen && initialQRCode) {
+    } else if (initialQRCode) {
       setQrCode(initialQRCode);
     }
-  }, [isOpen, initialQRCode, projectId, integrationId]);
+
+    const interval = setInterval(() => {
+      if (connectionStatus !== 'connected') {
+        fetchQRMutation.mutate();
+      }
+    }, 3500);
+
+    return () => clearInterval(interval);
+  }, [isOpen, projectId, integrationId, connectionStatus]);
 
   if (!isOpen) return null;
 
