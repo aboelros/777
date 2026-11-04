@@ -11,7 +11,6 @@ import structlog
 
 from app.domains.integrations.models import Integration, IntegrationStatus
 from app.services.integrations.whatsapp_baileys import WhatsAppBaileysService
-from app.core.config import settings
 
 logger = structlog.get_logger(__name__)
 
@@ -27,6 +26,16 @@ def _sanitize_session_response(data: Dict[str, Any]) -> Dict[str, Any]:
             clean_meta.pop(sensitive_key, None)
         sanitized["metadata"] = clean_meta
     return sanitized
+
+
+def resolve_session_id(integration: Integration) -> str:
+    """Ensure a deterministic per-tenant unique session ID."""
+    extra = integration.extra_data or {}
+    config = integration.config or {}
+    sid = extra.get("session_id") or config.get("session_id")
+    if not sid or sid == "default":
+        return str(integration.id)
+    return sid
 
 
 async def get_whatsapp_integration(
@@ -62,9 +71,9 @@ async def ensure_linked_device_session(
     """Start or retrieve session QR code for Baileys gateway."""
     extra = integration.extra_data or {}
     config = integration.config or {}
-    session_id = extra.get("session_id") or config.get("session_id") or str(integration.id)
-    base_url = config.get("base_url") or getattr(settings, "WA_GATEWAY_BASE_URL", None)
-    api_key = config.get("api_key") or getattr(settings, "WA_GATEWAY_API_KEY", None)
+    session_id = resolve_session_id(integration)
+    base_url = config.get("base_url")
+    api_key = config.get("api_key")
 
     service = WhatsAppBaileysService(
         session_id=session_id,
@@ -118,8 +127,8 @@ async def sync_linked_device_session(
 ) -> Dict[str, Any]:
     """Query gateway status and synchronize integration model state."""
     config = integration.config or {}
-    base_url = config.get("base_url") or getattr(settings, "WA_GATEWAY_BASE_URL", None)
-    api_key = config.get("api_key") or getattr(settings, "WA_GATEWAY_API_KEY", None)
+    base_url = config.get("base_url")
+    api_key = config.get("api_key")
 
     service = WhatsAppBaileysService(
         session_id=session_id,
@@ -173,8 +182,8 @@ async def close_linked_device_session(
 ) -> Dict[str, Any]:
     """Terminate Baileys session and update integration status."""
     config = integration.config or {}
-    base_url = config.get("base_url") or getattr(settings, "WA_GATEWAY_BASE_URL", None)
-    api_key = config.get("api_key") or getattr(settings, "WA_GATEWAY_API_KEY", None)
+    base_url = config.get("base_url")
+    api_key = config.get("api_key")
 
     service = WhatsAppBaileysService(
         session_id=session_id,

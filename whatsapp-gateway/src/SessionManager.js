@@ -43,7 +43,15 @@ class SessionManager {
         }
 
         const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
-        const { version } = await fetchLatestBaileysVersion();
+        let version = [2, 3000, 1015901307];
+        try {
+            const versionInfo = await fetchLatestBaileysVersion();
+            if (versionInfo && versionInfo.version) {
+                version = versionInfo.version;
+            }
+        } catch (err) {
+            this.logger.warn({ sessionId, error: err.message }, 'Failed fetching latest Baileys version, using fallback');
+        }
 
         const session = {
             id: sessionId,

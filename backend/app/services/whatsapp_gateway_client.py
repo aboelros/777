@@ -2,12 +2,44 @@
 HTTP client for WhatsApp Baileys Gateway microservice.
 """
 
+import os
 from typing import Dict, Any, Optional
 import httpx
 import structlog
 from app.core.config import settings
 
 logger = structlog.get_logger(__name__)
+
+
+def resolve_gateway_url(configured_url: Optional[str] = None) -> str:
+    """Resolve gateway URL prioritizing remote endpoints over localhost in cloud deployments."""
+    env_url = (
+        getattr(settings, "WA_GATEWAY_BASE_URL", None)
+        or getattr(settings, "WHATSAPP_BAILEYS_URL", None)
+        or getattr(settings, "WA_GATEWAY_URL", None)
+    )
+    is_cloud = bool(
+        os.getenv("RENDER")
+        or os.getenv("RENDER_SERVICE_ID")
+        or getattr(settings, "ENVIRONMENT", "").lower() in ("production", "staging")
+    )
+    if is_cloud:
+        if env_url and "localhost" not in env_url and "127.0.0.1" not in env_url:
+            return env_url.rstrip("/")
+        if configured_url and "localhost" not in configured_url and "127.0.0.1" not in configured_url:
+            return configured_url.rstrip("/")
+        return "https://ai-sales-bot-whatsapp-vdr6.onrender.com"
+    return (configured_url or env_url or "http://localhost:3000").rstrip("/")
+
+
+def resolve_gateway_api_key(configured_key: Optional[str] = None) -> Optional[str]:
+    """Resolve gateway API key falling back to environment settings."""
+    return (
+        configured_key
+        or getattr(settings, "WA_GATEWAY_API_KEY", None)
+        or getattr(settings, "WHATSAPP_BAILEYS_API_KEY", None)
+        or None
+    )
 
 
 class WhatsAppGatewayError(Exception):
@@ -22,11 +54,10 @@ class WhatsAppGatewayClient:
         self,
         base_url: Optional[str] = None,
         api_key: Optional[str] = None,
-        timeout: float = 30.0,
+        timeout: float = 60.0,
     ) -> None:
-        raw_url = base_url or getattr(settings, "WA_GATEWAY_BASE_URL", None) or "http://localhost:3000"
-        self.base_url = raw_url.rstrip("/")
-        self.api_key = api_key or getattr(settings, "WA_GATEWAY_API_KEY", None)
+        self.base_url = resolve_gateway_url(base_url)
+        self.api_key = resolve_gateway_api_key(api_key)
         self.timeout = timeout
 
         headers = {"Content-Type": "application/json"}

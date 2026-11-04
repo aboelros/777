@@ -907,135 +907,11 @@ async def start_wa_gateway_session(
 ) -> Dict[str, Any]:
     """
     Start WA-Gateway session and return QR code URL.
-    
-    This endpoint initializes a new session with the wa-gateway instance
-    and returns the QR code URL for scanning with WhatsApp mobile app.
     """
-    # Verify project access
-    
-    # Get integration
-    result = await db.execute(
-        select(Integration)
-        .where(Integration.id == integration_id)
-        .where(Integration.project_id == project_id)
-        .where(Integration.provider == "whatsapp")
-    )
-    integration = result.scalar_one_or_none()
-    
-    if not integration:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="WhatsApp integration not found"
-        )
-    
-    # Get session ID and base_url from config
-    session_id = integration.config.get("session_id")
-    base_url = integration.config.get("base_url")
-    
-    # Fall back to environment variable if base_url not in config
-    if not base_url:
-        from app.core.config import settings
-        base_url = settings.WA_GATEWAY_BASE_URL
-    
-    if not session_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Session ID not found in integration config"
-        )
-    
-    if not base_url:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="WA-Gateway base URL not configured. Please either: 1) Set base_url in integration config, or 2) Set WA_GATEWAY_BASE_URL environment variable."
-        )
-    
-    try:
-        # Determine which service to use
-        whatsapp_provider = integration.config.get("whatsapp_provider", "wa_gateway")
-        
-        # Explicitly get API key from config
-        config_api_key = integration.config.get("api_key")
-        
-        if whatsapp_provider in ("baileys", "wa_gateway", "go_whatsapp"):
-            from app.services.integrations.whatsapp_baileys import WhatsAppBaileysService
-            
-            gateway_service = WhatsAppBaileysService(
-                session_id=session_id,
-                base_url=base_url,
-                api_key=config_api_key
-            )
-            logger.info("Using WhatsApp Baileys Gateway Service")
+    from app.api.v1.whatsapp_session_helpers import get_whatsapp_integration, ensure_linked_device_session
 
-        else:
-            raise HTTPException(status_code=400, detail=f"Unsupported WhatsApp provider: {whatsapp_provider}")
-        
-        logger.info(
-            "Starting WhatsApp session",
-            integration_id=str(integration_id),
-            session_id=session_id,
-            base_url=base_url,
-            provider=whatsapp_provider,
-            has_api_key=bool(config_api_key),
-            api_key_preview=config_api_key[:3] + "***" if config_api_key else "None"
-        )
-        
-        # Start session using the service (handles WAHA API)
-        try:
-            session_result = await gateway_service.start_session(session_id)
-            qr_code_data = session_result.get("qr_code")
-            
-            if not qr_code_data and session_result.get("status") == "pending":
-                logger.info("Session pending, QR code might be generating...", session_id=session_id)
-                
-        except Exception as e:
-            logger.error("Failed to start session via service", error=str(e))
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to start WhatsApp session: {str(e)}"
-            )
-
-        # Update integration extra_data with session info
-        extra = integration.extra_data or {}
-        extra["provider"] = whatsapp_provider
-        extra["session_id"] = session_id
-        # We don't have a direct session URL for the user to visit anymore, 
-        # as we display the QR code directly.
-        extra["session_url"] = "" 
-        
-        if qr_code_data:
-            extra["qr_url"] = qr_code_data
-            
-        integration.extra_data = extra
-        integration.status = IntegrationStatus.PENDING
-        
-        await db.commit()
-        
-        logger.info(
-            "WA-Gateway session initialized",
-            integration_id=str(integration_id),
-            session_id=session_id,
-            has_qr=bool(qr_code_data)
-        )
-        
-        return {
-            "status": "success",
-            "session_id": session_id,
-            "qr_url": qr_code_data, # Frontend can display this directly
-            "message": "Scan the QR code to connect WhatsApp",
-            "instructions": "Scan the QR code with your WhatsApp mobile app"
-        }
-        
-    except Exception as e:
-        import traceback
-        logger.error(
-            "Failed to start WA-Gateway session", 
-            error=str(e),
-            traceback=traceback.format_exc()
-        )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to start session: {str(e)}"
-        )
+    integration = await get_whatsapp_integration(db, project_id, integration_id)
+    return await ensure_linked_device_session(db, integration)
 
 
 @router.get("/{project_id}/whatsapp/{integration_id}/wa-gateway/qr", status_code=status.HTTP_200_OK)
@@ -1047,34 +923,21 @@ async def get_wa_gateway_qr(
 ) -> Dict[str, Any]:
     """
     Get QR code URL for WA-Gateway session.
-    
-    Returns the QR code URL for an existing session.
     """
-    # Verify project access
-    
-    # Get integration
-    result = await db.execute(
-        select(Integration)
-        .where(Integration.id == integration_id)
-        .where(Integration.project_id == project_id)
-        .where(Integration.provider == "whatsapp")
+    from app.api.v1.whatsapp_session_helpers import (
+        get_whatsapp_integration,
+        sync_linked_device_session,
+        ensure_linked_device_session,
+        resolve_session_id
     )
-    integration = result.scalar_one_or_none()
-    
-    if not integration:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="WhatsApp integration not found"
-        )
-    
-    extra = integration.extra_data or {}
-    session_id = extra.get("session_id") or (integration.config or {}).get("session_id") or str(integration.id)
 
-    # Try syncing live session status and fresh QR from gateway
+    integration = await get_whatsapp_integration(db, project_id, integration_id)
+    session_id = resolve_session_id(integration)
+
+    # 1. First attempt to sync live session from gateway
     try:
-        from app.api.v1.whatsapp_session_helpers import sync_linked_device_session
         sync_result = await sync_linked_device_session(db, integration, session_id)
-        if sync_result.get("status") == "connected" or sync_result.get("connected"):
+        if sync_result.get("connected") or sync_result.get("status") == "connected":
             return {
                 "status": "connected",
                 "session_id": session_id,
@@ -1092,19 +955,31 @@ async def get_wa_gateway_qr(
     except Exception as e:
         logger.warning("Could not sync live session status", error=str(e), session_id=session_id)
 
-    qr_url = extra.get("qr_url")
-    if not qr_url:
+    # 2. Check cached QR code in extra_data
+    qr_url = (integration.extra_data or {}).get("qr_url")
+    if qr_url:
+        return {
+            "status": "success",
+            "session_id": session_id,
+            "qr_url": qr_url,
+            "message": "Scan QR code with WhatsApp mobile app"
+        }
+
+    # 3. If no session or QR exists yet, auto-initialize via ensure_linked_device_session
+    try:
+        init_res = await ensure_linked_device_session(db, integration)
+        return {
+            "status": init_res.get("status", "success"),
+            "session_id": session_id,
+            "qr_url": init_res.get("qr_url") or init_res.get("qr_code"),
+            "message": init_res.get("message", "Scan QR code with WhatsApp mobile app")
+        }
+    except Exception as e:
+        logger.error("Auto-initialization of WhatsApp session failed", error=str(e), session_id=session_id)
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="QR code not found. Please start a session first."
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to initialize WhatsApp session"
         )
-    
-    return {
-        "status": "success",
-        "session_id": session_id,
-        "qr_url": qr_url,
-        "message": "Scan QR code with WhatsApp mobile app"
-    }
 
 
 @router.post("/{project_id}/whatsapp/{integration_id}/wa-gateway/logout", status_code=status.HTTP_200_OK)
@@ -1116,75 +991,16 @@ async def logout_wa_gateway_session(
 ) -> Dict[str, Any]:
     """
     Logout WA-Gateway session.
-    
-    This will disconnect the WhatsApp session and require re-scanning QR code.
     """
-    # Verify project access
-    
-    # Get integration
-    result = await db.execute(
-        select(Integration)
-        .where(Integration.id == integration_id)
-        .where(Integration.project_id == project_id)
-        .where(Integration.provider == "whatsapp")
+    from app.api.v1.whatsapp_session_helpers import (
+        get_whatsapp_integration,
+        close_linked_device_session,
+        resolve_session_id
     )
-    integration = result.scalar_one_or_none()
-    
-    if not integration:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="WhatsApp integration not found"
-        )
-    
-    # Get session ID
-    session_id = (integration.extra_data or {}).get("session_id")
-    
-    if not session_id:
-        return {
-            "status": "success",
-            "message": "No active session to logout"
-        }
-    
-    # Get WA-Gateway service
-    whatsapp_provider = integration.config.get("whatsapp_provider", "wa_gateway")
-    from app.core.config import settings
-    
-    base_url = integration.config.get("base_url") or settings.WA_GATEWAY_BASE_URL
-    api_key = integration.config.get("api_key")
-    
-    if whatsapp_provider in ("baileys", "wa_gateway", "go_whatsapp"):
-        from app.services.integrations.whatsapp_baileys import WhatsAppBaileysService
-        gateway_service = WhatsAppBaileysService(session_id=session_id, base_url=base_url, api_key=api_key)
-    else:
-        raise HTTPException(status_code=400, detail=f"Unsupported WhatsApp provider: {whatsapp_provider}")
-        
-    try:
-        # Logout session
-        await gateway_service.logout_session(session_id)
-        
-        # Update integration
-        integration.status = IntegrationStatus.ERROR
-        extra = integration.extra_data or {}
-        extra["qr_url"] = None
-        integration.extra_data = extra
-        
-        await db.commit()
-        
-        logger.info(
-            "WA-Gateway session logged out",
-            integration_id=str(integration_id),
-            session_id=session_id
-        )
-        
-        return {
-            "status": "success",
-            "message": "Session logged out successfully"
-        }
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to logout session: {str(e)}"
-        )
+
+    integration = await get_whatsapp_integration(db, project_id, integration_id)
+    session_id = resolve_session_id(integration)
+    return await close_linked_device_session(db, integration, session_id)
 
 
 # ============================================================================

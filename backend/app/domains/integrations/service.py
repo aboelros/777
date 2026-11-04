@@ -36,15 +36,11 @@ class IntegrationService:
             if provider == "whatsapp":
                 whatsapp_provider = config_payload.get("whatsapp_provider", "business_api")
                 if whatsapp_provider in ("go_whatsapp", "baileys", "wa_gateway"):
-                    from app.core.config import settings
-                    if not config_payload.get("base_url"):
-                        config_payload["base_url"] = (
-                            getattr(settings, "WA_GATEWAY_URL", None)
-                            or getattr(settings, "WA_GATEWAY_BASE_URL", None)
-                            or "http://localhost:3000"
-                        )
-                    if not config_payload.get("session_id"):
-                        config_payload["session_id"] = "default"
+                    from app.services.whatsapp_gateway_client import resolve_gateway_url, resolve_gateway_api_key
+                    config_payload["base_url"] = resolve_gateway_url(config_payload.get("base_url"))
+                    resolved_key = resolve_gateway_api_key(config_payload.get("api_key"))
+                    if resolved_key:
+                        config_payload["api_key"] = resolved_key
                 else:
                     phone_number = config_payload.get("phone_number") or config_payload.get("whatsappPhoneNumber")
                     if not phone_number:
@@ -58,22 +54,33 @@ class IntegrationService:
             existing = await repo.get_by_provider(proj_uuid, provider)
             
             if existing:
-                existing.config = config_payload
                 if provider == "whatsapp" and config_payload.get("whatsapp_provider") in ("go_whatsapp", "baileys", "wa_gateway"):
                     extra = existing.extra_data or {}
-                    extra["session_id"] = config_payload.get("session_id")
+                    sid = config_payload.get("session_id") or extra.get("session_id") or str(existing.id)
+                    if not sid or sid == "default":
+                        sid = str(existing.id)
+                    config_payload["session_id"] = sid
+                    extra["session_id"] = sid
                     extra["provider"] = config_payload.get("whatsapp_provider")
                     existing.extra_data = extra
+                existing.config = config_payload
                 existing.status = IntegrationStatus.PENDING
                 existing.updated_at = func.now()
                 integration = existing
             else:
+                from uuid import uuid4
+                new_id = uuid4()
                 extra_data = {}
                 if provider == "whatsapp" and config_payload.get("whatsapp_provider") in ("go_whatsapp", "baileys", "wa_gateway"):
-                    extra_data["session_id"] = config_payload.get("session_id")
+                    sid = config_payload.get("session_id") or str(new_id)
+                    if not sid or sid == "default":
+                        sid = str(new_id)
+                    config_payload["session_id"] = sid
+                    extra_data["session_id"] = sid
                     extra_data["provider"] = config_payload.get("whatsapp_provider")
                 
                 integration = Integration(
+                    id=new_id,
                     project_id=proj_uuid,
                     provider=provider,
                     config=config_payload,
