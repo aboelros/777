@@ -42,19 +42,13 @@ class AIOptimizer:
         # Remove excessive whitespace
         optimized = " ".join(optimized.split())
         
-        # Common replacements to reduce tokens
+        # Safe phrasing reductions to reduce tokens without corrupting vocabulary
         replacements = {
             "please respond with": "respond:",
             "I would like you to": "",
             "Could you please": "",
             "based on the following information": "given:",
-            "information": "info",
-            "customer": "cust",
-            "message": "msg",
-            "product": "prod",
             "generate a response": "reply:",
-            "analyze the sentiment": "sentiment:",
-            "extract the following": "extract:",
         }
         
         for old, new in replacements.items():
@@ -84,9 +78,11 @@ class AIOptimizer:
         return optimized
     
     def _generate_cache_key(self, prompt: str, context: Optional[Dict] = None) -> str:
-        """Generate cache key from prompt and context."""
-        cache_string = f"{prompt}:{json.dumps(context or {}, sort_keys=True)}"
-        return hashlib.md5(cache_string.encode()).hexdigest()
+        """Generate cache key from prompt and context strictly scoped by tenant/project_id."""
+        ctx = context or {}
+        project_id = str(ctx.get("project_id") or ctx.get("tenant_id") or "global")
+        cache_string = f"{project_id}:{prompt}:{json.dumps(ctx, sort_keys=True)}"
+        return hashlib.sha256(cache_string.encode()).hexdigest()
     
     async def get_cached_response(
         self,
