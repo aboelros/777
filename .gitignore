@@ -113,3 +113,8 @@ meta_review_videos/
 after_effects/
 admin-panel/dist/
 
+# Temporary reviewer verification scripts with database credentials
+scripts/check_*.py
+scripts/create_reviewer_user.py
+scripts/deep_check_reviewer_activity.py
+
