@@ -25,7 +25,7 @@ google-cloud-secret-manager==2.18.0
 google-auth==2.27.0
 
 # Redis & Celery
-redis==5.0.1
+redis>=6.1.0
 celery==5.3.6
 flower==2.0.1
 
