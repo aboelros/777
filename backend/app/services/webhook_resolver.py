@@ -175,6 +175,9 @@ class WebhookProjectResolver:
         if not session_id:
             return None
 
+        # If payload carries a verified project_id from gateway metadata, use for validation
+        meta_project = event.payload.get("project_id")
+
         query = select(Integration).where(
             Integration.provider == "whatsapp",
             Integration.status == IntegrationStatus.CONNECTED
@@ -183,7 +186,16 @@ class WebhookProjectResolver:
         matched_projects: List[UUID] = []
         for it in result.scalars().all():
             ext = it.extra_data or {}
-            if ext.get("provider") == "wa_gateway" and str(ext.get("session_id") or "").strip() == session_id:
+            cfg = it.config or {}
+            stored_session = str(ext.get("session_id") or cfg.get("session_id") or it.id).strip()
+            is_baileys = (
+                ext.get("provider") in ("wa_gateway", "baileys", "go_whatsapp")
+                or cfg.get("whatsapp_provider") in ("wa_gateway", "baileys", "go_whatsapp")
+            )
+            if is_baileys and stored_session == session_id:
+                if meta_project and str(it.project_id) != str(meta_project):
+                    logger.warning("Session cross-tenant project mismatch", session_id=session_id, meta=meta_project, it=it.project_id)
+                    continue
                 matched_projects.append(it.project_id)
 
         return self._deduplicate_match(matched_projects, f"session_id {session_id}")

@@ -17,7 +17,7 @@ def make_signature(secret: str, timestamp: str, body: bytes) -> str:
 @pytest.fixture
 def mock_gateway():
     with patch("app.services.webhook_gateway.WebhookGateway._dispatch") as mock_dispatch, \
-         patch("app.services.webhook_gateway.WebhookGateway._resolve_project", return_value="test_project") as mock_resolve:
+         patch("app.services.webhook_resolver.WebhookProjectResolver.resolve_project", return_value="test_project") as mock_resolve:
         yield mock_dispatch
 
 @pytest.fixture

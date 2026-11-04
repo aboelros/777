@@ -387,16 +387,45 @@ class WAGatewayAdapter(BaseAdapter):
         return hmac.compare_digest(expected_signature, signature)
 
     def normalize(self, payload: Dict[str, Any]) -> Optional[WebhookEvent]:
-        # WA Gateway structure
-        data = payload.get("data", payload) # Sometimes wrapped in data
+        from app.services.integrations.whatsapp_baileys import WhatsAppBaileysService
+        service = WhatsAppBaileysService()
+        parsed = service.parse_webhook(payload)
+        
+        if parsed and (parsed.get("text") or parsed.get("media_type")):
+            ts = parsed.get("timestamp") or 0
+            try:
+                event_time = datetime.fromtimestamp(ts) if ts > 1000000000 else datetime.now()
+            except Exception:
+                event_time = datetime.now()
 
+            return WebhookEvent(
+                event_id=parsed.get("message_id") or "unknown",
+                event_type=EventType.MESSAGE_CREATED,
+                timestamp=event_time,
+                platform="wa_gateway",
+                channel="whatsapp",
+                sender_id=parsed.get("from"),
+                sender_name=parsed.get("contact", {}).get("name"),
+                payload={
+                    "text": parsed.get("text"),
+                    "media": parsed.get("media_data"),
+                    "media_type": parsed.get("media_type"),
+                    "session_id": parsed.get("session_id"),
+                    "project_id": parsed.get("project_id"),
+                    "is_echo": parsed.get("from_me", False)
+                },
+                raw_data=payload
+            )
+
+        # Fallback for flat legacy structure
+        data = payload.get("data", payload)
         if not data.get("text") and not data.get("media"):
-             return None
+            return None
 
         return WebhookEvent(
             event_id=data.get("message_id", "unknown"),
             event_type=EventType.MESSAGE_CREATED,
-            timestamp=datetime.now(), # GoWA might not send timestamp
+            timestamp=datetime.now(),
             platform="wa_gateway",
             channel="whatsapp",
             sender_id=data.get("from"),

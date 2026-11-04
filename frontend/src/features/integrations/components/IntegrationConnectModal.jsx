@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { X, Facebook } from 'lucide-react';
+import { X, Facebook, AlertTriangle } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 
@@ -16,6 +16,8 @@ export default function IntegrationConnectModal({
   if (!show || !selectedProvider) return null;
 
   const isMeta = selectedProvider.id === 'facebook' || selectedProvider.id === 'instagram';
+  const isWhatsApp = selectedProvider.id === 'whatsapp';
+  const whatsappMode = credentials.whatsapp_provider || 'business_api';
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4">
@@ -69,27 +71,85 @@ export default function IntegrationConnectModal({
                 onChange={(e) => setCredentials({ ...credentials, shopDomain: e.target.value })}
                 required
               />
-            ) : selectedProvider.id === 'whatsapp' ? (
-              <>
-                <Input
-                  label="WhatsApp Phone Number *"
-                  placeholder="+1234567890"
-                  value={credentials.whatsappPhoneNumber}
-                  onChange={(e) => setCredentials({ ...credentials, whatsappPhoneNumber: e.target.value })}
-                  required
-                />
-                <Input
-                  label="Business Account ID (Optional)"
-                  placeholder="e.g. 1092837465"
-                  value={credentials.whatsappBusinessAccountId}
-                  onChange={(e) => setCredentials({ ...credentials, whatsappBusinessAccountId: e.target.value })}
-                />
-              </>
+            ) : isWhatsApp ? (
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                    WhatsApp Provider *
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCredentials({ ...credentials, whatsapp_provider: 'business_api' })}
+                      className={`p-3 rounded-xl border text-left transition-all ${
+                        whatsappMode === 'business_api'
+                          ? 'border-emerald-500 bg-emerald-500/10 text-text-primary'
+                          : 'border-border bg-bg-surface/50 text-text-muted hover:border-border-hover'
+                      }`}
+                    >
+                      <div className="font-semibold text-xs flex items-center justify-between">
+                        Official Cloud API
+                      </div>
+                      <p className="text-[11px] text-text-secondary mt-1">Official Meta Business API</p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCredentials({ ...credentials, whatsapp_provider: 'baileys' })}
+                      className={`p-3 rounded-xl border text-left transition-all ${
+                        whatsappMode === 'baileys'
+                          ? 'border-amber-500 bg-amber-500/10 text-text-primary'
+                          : 'border-border bg-bg-surface/50 text-text-muted hover:border-border-hover'
+                      }`}
+                    >
+                      <div className="font-semibold text-xs flex items-center justify-between text-amber-400">
+                        Baileys Gateway
+                      </div>
+                      <p className="text-[11px] text-text-secondary mt-1">Unofficial / Self-hosted</p>
+                    </button>
+                  </div>
+                </div>
+
+                {whatsappMode === 'business_api' ? (
+                  <>
+                    <Input
+                      label="WhatsApp Phone Number *"
+                      placeholder="+1234567890"
+                      value={credentials.whatsappPhoneNumber || ''}
+                      onChange={(e) => setCredentials({ ...credentials, whatsappPhoneNumber: e.target.value })}
+                      required
+                    />
+                    <Input
+                      label="Business Account ID (Optional)"
+                      placeholder="e.g. 1092837465"
+                      value={credentials.whatsappBusinessAccountId || ''}
+                      onChange={(e) => setCredentials({ ...credentials, whatsappBusinessAccountId: e.target.value })}
+                    />
+                  </>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-300 text-xs space-y-1">
+                      <div className="font-semibold flex items-center gap-1.5 text-amber-400">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
+                        Unofficial Gateway Notice
+                      </div>
+                      <p className="text-[11px] text-amber-300/80 leading-relaxed">
+                        Baileys is an unofficial self-hosted WhatsApp gateway. Unofficial connections carry account restriction risks. Only use for legitimate, consent-based messaging.
+                      </p>
+                    </div>
+                    <Input
+                      label="Gateway Service URL (Optional)"
+                      placeholder="http://localhost:3000"
+                      value={credentials.base_url || ''}
+                      onChange={(e) => setCredentials({ ...credentials, base_url: e.target.value })}
+                    />
+                  </div>
+                )}
+              </div>
             ) : (
               <Input
                 label={`${selectedProvider.name} Token / API Key *`}
                 placeholder="Enter access token..."
-                value={credentials.apiKey}
+                value={credentials.apiKey || ''}
                 onChange={(e) => setCredentials({ ...credentials, apiKey: e.target.value })}
                 required
               />

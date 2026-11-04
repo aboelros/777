@@ -23,6 +23,11 @@ from app.core.uow import UnitOfWork
 # WhatsApp Business API (official Meta API)
 from app.services.integrations.whatsapp_business import WhatsAppBusinessService
 from app.services.integrations.meta_oauth import MetaOAuthService
+from app.api.v1.whatsapp_session_helpers import (
+    ensure_linked_device_session,
+    sync_linked_device_session,
+    close_linked_device_session,
+)
 from app.core.config import settings
 
 router = APIRouter()
@@ -619,25 +624,22 @@ async def _setup_whatsapp_integration(integration: Integration, db: AsyncSession
     # Get provider type from config
     whatsapp_provider = (integration.config or {}).get("whatsapp_provider", "business_api")
     
-    if whatsapp_provider == "go_whatsapp":
-        # Go WhatsApp setup
-        base_url = (integration.config or {}).get("base_url") or settings.WA_GATEWAY_BASE_URL
-        session_id = (integration.config or {}).get("session_id", "default")
-        
-        if not base_url:
-            raise ValueError("Base URL is required for Go WhatsApp. Please configure WA_GATEWAY_BASE_URL.")
+    if whatsapp_provider in ("baileys", "wa_gateway", "go_whatsapp"):
+        # Baileys / Self-hosted WhatsApp setup
+        base_url = (integration.config or {}).get("base_url") or settings.WA_GATEWAY_BASE_URL or "http://localhost:3000"
+        session_id = (integration.config or {}).get("session_id") or str(integration.id)
             
-        # Store provider info in extra_data
         integration.extra_data = {
-            "provider": "go_whatsapp",
+            "provider": "baileys",
             "session_id": session_id,
             "base_url": base_url,
-            "setup_method": "manual"
+            "setup_method": "qr_code",
+            "last_status": "pending"
         }
         integration.status = IntegrationStatus.PENDING
         
         logger.info(
-            "Go WhatsApp integration setup",
+            "WhatsApp Baileys gateway integration setup",
             integration_id=str(integration.id),
             base_url=base_url,
             status="pending_qr_scan"
@@ -954,23 +956,18 @@ async def start_wa_gateway_session(
         # Explicitly get API key from config
         config_api_key = integration.config.get("api_key")
         
-        if whatsapp_provider == "go_whatsapp":
-            from app.services.integrations.go_whatsapp_service import GoWhatsAppService
+        if whatsapp_provider in ("baileys", "wa_gateway", "go_whatsapp"):
+            from app.services.integrations.whatsapp_baileys import WhatsAppBaileysService
             
-            gateway_service = GoWhatsAppService(
+            gateway_service = WhatsAppBaileysService(
+                session_id=session_id,
                 base_url=base_url,
                 api_key=config_api_key
             )
-            logger.info("Using Go WhatsApp Service")
+            logger.info("Using WhatsApp Baileys Gateway Service")
 
         else:
-             # Default or Error
-             if whatsapp_provider == "wa_gateway" or whatsapp_provider == "wppconnect":
-                  raise HTTPException(status_code=400, detail="Provider not supported")
-             
-             # Fallback to Go WhatsApp if not specified? No, better to error.
-             # But for backward compatibility with existing "wa_gateway" configs, maybe we should error.
-             raise HTTPException(status_code=400, detail=f"Unsupported WhatsApp provider: {whatsapp_provider}")
+            raise HTTPException(status_code=400, detail=f"Unsupported WhatsApp provider: {whatsapp_provider}")
         
         logger.info(
             "Starting WhatsApp session",
@@ -1134,9 +1131,9 @@ async def logout_wa_gateway_session(
     base_url = integration.config.get("base_url") or settings.WA_GATEWAY_BASE_URL
     api_key = integration.config.get("api_key")
     
-    if whatsapp_provider == "go_whatsapp":
-        from app.services.integrations.go_whatsapp_service import GoWhatsAppService
-        gateway_service = GoWhatsAppService(base_url=base_url, api_key=api_key)
+    if whatsapp_provider in ("baileys", "wa_gateway", "go_whatsapp"):
+        from app.services.integrations.whatsapp_baileys import WhatsAppBaileysService
+        gateway_service = WhatsAppBaileysService(session_id=session_id, base_url=base_url, api_key=api_key)
     else:
         raise HTTPException(status_code=400, detail=f"Unsupported WhatsApp provider: {whatsapp_provider}")
         

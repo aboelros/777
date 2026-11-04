@@ -16,6 +16,7 @@ import ConnectedIntegrationsList from '../components/ConnectedIntegrationsList';
 import IntegrationCard from '../components/IntegrationCard';
 import IntegrationConnectModal from '../components/IntegrationConnectModal';
 import IntegrationInstructionsDrawer from '../components/IntegrationInstructionsDrawer';
+import WhatsAppQRModal from '@/components/WhatsAppQRModal';
 
 export default function Integrations() {
   const { currentProject } = useProjectStore();
@@ -27,11 +28,14 @@ export default function Integrations() {
   const [showModal, setShowModal] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [selectedInstructions, setSelectedInstructions] = useState(null);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [activeWhatsAppIntegrationId, setActiveWhatsAppIntegrationId] = useState(null);
   const [credentials, setCredentials] = useState({
     apiKey: '',
     shopDomain: '',
     whatsappPhoneNumber: '',
     whatsappBusinessAccountId: '',
+    whatsapp_provider: 'business_api',
   });
 
   const availableIntegrations = [
@@ -52,11 +56,20 @@ export default function Integrations() {
 
   const connectMutation = useMutation({
     mutationFn: (data) => api.integrations.create(currentProject?.id, data),
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success(t('integrations.connect_success') || 'Channel connected successfully');
       queryClient.invalidateQueries(['integrations', currentProject?.id]);
       setShowModal(false);
-      setCredentials({ apiKey: '', shopDomain: '', whatsappPhoneNumber: '', whatsappBusinessAccountId: '' });
+      const isBaileys = data?.provider === 'whatsapp' && (
+        data?.config?.whatsapp_provider === 'baileys' ||
+        data?.extra_data?.provider === 'baileys' ||
+        credentials.whatsapp_provider === 'baileys'
+      );
+      if (isBaileys && data?.id) {
+        setActiveWhatsAppIntegrationId(data.id);
+        setQrModalOpen(true);
+      }
+      setCredentials({ apiKey: '', shopDomain: '', whatsappPhoneNumber: '', whatsappBusinessAccountId: '', whatsapp_provider: 'business_api' });
     },
     onError: (err) => toast.error(err.response?.data?.detail || 'Connection failed'),
   });
@@ -146,7 +159,18 @@ export default function Integrations() {
               existingIntegrationId={extId}
               onConnect={() => { setSelectedProvider(integration); setShowModal(true); }}
               onSync={() => extId && syncMutation.mutate(extId)}
-              onVerify={() => extId && verifyMutation.mutate(extId)}
+              onVerify={() => {
+                if (integration.id === 'whatsapp' && extId) {
+                  const waItem = rawList.find((i) => i.id === extId);
+                  const isBaileys = waItem?.config?.whatsapp_provider === 'baileys' || waItem?.extra_data?.provider === 'baileys';
+                  if (isBaileys) {
+                    setActiveWhatsAppIntegrationId(extId);
+                    setQrModalOpen(true);
+                    return;
+                  }
+                }
+                if (extId) verifyMutation.mutate(extId);
+              }}
               onDelete={() => extId && deleteMutation.mutate(extId)}
               onOpenInstructions={() => { setSelectedInstructions(integration); setShowInstructions(true); }}
               isConnecting={connectMutation.isPending && selectedProvider?.id === integration.id}
@@ -184,6 +208,13 @@ export default function Integrations() {
         show={showInstructions}
         integration={selectedInstructions}
         onClose={() => { setShowInstructions(false); setSelectedInstructions(null); }}
+      />
+
+      <WhatsAppQRModal
+        isOpen={qrModalOpen}
+        onClose={() => setQrModalOpen(false)}
+        projectId={currentProject?.id}
+        integrationId={activeWhatsAppIntegrationId}
       />
     </div>
   );

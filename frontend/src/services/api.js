@@ -13,12 +13,13 @@ import * as dripCampaigns from './api/dripCampaigns';
 import * as payments from './api/payments';
 import * as products from './api/products';
 import * as knowledge from './api/knowledge';
+import { financeApi as finance } from '@/features/finance/api/financeApi';
 import { apiRequest, API_BASE_URL, getAuthToken } from './api/core';
 
 export {
     auth, projects, orders, messages, reports, integrations,
     assistant, subscriptions, botTraining, socialMedia, deals,
-    dripCampaigns, payments, products, knowledge,
+    dripCampaigns, payments, products, knowledge, finance,
     apiRequest, API_BASE_URL, getAuthToken
 };
 
@@ -38,6 +39,7 @@ export default {
     payments: payments.payments,
     products: products.products,
     knowledge: knowledge.knowledge,
+    finance,
     apiRequest,
     API_BASE_URL,
     getAuthToken

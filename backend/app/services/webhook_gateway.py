@@ -91,7 +91,9 @@ class WebhookGateway:
 
         if "X-Hub-Signature-256" in headers and "object" in payload:
             return "meta"
-        if "X-Telegram-Bot-Api-Secret-Token" in headers or "message" in payload:
+        if "X-WA-Signature" in headers:
+            return "wa_gateway"
+        if "X-Telegram-Bot-Api-Secret-Token" in headers:
             return "telegram"
         if "X-Shopify-Hmac-Sha256" in headers:
             return "shopify"
@@ -102,16 +104,18 @@ class WebhookGateway:
 
         if "object" in payload and payload["object"] in ["whatsapp_business_account", "page", "instagram"]:
             return "meta"
-        if "update_id" in payload:
-            return "telegram"
         if "session_id" in payload or ("data" in payload and "session_id" in payload["data"]):
             return "wa_gateway"
+        if "update_id" in payload:
+            return "telegram"
         if "order_number" in payload or ("first_name" in payload and "orders_count" in payload):
             return "shopify"
         if "shop_id" in payload and "type" in payload and isinstance(payload["type"], int):
             return "tiktok"
         if "event" in payload and payload["event"].startswith("message."):
             return "tiktok"
+        if "message" in payload:
+            return "telegram"
 
         return None
 

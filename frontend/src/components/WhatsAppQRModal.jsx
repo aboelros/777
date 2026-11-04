@@ -1,197 +1,168 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CheckCircle, AlertCircle, Smartphone } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, AlertTriangle, RefreshCw, Power, Smartphone } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import api from '../services/api';
-import { useTranslation } from '../lib/translations';
+import api from '@/services/api';
+import Button from '@/components/ui/Button';
 
-export default function WhatsAppQRModal({ isOpen, onClose, projectId, integrationId, initialQRCode }) {
-    const queryClient = useQueryClient();
-    const [connectionStatus, setConnectionStatus] = useState('ready'); // ready, connecting, connected, error
-    const { t } = useTranslation();
+export default function WhatsAppQRModal({
+  isOpen,
+  onClose,
+  projectId,
+  integrationId,
+  initialQRCode = null,
+}) {
+  const queryClient = useQueryClient();
+  const [qrCode, setQrCode] = useState(initialQRCode);
+  const [connectionStatus, setConnectionStatus] = useState('ready');
+  const [errorMessage, setErrorMessage] = useState('');
 
-    // Connect mutation - WhatsApp Business API doesn't need QR codes
-    const connectMutation = useMutation({
-        mutationFn: () => api.integrations.verifyIntegration(projectId, integrationId),
-        onSuccess: (data) => {
-            if (data.status === 'success' || data.integration_status === 'connected') {
-                setConnectionStatus('connected');
-                toast.success(t('integrations.connect_success'));
-                setTimeout(() => {
-                    queryClient.invalidateQueries(['integrations']);
-                    onClose();
-                }, 2000);
-            } else {
-                setConnectionStatus('error');
-                toast.error(data.message || t('common.error'));
-            }
-        },
-        onError: (error) => {
-            setConnectionStatus('error');
-            toast.error(error.message || t('common.error'));
-        },
-    });
+  const fetchQRMutation = useMutation({
+    mutationFn: async () => {
+      if (!projectId || !integrationId) return null;
+      try {
+        return await api.integrations.waGateway.getQR(projectId, integrationId);
+      } catch {
+        return await api.integrations.waGateway.startSession(projectId, integrationId);
+      }
+    },
+    onSuccess: (data) => {
+      const qr = data?.qr_url || data?.qr_code || data?.qr;
+      if (qr) {
+        setQrCode(qr);
+        setConnectionStatus('ready');
+        setErrorMessage('');
+      } else if (data?.status === 'connected') {
+        setConnectionStatus('connected');
+      }
+    },
+    onError: (err) => {
+      const sanitized = (err.response?.data?.detail || err.message || 'Unable to load QR')
+        .replace(/Bearer\s+[^\s]+/gi, '[REDACTED]')
+        .replace(/https?:\/\/[^\s]+/gi, '[URL]');
+      setErrorMessage(sanitized);
+      setConnectionStatus('error');
+    },
+  });
 
-    // Disconnect mutation
-    const disconnectMutation = useMutation({
-        mutationFn: () => api.integrations.disconnectIntegration(projectId, integrationId),
-        onSuccess: () => {
-            toast.success(t('common.save'));
-            queryClient.invalidateQueries(['integrations']);
-            onClose();
-        },
-        onError: (error) => {
-            toast.error(error.message || t('common.error'));
-        },
-    });
+  const logoutMutation = useMutation({
+    mutationFn: () => api.integrations.waGateway.logout(projectId, integrationId),
+    onSuccess: () => {
+      toast.success('Session logged out');
+      queryClient.invalidateQueries(['integrations', projectId]);
+      setQrCode(null);
+      setConnectionStatus('disconnected');
+    },
+    onError: () => toast.error('Failed to logout session'),
+  });
 
-    const handleConnect = () => {
-        setConnectionStatus('connecting');
-        connectMutation.mutate();
-    };
+  useEffect(() => {
+    if (isOpen && !initialQRCode && projectId && integrationId) {
+      setConnectionStatus('loading');
+      fetchQRMutation.mutate();
+    } else if (isOpen && initialQRCode) {
+      setQrCode(initialQRCode);
+    }
+  }, [isOpen, initialQRCode, projectId, integrationId]);
 
-    if (!isOpen) return null;
+  if (!isOpen) return null;
 
-    return (
-        <AnimatePresence>
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="glass-card p-8 max-w-md w-full rounded-2xl relative"
-                >
-                    {/* Close button */}
-                    <button
-                        onClick={onClose}
-                        className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
-                    >
-                        <X className="w-6 h-6" />
-                    </button>
-
-                    {/* Header */}
-                    <div className="text-center mb-6">
-                        <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                            <Smartphone className="w-8 h-8 text-white" />
-                        </div>
-                        <h2 className="text-2xl font-bold text-white mb-2">WhatsApp Business API</h2>
-                        <p className="text-slate-400 text-sm">
-                            {t('integrations.connect_with_meta').replace('Meta', 'WhatsApp Business')}
-                        </p>
-                    </div>
-
-                    {/* Content */}
-                    <div className="space-y-6">
-                        {/* Ready State */}
-                        {connectionStatus === 'ready' && (
-                            <div className="space-y-4">
-                                {initialQRCode ? (
-                                    /* Show WA-Gateway Session in iframe */
-                                    <div className="space-y-3">
-                                        <p className="text-slate-700 text-sm font-medium text-center bg-white px-4 py-2 rounded-t-lg">Scan QR Code with WhatsApp</p>
-                                        <div className="bg-white rounded-lg overflow-hidden" style={{ height: '500px' }}>
-                                            <iframe
-                                                src={initialQRCode}
-                                                className="w-full h-full border-0"
-                                                title="WA-Gateway QR Code"
-                                                sandbox="allow-same-origin allow-scripts"
-                                            />
-                                        </div>
-                                        <div className="bg-white p-3 rounded-b-lg space-y-2">
-                                            <p className="text-slate-600 text-xs text-center">
-                                                📱 Open WhatsApp → Settings → Linked Devices → Link a Device
-                                            </p>
-                                            <a
-                                                href={initialQRCode}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="block w-full text-center px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors text-xs"
-                                            >
-                                                Open in New Tab
-                                            </a>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    /* Show Business API Info */
-                                    <div className="bg-white/5 border border-white/10 rounded-lg p-4 space-y-2">
-                                        <p className="text-white font-medium text-sm mb-2">About WhatsApp Business API:</p>
-                                        <ul className="text-slate-300 text-sm space-y-1 list-disc list-inside">
-                                            <li>Official Meta WhatsApp API</li>
-                                            <li>No QR codes needed</li>
-                                            <li>Production-ready and reliable</li>
-                                            <li>Configured via backend credentials</li>
-                                        </ul>
-                                    </div>
-                                )}
-                                {!initialQRCode && (
-                                    <button
-                                        onClick={handleConnect}
-                                        className="w-full btn-primary"
-                                    >
-                                        {t('integrations.connect_with_meta').replace('Meta', 'WhatsApp')}
-                                    </button>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Connecting State */}
-                        {connectionStatus === 'connecting' && (
-                            <div className="flex flex-col items-center justify-center py-8">
-                                <div className="animate-spin w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full mb-4" />
-                                <p className="text-slate-400 text-center">
-                                    {t('reports.controls.generating')}
-                                </p>
-                            </div>
-                        )}
-
-                        {/* Error State */}
-                        {connectionStatus === 'error' && (
-                            <div className="flex flex-col items-center justify-center py-8">
-                                <AlertCircle className="w-16 h-16 text-red-400 mb-4" />
-                                <p className="text-red-400 mb-2">{t('common.error')}</p>
-                                <p className="text-slate-400 text-sm text-center mb-4">
-                                    {t('settings.subtitle')}
-                                </p>
-                                <button
-                                    onClick={handleConnect}
-                                    className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
-                                >
-                                    {t('common.active')}
-                                </button>
-                            </div>
-                        )}
-
-                        {/* Connected State */}
-                        {connectionStatus === 'connected' && (
-                            <div className="flex flex-col items-center justify-center py-8">
-                                <CheckCircle className="w-16 h-16 text-green-400 mb-4" />
-                                <p className="text-green-400 text-lg font-medium mb-2">{t('common.active')}</p>
-                                <p className="text-slate-400 text-sm">{t('integrations.connect_success')}</p>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Footer */}
-                    {connectionStatus === 'connected' && (
-                        <div className="mt-6 flex gap-3">
-                            <button
-                                onClick={() => disconnectMutation.mutate()}
-                                disabled={disconnectMutation.isPending}
-                                className="flex-1 px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors disabled:opacity-50"
-                            >
-                                {t('common.cancel')}
-                            </button>
-                            <button
-                                onClick={onClose}
-                                className="flex-1 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
-                            >
-                                {t('common.save')}
-                            </button>
-                        </div>
-                    )}
-                </motion.div>
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.96 }}
+          className="glass-card p-6 sm:p-8 max-w-md w-full rounded-2xl border border-border space-y-5"
+        >
+          <div className="flex items-center justify-between pb-3 border-b border-border">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white">
+                <Smartphone className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-text-primary">WhatsApp Linked Device</h2>
+                <span className="text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  Unofficial / Self-Hosted
+                </span>
+              </div>
             </div>
-        </AnimatePresence>
-    );
+            <button onClick={onClose} className="p-2 text-text-muted hover:text-text-primary">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-300 text-xs flex gap-2.5">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400 mt-0.5" />
+            <div className="space-y-0.5">
+              <p className="font-semibold text-amber-400">Account Safety Warning</p>
+              <p className="text-[11px] text-amber-300/80 leading-relaxed">
+                Baileys is an unofficial client. WhatsApp may restrict or ban numbers using unofficial tools. Use consent-based messaging only.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center justify-center min-h-[260px] p-4 bg-bg-surface/50 border border-border rounded-xl">
+            {connectionStatus === 'connected' ? (
+              <div className="text-center space-y-2 py-6">
+                <CheckCircle className="w-12 h-12 text-emerald-400 mx-auto" />
+                <p className="font-bold text-text-primary">WhatsApp Connected</p>
+                <p className="text-xs text-text-muted">Gateway session is actively linked and operational.</p>
+              </div>
+            ) : connectionStatus === 'error' ? (
+              <div className="text-center space-y-2 py-6">
+                <AlertCircle className="w-12 h-12 text-rose-400 mx-auto" />
+                <p className="font-bold text-rose-400">Connection Error</p>
+                <p className="text-xs text-text-muted max-w-xs">{errorMessage || 'Could not load QR code'}</p>
+                <Button size="sm" variant="secondary" onClick={() => fetchQRMutation.mutate()} leftIcon={RefreshCw}>
+                  Retry
+                </Button>
+              </div>
+            ) : qrCode ? (
+              <div className="text-center space-y-3">
+                <div className="bg-white p-3 rounded-xl shadow-md inline-block">
+                  <img src={qrCode} alt="WhatsApp QR Code" className="w-52 h-52 object-contain" />
+                </div>
+                <p className="text-xs text-text-muted">
+                  Open WhatsApp &gt; Linked Devices &gt; Link a Device to scan
+                </p>
+              </div>
+            ) : (
+              <div className="text-center space-y-3 py-8">
+                <RefreshCw className="w-8 h-8 text-brand-primary animate-spin mx-auto" />
+                <p className="text-xs text-text-muted">Initializing gateway session and generating QR...</p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 pt-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="flex-1"
+              onClick={() => fetchQRMutation.mutate()}
+              isLoading={fetchQRMutation.isPending}
+              leftIcon={RefreshCw}
+            >
+              Refresh QR
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              className="flex-1"
+              onClick={() => logoutMutation.mutate()}
+              isLoading={logoutMutation.isPending}
+              leftIcon={Power}
+            >
+              Logout Session
+            </Button>
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  );
 }
