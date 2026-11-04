@@ -119,6 +119,9 @@ export default function Integrations() {
   const handleConnectSubmit = () => {
     if (!selectedProvider) return;
     const configData = { ...credentials, auto_sync: true };
+    if (configData.whatsappPhoneNumber && !configData.phone_number) {
+      configData.phone_number = configData.whatsappPhoneNumber;
+    }
     connectMutation.mutate({ provider: selectedProvider.id, config: configData });
   };
 

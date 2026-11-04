@@ -137,6 +137,12 @@ export default function IntegrationConnectModal({
                       </p>
                     </div>
                     <Input
+                      label="WhatsApp Phone Number (Optional)"
+                      placeholder="+1234567890"
+                      value={credentials.whatsappPhoneNumber || ''}
+                      onChange={(e) => setCredentials({ ...credentials, whatsappPhoneNumber: e.target.value })}
+                    />
+                    <Input
                       label="Gateway Service URL (Optional)"
                       placeholder="http://localhost:3000"
                       value={credentials.base_url || ''}
