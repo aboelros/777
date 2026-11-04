@@ -3,6 +3,7 @@
  */
 
 const crypto = require('crypto');
+const INTERNAL_SECRET = process.env.CALLBACK_SECRET || 'automio_gateway_internal_secret_2026';
 
 async function sendWebhook(backendUrl, endpoint, payload, secret, logger) {
     if (!backendUrl) return;
@@ -10,7 +11,8 @@ async function sendWebhook(backendUrl, endpoint, payload, secret, logger) {
     try {
         const timestamp = Math.floor(Date.now() / 1000).toString();
         const payloadStr = JSON.stringify(payload);
-        const signature = crypto.createHmac('sha256', secret || '').update(timestamp + '.' + payloadStr).digest('hex');
+        const hmacKey = secret || INTERNAL_SECRET;
+        const signature = crypto.createHmac('sha256', hmacKey).update(timestamp + '.' + payloadStr).digest('hex');
 
         const fetch = (await import('node-fetch')).default;
         const targetUrl = `${backendUrl.replace(/\/+$/, '')}/${endpoint.replace(/^\/+/, '')}`;

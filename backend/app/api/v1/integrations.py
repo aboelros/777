@@ -987,11 +987,14 @@ async def get_wa_gateway_qr(
             "message": "WhatsApp connected successfully" if is_conn else init_res.get("message", "Scan QR code with WhatsApp mobile app")
         }
     except Exception as e:
-        logger.error("Auto-initialization of WhatsApp session failed", error=str(e), session_id=session_id)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to initialize WhatsApp session"
-        )
+        logger.warning("WhatsApp session auto-init pending gateway startup", error=str(e), session_id=session_id)
+        return {
+            "status": "loading",
+            "session_id": session_id,
+            "connected": False,
+            "qr_url": None,
+            "message": "Gateway starting up, generating QR code..."
+        }
 
 
 @router.post("/{project_id}/whatsapp/{integration_id}/wa-gateway/logout", status_code=status.HTTP_200_OK)

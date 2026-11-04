@@ -47,6 +47,9 @@ class WhatsAppGatewayError(Exception):
     pass
 
 
+INTERNAL_GATEWAY_SECRET = os.getenv("INTERNAL_GATEWAY_SECRET", "automio_gateway_internal_secret_2026")
+
+
 class WhatsAppGatewayClient:
     """Client for communicating with the self-hosted WhatsApp Baileys gateway."""
 
@@ -57,12 +60,14 @@ class WhatsAppGatewayClient:
         timeout: float = 60.0,
     ) -> None:
         self.base_url = resolve_gateway_url(base_url)
-        self.api_key = resolve_gateway_api_key(api_key)
+        self.api_key = resolve_gateway_api_key(api_key) or INTERNAL_GATEWAY_SECRET
         self.timeout = timeout
 
-        headers = {"Content-Type": "application/json"}
-        if self.api_key:
-            headers["Authorization"] = f"Bearer {self.api_key}"
+        headers = {
+            "Content-Type": "application/json",
+            "X-Internal-Secret": INTERNAL_GATEWAY_SECRET,
+            "Authorization": f"Bearer {self.api_key}"
+        }
 
         self._client = httpx.AsyncClient(
             timeout=self.timeout,

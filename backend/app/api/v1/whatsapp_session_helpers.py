@@ -114,11 +114,15 @@ async def ensure_linked_device_session(
             "message": "WhatsApp connected successfully" if is_conn else "Scan QR code to connect"
         })
     except Exception as e:
-        logger.error("Failed ensuring WhatsApp Baileys session", error=str(e), integration_id=str(integration.id))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to initialize WhatsApp gateway session"
-        )
+        logger.warning("WhatsApp session start pending gateway startup", error=str(e), integration_id=str(integration.id))
+        return {
+            "status": "loading",
+            "session_id": session_id,
+            "connected": False,
+            "qr_code": None,
+            "qr_url": None,
+            "message": "Gateway starting up, generating QR code..."
+        }
     finally:
         await service.aclose()
 

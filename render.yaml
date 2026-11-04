@@ -127,7 +127,7 @@ services:
         generateValue: true
       - key: BACKEND_URL
         # Replace with your actual backend URL once deployed
-        value: https://ai-sales-bot-api.onrender.com
+        value: https://ai-sales-bot-api-vdr6.onrender.com
       - key: SESSION_DIR
         value: ./sessions
       - key: LOG_LEVEL
