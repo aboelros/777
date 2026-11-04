@@ -1,6 +1,4 @@
-"""
-Webhook project resolution service with strict multi-tenant deterministic binding.
-"""
+"""Webhook project resolution service with strict multi-tenant deterministic binding."""
 
 from typing import Dict, Any, Optional, List, Set
 from uuid import UUID
@@ -175,12 +173,12 @@ class WebhookProjectResolver:
         if not session_id:
             return None
 
-        # If payload carries a verified project_id from gateway metadata, use for validation
         meta_project = event.payload.get("project_id")
+        status_update = event.payload.get("status")
 
         query = select(Integration).where(
             Integration.provider == "whatsapp",
-            Integration.status == IntegrationStatus.CONNECTED
+            Integration.status.in_([IntegrationStatus.CONNECTED, IntegrationStatus.PENDING])
         )
         result = await self.db.execute(query)
         matched_projects: List[UUID] = []
@@ -196,6 +194,12 @@ class WebhookProjectResolver:
                 if meta_project and str(it.project_id) != str(meta_project):
                     logger.warning("Session cross-tenant project mismatch", session_id=session_id, meta=meta_project, it=it.project_id)
                     continue
+                if status_update == "connected":
+                    it.status = IntegrationStatus.CONNECTED
+                    ext["qr_url"] = None
+                    ext["last_status"] = "connected"
+                    it.extra_data = ext
+                    await self.db.commit()
                 matched_projects.append(it.project_id)
 
         return self._deduplicate_match(matched_projects, f"session_id {session_id}")

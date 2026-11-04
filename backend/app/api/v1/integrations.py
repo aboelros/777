@@ -945,10 +945,19 @@ async def get_wa_gateway_qr(
                 "qr_url": None,
                 "message": "WhatsApp connected successfully"
             }
+        if sync_result.get("status") == "connecting":
+            return {
+                "status": "connecting",
+                "session_id": session_id,
+                "connected": False,
+                "qr_url": sync_result.get("qr_code"),
+                "message": "Connecting to WhatsApp..."
+            }
         if sync_result.get("qr_code"):
             return {
                 "status": "success",
                 "session_id": session_id,
+                "connected": False,
                 "qr_url": sync_result.get("qr_code"),
                 "message": "Scan QR code with WhatsApp mobile app"
             }
@@ -961,6 +970,7 @@ async def get_wa_gateway_qr(
         return {
             "status": "success",
             "session_id": session_id,
+            "connected": False,
             "qr_url": qr_url,
             "message": "Scan QR code with WhatsApp mobile app"
         }
@@ -968,11 +978,13 @@ async def get_wa_gateway_qr(
     # 3. If no session or QR exists yet, auto-initialize via ensure_linked_device_session
     try:
         init_res = await ensure_linked_device_session(db, integration)
+        is_conn = init_res.get("status") == "connected" or bool(init_res.get("connected"))
         return {
-            "status": init_res.get("status", "success"),
+            "status": "connected" if is_conn else init_res.get("status", "success"),
             "session_id": session_id,
-            "qr_url": init_res.get("qr_url") or init_res.get("qr_code"),
-            "message": init_res.get("message", "Scan QR code with WhatsApp mobile app")
+            "connected": is_conn,
+            "qr_url": None if is_conn else (init_res.get("qr_url") or init_res.get("qr_code")),
+            "message": "WhatsApp connected successfully" if is_conn else init_res.get("message", "Scan QR code with WhatsApp mobile app")
         }
     except Exception as e:
         logger.error("Auto-initialization of WhatsApp session failed", error=str(e), session_id=session_id)

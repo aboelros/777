@@ -32,10 +32,15 @@ export default function WhatsAppQRModal({
     },
     onSuccess: (data) => {
       const qr = data?.qr_url || data?.qr_code || data?.qr;
-      if (data?.status === 'connected' || data?.connected) {
+      const isConnected = data?.status === 'connected' || data?.connected || data?.integration_status === 'connected';
+      if (isConnected) {
         setConnectionStatus('connected');
         setQrCode(null);
         queryClient.invalidateQueries(['integrations', projectId]);
+        setTimeout(() => onClose(), 1800);
+      } else if (data?.status === 'connecting') {
+        setConnectionStatus('connecting');
+        if (qr) setQrCode(qr);
       } else if (qr) {
         setQrCode(qr);
         setConnectionStatus('ready');
@@ -81,7 +86,7 @@ export default function WhatsAppQRModal({
     }, 3500);
 
     return () => clearInterval(interval);
-  }, [isOpen, projectId, integrationId, connectionStatus]);
+  }, [isOpen, projectId, integrationId, connectionStatus === 'connected']);
 
   if (!isOpen) return null;
 
@@ -127,6 +132,12 @@ export default function WhatsAppQRModal({
                 <CheckCircle className="w-12 h-12 text-emerald-400 mx-auto" />
                 <p className="font-bold text-text-primary">WhatsApp Connected</p>
                 <p className="text-xs text-text-muted">Gateway session is actively linked and operational.</p>
+              </div>
+            ) : connectionStatus === 'connecting' ? (
+              <div className="text-center space-y-3 py-8">
+                <RefreshCw className="w-8 h-8 text-brand-primary animate-spin mx-auto" />
+                <p className="font-bold text-text-primary">Connecting to WhatsApp...</p>
+                <p className="text-xs text-text-muted">Device scanned! Finalizing session handshake...</p>
               </div>
             ) : connectionStatus === 'error' ? (
               <div className="text-center space-y-2 py-6">

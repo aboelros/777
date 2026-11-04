@@ -90,25 +90,28 @@ async def ensure_linked_device_session(
         res = await service.start_session(project_id=str(integration.project_id), metadata=session_meta)
         
         qr_code = res.get("qr_code") or res.get("qr")
+        is_conn = res.get("status") == "connected" or bool(res.get("connected"))
+
         new_extra = {
             **extra,
             "session_id": session_id,
             "provider": "baileys",
-            "qr_url": qr_code,
-            "last_status": res.get("status", "pending")
+            "qr_url": None if is_conn else qr_code,
+            "last_status": "connected" if is_conn else res.get("status", "pending")
         }
         integration.extra_data = new_extra
-        integration.status = IntegrationStatus.PENDING
+        integration.status = IntegrationStatus.CONNECTED if is_conn else IntegrationStatus.PENDING
         await db.commit()
 
         return _sanitize_session_response({
-            "status": "success",
+            "status": "connected" if is_conn else "success",
+            "connected": is_conn,
             "session_id": session_id,
-            "qr_code": qr_code,
-            "qr_url": qr_code,
+            "qr_code": None if is_conn else qr_code,
+            "qr_url": None if is_conn else qr_code,
             "pairing_code": res.get("pairing_code"),
-            "integration_status": "pending",
-            "message": "Scan QR code to connect"
+            "integration_status": "connected" if is_conn else "pending",
+            "message": "WhatsApp connected successfully" if is_conn else "Scan QR code to connect"
         })
     except Exception as e:
         logger.error("Failed ensuring WhatsApp Baileys session", error=str(e), integration_id=str(integration.id))
@@ -139,35 +142,39 @@ async def sync_linked_device_session(
     try:
         status_res = await service.get_status()
         raw_status = status_res.get("status")
+        is_conn = raw_status == "connected" or bool(status_res.get("connected"))
 
         extra = integration.extra_data or {}
-        if raw_status == "connected":
+        if is_conn:
             integration.status = IntegrationStatus.CONNECTED
             extra["qr_url"] = None
         elif raw_status in ("qr_ready", "connecting"):
-            integration.status = IntegrationStatus.PENDING
+            if integration.status != IntegrationStatus.CONNECTED:
+                integration.status = IntegrationStatus.PENDING
             if status_res.get("qr_code"):
                 extra["qr_url"] = status_res.get("qr_code")
         elif raw_status in ("disconnected", "not_found"):
-            integration.status = IntegrationStatus.DISCONNECTED
+            if integration.status != IntegrationStatus.CONNECTED:
+                integration.status = IntegrationStatus.DISCONNECTED
 
-        extra["last_status"] = raw_status
+        extra["last_status"] = "connected" if is_conn else raw_status
         integration.extra_data = extra
         await db.commit()
 
         return _sanitize_session_response({
             "session_id": session_id,
-            "status": raw_status,
+            "status": "connected" if is_conn else raw_status,
+            "connected": is_conn,
             "integration_status": integration.status.value,
-            "qr_code": status_res.get("qr_code") or extra.get("qr_url"),
+            "qr_code": None if is_conn else (status_res.get("qr_code") or extra.get("qr_url")),
             "pairing_code": status_res.get("pairing_code"),
-            "connected": raw_status == "connected"
         })
     except Exception as e:
         logger.error("Failed syncing Baileys session", error=str(e), session_id=session_id)
         return {
             "session_id": session_id,
             "status": "error",
+            "connected": integration.status == IntegrationStatus.CONNECTED,
             "integration_status": integration.status.value,
             "message": "Unable to contact gateway"
         }

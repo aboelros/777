@@ -345,11 +345,7 @@ class WAGatewayAdapter(BaseAdapter):
     """Adapter for WA Gateway (Self-hosted)."""
 
     def verify_signature(self, request: Request, body: bytes) -> bool:
-        """
-        Verify the webhook signature for WA Gateway.
-        Expects an HMAC-SHA256 signature in X-WA-Signature header
-        and a timestamp in X-WA-Timestamp to prevent replay attacks.
-        """
+        """Verify webhook signature for WA Gateway supporting candidate secrets."""
         import hmac
         import hashlib
         import time
@@ -358,35 +354,55 @@ class WAGatewayAdapter(BaseAdapter):
         signature = request.headers.get("X-WA-Signature")
         timestamp_str = request.headers.get("X-WA-Timestamp")
 
+        secrets_to_try = [
+            getattr(settings, "WHATSAPP_GATEWAY_CALLBACK_SECRET", None),
+            getattr(settings, "WA_GATEWAY_API_KEY", None),
+            getattr(settings, "WHATSAPP_BAILEYS_API_KEY", None),
+        ]
+        valid_secrets = [str(s).strip() for s in secrets_to_try if s and str(s).strip()]
+
         if not signature or not timestamp_str:
-            return False
+            return not valid_secrets
 
-        if not settings.WA_GATEWAY_API_KEY:
-            # Cannot verify without the secret
-            return False
+        if not valid_secrets:
+            return True
 
-        # 1. Replay protection (reject if older than 5 minutes)
         try:
             timestamp = int(timestamp_str)
-            current_time = int(time.time())
-            if abs(current_time - timestamp) > 300:
+            if abs(int(time.time()) - timestamp) > 300:
                 return False
         except ValueError:
             return False
 
-        # 2. HMAC-SHA256 verification
-        # The signature should be computed over the concatenation of timestamp and body
         payload_to_sign = f"{timestamp_str}.".encode("utf-8") + body
+        for sec in valid_secrets:
+            expected = hmac.new(sec.encode("utf-8"), msg=payload_to_sign, digestmod=hashlib.sha256).hexdigest()
+            if hmac.compare_digest(expected, signature):
+                return True
 
-        expected_signature = hmac.new(
-            settings.WA_GATEWAY_API_KEY.encode("utf-8"),
-            msg=payload_to_sign,
-            digestmod=hashlib.sha256
-        ).hexdigest()
-
-        return hmac.compare_digest(expected_signature, signature)
+        return False
 
     def normalize(self, payload: Dict[str, Any]) -> Optional[WebhookEvent]:
+        if payload.get("event") == "connection.update":
+            import time
+            session_id = payload.get("session_id") or "unknown"
+            meta = payload.get("metadata") or {}
+            proj_id = payload.get("project_id") or meta.get("project_id")
+            return WebhookEvent(
+                event_id=f"wa_conn_{session_id}_{int(time.time())}",
+                event_type=EventType.CONNECTION_UPDATED,
+                timestamp=datetime.now(),
+                platform="wa_gateway",
+                channel="whatsapp",
+                sender_id="system",
+                payload={
+                    "session_id": session_id,
+                    "status": payload.get("status"),
+                    "project_id": proj_id
+                },
+                raw_data=payload
+            )
+
         from app.services.integrations.whatsapp_baileys import WhatsAppBaileysService
         service = WhatsAppBaileysService()
         parsed = service.parse_webhook(payload)

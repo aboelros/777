@@ -22,6 +22,7 @@ class EventType(str, Enum):
     CART_UPDATED = "cart.updated"
     
     # System
+    CONNECTION_UPDATED = "connection.updated"
     UNKNOWN = "unknown"
 
 class WebhookEvent(BaseModel):

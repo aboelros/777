@@ -171,7 +171,7 @@ class WhatsAppGatewayClient:
     async def close_session(self, session_id: str) -> Dict[str, Any]:
         """Terminate and clean up session on gateway."""
         try:
-            resp = await self._client.post(f"{self.base_url}/sessions/{session_id}/close")
+            resp = await self._client.post(f"{self.base_url}/sessions/{session_id}/close", json={})
             if resp.status_code in (200, 201, 204):
                 return resp.json() if resp.content else {"status": "closed"}
             return {"status": "closed"}

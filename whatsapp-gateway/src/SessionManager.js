@@ -1,6 +1,4 @@
-/**
- * Session Manager - Handles WhatsApp session lifecycle and socket events
- */
+// Session Manager - Handles WhatsApp session lifecycle and socket events
 
 const { default: makeWASocket, DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, Browsers } = require('@whiskeysockets/baileys');
 const pino = require('pino');
@@ -15,9 +13,7 @@ class SessionManager {
         this.sessionDir = sessionDir;
         this.logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 
-        if (!fs.existsSync(sessionDir)) {
-            fs.mkdirSync(sessionDir, { recursive: true });
-        }
+        if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
     }
 
     async createSession(sessionId, metadata = {}) {
@@ -28,6 +24,9 @@ class SessionManager {
             }
             if (existing.status === 'qr_ready' && existing.qr) {
                 return { session_id: sessionId, status: 'qr_ready', qr_code: existing.qr, pairing_code: existing.pairingCode, created_at: existing.createdAt };
+            }
+            if (existing.status === 'connecting') {
+                return { session_id: sessionId, status: 'connecting', qr_code: existing.qr, pairing_code: existing.pairingCode, created_at: existing.createdAt };
             }
             if (existing.socket) {
                 try { existing.socket.end(new Error('Refreshing socket')); } catch (_) {}
@@ -79,9 +78,7 @@ class SessionManager {
         if (!session) return;
 
         const sessionPath = path.join(this.sessionDir, sessionId);
-        if (!fs.existsSync(sessionPath)) {
-            fs.mkdirSync(sessionPath, { recursive: true });
-        }
+        if (!fs.existsSync(sessionPath)) fs.mkdirSync(sessionPath, { recursive: true });
 
         const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
         let version = [2, 3000, 1015901307];
@@ -206,10 +203,13 @@ class SessionManager {
 
     async closeSession(sessionId) {
         const session = this.sessions.get(sessionId);
-        if (!session) throw new Error('Session not found');
-
+        if (!session) {
+            this.cleanupSessionFiles(sessionId);
+            return { status: 'closed', session_id: sessionId };
+        }
         if (session.socket) {
             try { await session.socket.logout(); } catch (_) {}
+            try { session.socket.end(new Error('Session closed')); } catch (_) {}
         }
         this.sessions.delete(sessionId);
         this.cleanupSessionFiles(sessionId);
