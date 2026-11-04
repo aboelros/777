@@ -150,6 +150,16 @@ async def go_whatsapp_webhook_alt(
     """Alternative legacy endpoint for Go WhatsApp."""
     return await inbound_webhook(request, background_tasks, db, explicit_project_id=None)
 
+@router.post("/wa_gateway")
+@router.post("/wa-gateway")
+async def wa_gateway_webhook(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db)
+) -> Any:
+    """Inbound endpoint for self-hosted WhatsApp Baileys gateway."""
+    return await inbound_webhook(request, background_tasks, db, explicit_project_id=None)
+
 @router.post("/wa-gateway/session")
 async def wa_gateway_session_webhook(
     request: Request,
