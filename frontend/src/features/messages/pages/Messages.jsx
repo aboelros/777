@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { MessageSquare } from 'lucide-react';
@@ -40,6 +40,12 @@ export default function Messages() {
     },
     enabled: !!currentProject?.id
   });
+
+  useEffect(() => {
+    if (!selectedConversation && conversations && conversations.length > 0) {
+      setSelectedConversation(conversations[0]);
+    }
+  }, [conversations, selectedConversation]);
 
   const { data: messagesData, isLoading: messagesLoading } = useQuery({
     queryKey: ['messages', currentProject?.id, selectedConversation?.id],
