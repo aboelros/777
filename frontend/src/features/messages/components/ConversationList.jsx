@@ -108,6 +108,10 @@ export default function ConversationList({
               const ChannelIcon = CHANNEL_ICONS[conv.channel] || MessageSquare;
               const chColor = CHANNEL_COLORS[conv.channel] || 'text-slate-400';
               const isSelected = selectedId === conv.id;
+              const avatarSrc =
+                conv.customer_avatar ||
+                conv.avatar_url ||
+                `https://i.pravatar.cc/150?u=${encodeURIComponent(conv.customer_name || conv.id || 'user')}`;
 
               return (
                 <div
@@ -124,9 +128,9 @@ export default function ConversationList({
                       <span className="select-none">
                         {conv.customer_name?.charAt(0)?.toUpperCase() || 'U'}
                       </span>
-                      {(conv.customer_avatar || conv.avatar_url) && (
+                      {avatarSrc && (
                         <img
-                          src={conv.customer_avatar || conv.avatar_url}
+                          src={avatarSrc}
                           alt={conv.customer_name || 'Customer'}
                           className="absolute inset-0 w-full h-full object-cover"
                           onError={(e) => {

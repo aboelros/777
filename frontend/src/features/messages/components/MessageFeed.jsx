@@ -52,7 +52,10 @@ export default function MessageFeed({
     }
   };
 
-  const customerAvatar = conversation.customer_avatar || conversation.avatar_url;
+  const customerAvatar =
+    conversation.customer_avatar ||
+    conversation.avatar_url ||
+    (conversation.customer_name ? `https://i.pravatar.cc/150?u=${encodeURIComponent(conversation.customer_name)}` : null);
 
   return (
     <div className="h-full max-h-full w-full flex flex-col min-h-0 border border-white/10 rounded-2xl bg-[#0c1326]/85 backdrop-blur-2xl shadow-2xl relative overflow-hidden">

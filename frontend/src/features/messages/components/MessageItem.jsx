@@ -43,7 +43,10 @@ export default function MessageItem({ msg, isUser, isBot, customerAvatar, custom
     rawContent.toLowerCase() === '[photo attachment]' ||
     rawContent.toLowerCase() === '[media attachment]';
   const displayContent = isPlaceholder && imageUrl ? '' : rawContent;
-  const senderAvatar = msg.sender?.avatar_url || customerAvatar;
+  const senderAvatar =
+    msg.sender?.avatar_url ||
+    customerAvatar ||
+    (customerName ? `https://i.pravatar.cc/150?u=${encodeURIComponent(customerName)}` : null);
 
   return (
     <div className={`flex items-end gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
