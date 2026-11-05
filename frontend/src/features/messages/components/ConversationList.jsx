@@ -54,17 +54,17 @@ export default function ConversationList({
   );
 
   return (
-    <GlassCard className="h-full flex flex-col border-[var(--color-border)]">
+    <GlassCard className="h-full flex flex-col min-h-0 border-[var(--color-border)] overflow-hidden">
       {/* Search & Channel Filters */}
-      <div className="p-4 border-b border-[var(--color-border)] space-y-3">
+      <div className="p-3 sm:p-4 border-b border-[var(--color-border)] space-y-2.5 flex-shrink-0">
         <Input
           icon={Search}
-          placeholder={t('inbox.search_placeholder') || 'Search customer name or email...'}
+          placeholder={t('inbox.search_placeholder') || 'Search name or email...'}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
 
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1">
           {['all', 'whatsapp', 'telegram', 'instagram', 'facebook'].map((ch) => {
             const Icon = CHANNEL_ICONS[ch] || MessageSquare;
             const isActive = channelFilter === ch;
@@ -73,13 +73,13 @@ export default function ConversationList({
               <button
                 key={ch}
                 onClick={() => setChannelFilter(ch)}
-                className={`px-2.5 py-1 text-xs rounded-lg flex items-center gap-1.5 transition-all ${
+                className={`px-2 py-0.5 text-[11px] rounded-lg flex items-center gap-1 transition-all ${
                   isActive
                     ? 'bg-sky-500 text-white font-medium shadow-sm'
                     : 'bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
                 }`}
               >
-                <Icon className="w-3 h-3" />
+                <Icon className="w-2.5 h-2.5" />
                 <span className="capitalize">{ch}</span>
               </button>
             );
@@ -88,7 +88,7 @@ export default function ConversationList({
       </div>
 
       {/* Conversations Scroll Area */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-1">
+      <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {isLoading ? (
           <div className="py-12 text-center text-xs text-[var(--color-text-muted)]">
             Loading conversations...

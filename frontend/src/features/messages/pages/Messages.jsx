@@ -94,11 +94,11 @@ export default function Messages() {
   };
 
   return (
-    <div className="h-[calc(100vh-5rem)] p-4 sm:p-6 flex flex-col space-y-4">
+    <div className="h-full p-3 sm:p-4 flex flex-col min-h-0 overflow-hidden space-y-3">
       {/* Title */}
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2.5 text-[var(--color-text-primary)]">
-          <MessageSquare className="w-6 h-6 text-sky-400" />
+      <div className="flex-shrink-0">
+        <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2.5 text-[var(--color-text-primary)]">
+          <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6 text-sky-400" />
           Customer Unified Inbox
         </h1>
         <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
@@ -107,8 +107,8 @@ export default function Messages() {
       </div>
 
       {/* Main Inbox Panels */}
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 min-h-0">
-        <div className="md:col-span-1 h-full min-h-0">
+      <div className="flex-1 flex flex-row gap-3 min-h-0 overflow-hidden">
+        <div className="w-64 sm:w-72 md:w-80 flex-shrink-0 h-full min-h-0 overflow-hidden">
           <ConversationList
             conversations={conversations}
             isLoading={isLoading}
@@ -122,7 +122,7 @@ export default function Messages() {
           />
         </div>
 
-        <div className={`h-full min-h-0 ${showSidebar ? 'md:col-span-2' : 'md:col-span-2'}`}>
+        <div className="flex-1 min-w-0 h-full min-h-0 overflow-hidden">
           <MessageFeed
             conversation={selectedConversation}
             messages={messagesData}

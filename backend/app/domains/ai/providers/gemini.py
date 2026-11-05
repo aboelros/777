@@ -1111,9 +1111,15 @@ class GeminiClient:
                 traceback=error_details
             )
             
-            # Return fallback response instead of crashing
+            # Return safe brand sales fallback response
+            has_arabic = any(ord(ch) >= 0x0600 and ord(ch) <= 0x06FF for ch in str(prompt))
+            fallback_text = (
+                "أهلاً بحضرتك في متجر Nexora! يسعدنا جداً مساعدتك بأي استفسار أو طلب. كيف نقدر نساعدك اليوم؟"
+                if has_arabic
+                else "Hello! Welcome to Nexora Store. How can I assist you with your orders or products today?"
+            )
             return {
-                "text": "I apologize, but I'm experiencing technical difficulties connecting to my brain. Please try again in a moment.",
+                "text": fallback_text,
                 "function_calls": [],
                 "tokens_used": 0,
                 "cost": 0.0,
@@ -1127,8 +1133,14 @@ class GeminiClient:
             error_details = traceback.format_exc()
             logger.error("Unexpected error in generate_response", error=str(e), traceback=error_details)
             
+            has_arabic = any(ord(ch) >= 0x0600 and ord(ch) <= 0x06FF for ch in str(prompt))
+            fallback_text = (
+                "أهلاً بحضرتك في متجر Nexora! يسعدنا جداً مساعدتك بأي استفسار أو طلب. كيف نقدر نساعدك اليوم؟"
+                if has_arabic
+                else "Hello! Welcome to Nexora Store. How can I assist you with your orders or products today?"
+            )
             return {
-                "text": "I encountered an unexpected error. Please contact support.",
+                "text": fallback_text,
                 "function_calls": [],
                 "tokens_used": 0,
                 "cost": 0.0,
@@ -1145,8 +1157,8 @@ class GeminiClient:
             base_prompt = AI_SALER_BASE_PROMPT.format(language_name=language_name)
             system_instructions = f"{base_prompt}\n\n{AI_SALER_CLOSING_RULES}"
         elif persona == "custom":
-            # Custom persona - no system instructions, full control to caller
-            system_instructions = ""
+            # Custom persona - use caller provided persona_detail
+            system_instructions = str(persona_detail or "")
         else:
             # Default to AI Sales Assistant persona
             assistant_intro = get_web_assistant_prompt()
