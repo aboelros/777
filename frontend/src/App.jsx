@@ -99,12 +99,6 @@ function MainLayout() {
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0 relative overflow-hidden bg-[#070b18]/65 backdrop-blur-2xl border-l border-white/10 z-10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)]">
         <Header />
-        {testingMode && (
-          <div className="bg-amber-500/10 border-b border-amber-500/30 px-6 py-2 text-amber-300 text-xs font-semibold tracking-wide backdrop-blur-md flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
-            🧪 Testing Mode Active — Authentication Bypass Active
-          </div>
-        )}
         <main className={`flex-1 min-h-0 flex flex-col ${isInbox ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden custom-scrollbar'}`}>
           <Outlet />
         </main>

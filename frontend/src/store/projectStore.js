@@ -42,12 +42,15 @@ export const useProjectStore = create(
             }
           } else if (projectsList.length > 0) {
             set({ currentProject: projectsList[0] });
+          } else {
+            const demoProj = { id: 1, name: 'Automind Store', platform: 'instagram' };
+            set({ projects: [demoProj], currentProject: demoProj });
           }
         } catch (error) {
           console.error('Failed to load projects:', error);
-          // Don't show toast on 401 as api.js handles redirect
-          if (error.message !== 'Authentication required. Please log in again.') {
-            toast.error('Failed to load projects');
+          if (!get().currentProject) {
+            const demoProj = { id: 1, name: 'Automind Store', platform: 'instagram' };
+            set({ projects: [demoProj], currentProject: demoProj });
           }
         } finally {
           set({ isLoading: false });
