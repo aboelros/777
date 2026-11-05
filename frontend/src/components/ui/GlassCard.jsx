@@ -42,7 +42,7 @@ export default function GlassCard({
       {/* Subtle liquid chromatic corner glow */}
       <div className="absolute -top-12 -right-12 w-28 h-28 bg-sky-500/8 rounded-full blur-2xl pointer-events-none group-hover:bg-sky-500/20 transition-all duration-500" />
       {/* Content Container */}
-      <div className="relative z-10">
+      <div className={cn('relative z-10', className?.includes('h-full') && 'h-full', className?.includes('flex') && 'flex flex-col min-h-0')}>
         {children}
       </div>
     </Component>

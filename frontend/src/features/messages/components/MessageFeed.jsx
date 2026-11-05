@@ -89,8 +89,8 @@ export default function MessageFeed({
         </div>
       </div>
 
-      {/* Message Feed History - clean container with no disruptive scrollbar */}
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {/* Message Feed History - scrollable conversation container */}
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-2.5 custom-scrollbar">
         {isLoading ? (
           <div className="py-12 text-center text-xs text-[var(--color-text-muted)]">
             Loading message log...

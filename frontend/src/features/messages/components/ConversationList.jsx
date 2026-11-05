@@ -88,7 +88,7 @@ export default function ConversationList({
       </div>
 
       {/* Conversations Scroll Area */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1 custom-scrollbar">
         {isLoading ? (
           <div className="py-12 text-center text-xs text-[var(--color-text-muted)]">
             Loading conversations...
