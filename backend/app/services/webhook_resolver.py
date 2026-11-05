@@ -19,32 +19,20 @@ class WebhookProjectResolver:
         self.db = db
 
     async def resolve_project(
-        self,
-        event: WebhookEvent,
-        explicit_project_id: Optional[UUID] = None
+        self, event: WebhookEvent, explicit_project_id: Optional[UUID] = None
     ) -> Optional[str]:
         """Find the tenant project ID deterministically or return None."""
         if explicit_project_id:
             return await self._resolve_explicit(explicit_project_id, event.channel)
-
-        if event.platform == "meta":
-            return await self._resolve_meta(event)
-
-        if event.platform == "wa_gateway":
-            return await self._resolve_wa_gateway(event)
-
-        if event.platform == "telegram":
-            return await self._resolve_telegram(event)
-
-        if event.platform == "shopify":
-            return await self._resolve_shopify(event)
-
-        logger.warning(
-            "No deterministic tenant mapping found",
-            platform=event.platform,
-            channel=event.channel,
-            event_id=event.event_id
-        )
+        handlers = {
+            "meta": self._resolve_meta,
+            "wa_gateway": self._resolve_wa_gateway,
+            "telegram": self._resolve_telegram,
+            "shopify": self._resolve_shopify
+        }
+        if event.platform in handlers:
+            return await handlers[event.platform](event)
+        logger.warning("No deterministic tenant mapping", platform=event.platform, event_id=event.event_id)
         return None
 
     async def _resolve_explicit(self, project_id: UUID, channel: str) -> Optional[str]:
@@ -61,13 +49,13 @@ class WebhookProjectResolver:
         return None
 
     async def _resolve_meta(self, event: WebhookEvent) -> Optional[str]:
-        if event.channel == "whatsapp":
-            return await self._resolve_meta_whatsapp(event)
-        if event.channel == "instagram":
-            return await self._resolve_meta_instagram(event)
-        if event.channel == "facebook":
-            return await self._resolve_meta_facebook(event)
-        return None
+        meta_handlers = {
+            "whatsapp": self._resolve_meta_whatsapp,
+            "instagram": self._resolve_meta_instagram,
+            "facebook": self._resolve_meta_facebook
+        }
+        handler = meta_handlers.get(event.channel)
+        return await handler(event) if handler else None
 
     async def _resolve_meta_whatsapp(self, event: WebhookEvent) -> Optional[str]:
         phone_id = event.payload.get("metadata", {}).get("phone_number_id")
@@ -114,11 +102,14 @@ class WebhookProjectResolver:
         for it in integrations:
             cfg = it.config or {}
             ext = it.extra_data or {}
+            links = [str(x) for x in (cfg.get("linked_account_ids") or []) if x]
+            links += [str(x) for x in (ext.get("linked_account_ids") or []) if x]
             stored_ids = {
                 str(cfg.get("instagram_business_account_id") or "").strip(),
                 str(ext.get("instagram_business_account_id") or "").strip(),
                 str(cfg.get("page_id") or "").strip(),
-                str(ext.get("page_id") or "").strip()
+                str(ext.get("page_id") or "").strip(),
+                *links
             } - {"", "None"}
             if target_ids & stored_ids:
                 matched_projects.append(it.project_id)
@@ -127,7 +118,12 @@ class WebhookProjectResolver:
         if res:
             return res
 
-        # Fallback: if only one project has a connected Instagram/Facebook integration, route to it
+        # Fallback: prefer projects with active access token
+        auth_projs = list({it.project_id for it in integrations if (it.config or {}).get("access_token")})
+        if len(auth_projs) == 1:
+            logger.info("Fallback matched single authenticated Meta project", project_id=str(auth_projs[0]))
+            return str(auth_projs[0])
+
         candidate_projects = list({it.project_id for it in integrations})
         if len(candidate_projects) == 1:
             logger.info("Fallback matched single connected Meta integration", project_id=str(candidate_projects[0]))
