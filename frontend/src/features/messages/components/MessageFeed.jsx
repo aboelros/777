@@ -1,7 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Send, Bot, Sparkles, User, Info, Check, CheckCheck } from 'lucide-react';
-import GlassCard from '@/components/ui/GlassCard';
 import Button from '@/components/ui/Button';
 
 /**
@@ -29,17 +28,15 @@ export default function MessageFeed({
 
   if (!conversation) {
     return (
-      <GlassCard className="h-full flex items-center justify-center p-8 text-center border-[var(--color-border)]">
-        <div>
-          <div className="w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center mx-auto mb-3">
-            <Bot className="w-6 h-6" />
-          </div>
-          <h3 className="text-base font-semibold text-[var(--color-text-primary)]">Select a Conversation</h3>
-          <p className="text-xs text-[var(--color-text-muted)] mt-1">
-            Choose a customer thread from the left sidebar to start messaging.
-          </p>
+      <div className="h-full w-full flex flex-col items-center justify-center p-8 text-center border border-white/10 rounded-2xl bg-[#0c1326]/85 backdrop-blur-2xl shadow-2xl relative overflow-hidden">
+        <div className="w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center mx-auto mb-3">
+          <Bot className="w-6 h-6" />
         </div>
-      </GlassCard>
+        <h3 className="text-base font-semibold text-[var(--color-text-primary)]">Select a Conversation</h3>
+        <p className="text-xs text-[var(--color-text-muted)] mt-1">
+          Choose a customer thread from the left sidebar to start messaging.
+        </p>
+      </div>
     );
   }
 
@@ -51,9 +48,12 @@ export default function MessageFeed({
   };
 
   return (
-    <GlassCard className="h-full flex flex-col min-h-0 border-[var(--color-border)] overflow-hidden">
+    <div className="h-full w-full flex flex-col min-h-0 border border-white/10 rounded-2xl bg-[#0c1326]/85 backdrop-blur-2xl shadow-2xl relative overflow-hidden">
+      {/* Specular Rim Light */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none" />
+
       {/* Top Header */}
-      <div className="p-3 sm:p-4 border-b border-[var(--color-border)] flex items-center justify-between flex-shrink-0">
+      <div className="p-3 sm:p-4 border-b border-white/10 flex items-center justify-between flex-shrink-0 bg-[#090e1d]/70 backdrop-blur-md z-10">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[var(--color-surface-hover)] border border-[var(--color-border)] flex items-center justify-center font-bold text-xs sm:text-sm text-[var(--color-text-primary)]">
             {conversation.customer_name?.charAt(0)?.toUpperCase() || 'U'}
@@ -90,7 +90,11 @@ export default function MessageFeed({
       </div>
 
       {/* Message Feed History - scrollable conversation container */}
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-2.5 custom-scrollbar">
+      <div
+        ref={scrollRef}
+        className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-2.5 custom-scrollbar"
+        style={{ scrollBehavior: 'smooth', overscrollBehavior: 'contain' }}
+      >
         {isLoading ? (
           <div className="py-12 text-center text-xs text-[var(--color-text-muted)]">
             Loading message log...
@@ -135,7 +139,7 @@ export default function MessageFeed({
       </div>
 
       {/* Message Input Bottom Bar - Locked & always visible */}
-      <div className="p-2.5 sm:p-3 border-t border-[var(--color-border)] flex items-center gap-2 flex-shrink-0 bg-[var(--color-surface)]/50 backdrop-blur-md">
+      <div className="p-2.5 sm:p-3 border-t border-white/10 flex items-center gap-2 flex-shrink-0 bg-[#090e1d]/90 backdrop-blur-md z-10">
         <input
           type="text"
           value={messageInput}
@@ -154,7 +158,7 @@ export default function MessageFeed({
           <Send className="w-4 h-4" />
         </Button>
       </div>
-    </GlassCard>
+    </div>
   );
 }
 

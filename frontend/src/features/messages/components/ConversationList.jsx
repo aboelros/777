@@ -10,7 +10,6 @@ import {
   Facebook,
   Phone
 } from 'lucide-react';
-import GlassCard from '@/components/ui/GlassCard';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 
@@ -54,9 +53,12 @@ export default function ConversationList({
   );
 
   return (
-    <GlassCard className="h-full flex flex-col min-h-0 border-[var(--color-border)] overflow-hidden">
+    <div className="h-full w-full flex flex-col min-h-0 border border-white/10 rounded-2xl bg-[#0c1326]/85 backdrop-blur-2xl shadow-2xl relative overflow-hidden">
+      {/* Specular Rim Light */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none" />
+
       {/* Search & Channel Filters */}
-      <div className="p-3 sm:p-4 border-b border-[var(--color-border)] space-y-2.5 flex-shrink-0">
+      <div className="p-3 sm:p-4 border-b border-white/10 space-y-2.5 flex-shrink-0 bg-[#090e1d]/70 backdrop-blur-md z-10">
         <Input
           icon={Search}
           placeholder={t('inbox.search_placeholder') || 'Search name or email...'}
@@ -88,7 +90,10 @@ export default function ConversationList({
       </div>
 
       {/* Conversations Scroll Area */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+      <div
+        className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1 custom-scrollbar"
+        style={{ scrollBehavior: 'smooth', overscrollBehavior: 'contain' }}
+      >
         {isLoading ? (
           <div className="py-12 text-center text-xs text-[var(--color-text-muted)]">
             Loading conversations...
@@ -144,7 +149,7 @@ export default function ConversationList({
           </AnimatePresence>
         )}
       </div>
-    </GlassCard>
+    </div>
   );
 }
 

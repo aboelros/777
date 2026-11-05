@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Toaster } from 'sonner';
@@ -77,6 +77,8 @@ function ProtectedRoute({ children }) {
 
 // Main Layout
 function MainLayout() {
+  const location = useLocation();
+  const isInbox = location.pathname.startsWith('/inbox') || location.pathname.startsWith('/messages');
   const testingMode = import.meta.env.VITE_TESTING_MODE === 'true';
   const [showCreateProject, setShowCreateProject] = useState(false);
   const { currentProject, projects, loadProjects } = useProjectStore();
@@ -103,7 +105,7 @@ function MainLayout() {
             🧪 Testing Mode Active — Authentication Bypass Active
           </div>
         )}
-        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar">
+        <main className={`flex-1 min-h-0 flex flex-col ${isInbox ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden custom-scrollbar'}`}>
           <Outlet />
         </main>
 
