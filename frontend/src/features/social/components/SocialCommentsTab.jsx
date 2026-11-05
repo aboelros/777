@@ -42,7 +42,7 @@ export default function SocialCommentsTab({
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="font-bold text-text-primary text-sm">{comment.author_name || 'Customer'}</span>
+                <span className="font-bold text-text-primary text-sm">{comment.author_name || comment.author_username || 'Customer'}</span>
                 <Badge variant="brand" size="sm">{comment.platform}</Badge>
                 {comment.responded ? (
                   <Badge variant="success" size="sm">Replied</Badge>
@@ -70,10 +70,10 @@ export default function SocialCommentsTab({
             "{comment.text || comment.content}"
           </div>
 
-          {comment.response_text && (
+          {(comment.response_text || comment.response_content) && (
             <div className="mt-3 p-3 bg-brand-primary/5 border border-brand-primary/20 rounded-xl text-xs text-brand-primary">
               <span className="font-bold block mb-1">Sent Reply:</span>
-              {comment.response_text}
+              {comment.response_text || comment.response_content}
             </div>
           )}
         </GlassCard>
