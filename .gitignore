@@ -109,6 +109,7 @@ startup-support/
 *.mp3
 *.vtt
 recordings/
+temp_test_rec/
 meta_review_videos/
 after_effects/
 admin-panel/dist/
