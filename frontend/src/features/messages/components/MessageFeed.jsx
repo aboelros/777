@@ -92,7 +92,8 @@ export default function MessageFeed({
       {/* Message Feed History - scrollable conversation container */}
       <div
         ref={scrollRef}
-        className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-2.5 custom-scrollbar"
+        tabIndex={0}
+        className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-2.5 custom-scrollbar focus:outline-none focus:ring-0"
         style={{ scrollBehavior: 'smooth', overscrollBehavior: 'contain' }}
       >
         {isLoading ? (
