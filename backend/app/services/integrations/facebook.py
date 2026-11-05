@@ -536,20 +536,33 @@ class FacebookClient:
 
     async def reply_to_comment(self, comment_id: str, message: str) -> Dict[str, Any]:
         """
-        Reply to a comment.
-        Supports pages_messaging / pages_manage_metadata.
+        Reply to a Facebook comment publicly or via Private Reply.
         """
         url = f"{self.api_base}/{comment_id}/comments"
         payload = {"message": message}
         params = {"access_token": self.access_token}
         try:
             async with aiohttp.ClientSession() as session:
+                # 1. Try public comment reply (requires pages_manage_engagement)
                 async with session.post(url, json=payload, params=params) as response:
                     if response.status == 200:
                         return await response.json()
-                    error_data = await response.text()
-                    logger.error("Failed to reply to comment", status=response.status, error=error_data)
-                    return {"status": "error", "message": error_data}
+                    pub_error = await response.text()
+                    logger.warning("Facebook public comment reply failed, attempting private reply fallback", status=response.status, error=pub_error)
+
+                # 2. Fallback: Messenger Private Reply (uses pages_messaging)
+                priv_url = f"{self.api_base}/{self.page_id}/messages"
+                priv_payload = {
+                    "recipient": {"comment_id": comment_id},
+                    "message": {"text": message}
+                }
+                async with session.post(priv_url, json=priv_payload, params=params) as priv_resp:
+                    if priv_resp.status == 200:
+                        logger.info("Facebook private reply sent via Messenger successfully")
+                        return await priv_resp.json()
+                    priv_error = await priv_resp.text()
+                    logger.error("Both public and private comment replies failed", pub_error=pub_error, priv_error=priv_error)
+                    return {"status": "error", "message": pub_error}
         except Exception as e:
             logger.error("Exception replying to comment", error=str(e))
             return {"status": "error", "message": str(e)}

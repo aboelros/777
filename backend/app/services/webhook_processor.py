@@ -140,9 +140,9 @@ class WebhookProcessor:
                     "customer_id": str(customer.id),
                     "customer_name": customer.name,
                     "customer_avatar": customer.avatar_url,
-                    "attachments": message.attachments or ([{"url": data.media_url, "type": data.media_type or "image"}] if data.media_url else None),
-                    "media_url": data.media_url,
-                    "media_type": data.media_type or ("image" if data.media_url else "text")
+                    "attachments": message.attachments or ([{"url": message_data.media_url, "type": message_data.media_type or "image"}] if message_data.media_url else None),
+                    "media_url": message_data.media_url,
+                    "media_type": message_data.media_type or ("image" if message_data.media_url else "text")
                 }
             })
         except Exception as ws_err:
