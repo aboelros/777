@@ -471,8 +471,8 @@ DO NOT repeat the previous text. Just give the answer.
             if clean_text:
                 logger.info(f"Sending message via {channel}...")
                 
-                # Stop typing indicator before sending
-                if channel in ["instagram", "facebook"]:
+                # Stop typing indicator before sending (DMs only, not comments)
+                if channel in ["instagram", "facebook"] and media_type != "comment":
                     await self._send_action(customer_id, "typing_off", channel, project_id=project_id)
                 
                 # Add Quick Replies for Meta platforms to improve Reviewer experience
