@@ -647,6 +647,7 @@ class WebhookProcessor:
                         message_content=message.content,
                         channel=message.platform,
                         project_id=UUID(proj_id),
+                        external_id=message.external_id,
                         media_url=message.attachments[0].get("url") if message.attachments else None,
                         media_type=message.attachments[0].get("type") if message.attachments else message.content_type
                     )

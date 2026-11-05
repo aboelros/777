@@ -185,8 +185,8 @@ class AIOrchestrator:
                     "message": "AI automation is disabled for this customer."
                 }
             
-            # Send immediate visual feedback for Meta platforms
-            if channel in ["instagram", "facebook"]:
+            # Send immediate visual feedback for Meta platforms (DMs only, not comments)
+            if channel in ["instagram", "facebook"] and media_type != "comment":
                 await self._send_action(customer_id, "mark_seen", channel, project_id=project_id)
                 await self._send_action(customer_id, "typing_on", channel, project_id=project_id)
 
@@ -382,7 +382,7 @@ Respond to the customer now IN {customer_language}. If you need to check stock o
                     "persona": "custom",
                     "persona_detail": system_prompt_with_products
                 },
-                use_functions=True,
+                use_functions=(media_type != "comment"),
                 user_id=project.owner_id if project else None,
                 media_url=media_url,
                 media_type=media_type
@@ -501,7 +501,8 @@ DO NOT repeat the previous text. Just give the answer.
                     message=clean_text,
                     channel=channel,
                     project_id=project_id,
-                    quick_replies=quick_replies
+                    quick_replies=quick_replies if media_type != "comment" else None,
+                    comment_id=external_id if media_type == "comment" else None
                 )
             
             # Send images
@@ -970,7 +971,8 @@ DO NOT repeat the previous text. Just give the answer.
         channel: str,
         project_id: Optional[UUID] = None,
         existing_message_id: Optional[UUID] = None,
-        quick_replies: Optional[List[Dict[str, str]]] = None
+        quick_replies: Optional[List[Dict[str, str]]] = None,
+        comment_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """Send message via appropriate integration."""
         client = self.integration_clients.get(channel)
@@ -1017,9 +1019,26 @@ DO NOT repeat the previous text. Just give the answer.
                 if quick_replies:
                     kwargs["quick_replies"] = quick_replies
                 
-            logger.info("Executing client.send_message", channel=channel, platform_id=platform_id, preview=message[:60])
-            result = await client.send_message(platform_id, message, **kwargs)
-            logger.info("Client send_message result", channel=channel, result=result)
+            if comment_id and hasattr(client, "reply_to_comment"):
+                logger.info("Executing client.reply_to_comment", channel=channel, comment_id=comment_id, preview=message[:60])
+                result = await client.reply_to_comment(str(comment_id), message)
+                if result.get("status") != "error":
+                    try:
+                        from app.domains.social.models import SocialMediaComment
+                        c_stmt = select(SocialMediaComment).where(SocialMediaComment.external_id == str(comment_id))
+                        c_res = await self.db.execute(c_stmt)
+                        db_comment = c_res.scalar_one_or_none()
+                        if db_comment:
+                            db_comment.responded = True
+                            db_comment.response_content = message
+                            db_comment.response_sent_at = datetime.utcnow()
+                            await self.db.commit()
+                    except Exception as c_err:
+                        logger.warning("Failed to update SocialMediaComment status", error=str(c_err))
+            else:
+                logger.info("Executing client.send_message", channel=channel, platform_id=platform_id, preview=message[:60])
+                result = await client.send_message(platform_id, message, **kwargs)
+            logger.info("Client send/reply result", channel=channel, result=result)
 
             if result.get("status") == "error":
                 logger.error("Outbound send failed", channel=channel, error=result.get("message"))
