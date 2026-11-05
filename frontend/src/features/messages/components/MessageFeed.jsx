@@ -1,7 +1,8 @@
 import React, { useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { Send, Bot, Sparkles, User, Info, Check, CheckCheck } from 'lucide-react';
+import { Send, Bot, Sparkles, Info } from 'lucide-react';
 import Button from '@/components/ui/Button';
+import MessageItem from '@/features/messages/components/MessageItem';
 
 /**
  * MessageFeed - Center panel displaying customer chat history, AI copilot actions, and response input
@@ -22,9 +23,13 @@ export default function MessageFeed({
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      requestAnimationFrame(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+      });
     }
-  }, [messages]);
+  }, [messages, conversation?.id]);
 
   if (!conversation) {
     return (
@@ -47,16 +52,30 @@ export default function MessageFeed({
     }
   };
 
+  const customerAvatar = conversation.customer_avatar || conversation.avatar_url;
+
   return (
-    <div className="h-full w-full flex flex-col min-h-0 border border-white/10 rounded-2xl bg-[#0c1326]/85 backdrop-blur-2xl shadow-2xl relative overflow-hidden">
+    <div className="h-full max-h-full w-full flex flex-col min-h-0 border border-white/10 rounded-2xl bg-[#0c1326]/85 backdrop-blur-2xl shadow-2xl relative overflow-hidden">
       {/* Specular Rim Light */}
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none" />
 
       {/* Top Header */}
       <div className="p-3 sm:p-4 border-b border-white/10 flex items-center justify-between flex-shrink-0 bg-[#090e1d]/70 backdrop-blur-md z-10">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[var(--color-surface-hover)] border border-[var(--color-border)] flex items-center justify-center font-bold text-xs sm:text-sm text-[var(--color-text-primary)]">
-            {conversation.customer_name?.charAt(0)?.toUpperCase() || 'U'}
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[var(--color-surface-hover)] border border-[var(--color-border)] flex items-center justify-center font-bold text-xs sm:text-sm text-[var(--color-text-primary)] overflow-hidden relative flex-shrink-0">
+            <span className="select-none">
+              {conversation.customer_name?.charAt(0)?.toUpperCase() || 'U'}
+            </span>
+            {customerAvatar && (
+              <img
+                src={customerAvatar}
+                alt={conversation.customer_name || 'Customer'}
+                className="absolute inset-0 w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            )}
           </div>
           <div>
             <h3 className="font-semibold text-xs sm:text-sm text-[var(--color-text-primary)] truncate max-w-[140px] sm:max-w-[200px]">
@@ -93,8 +112,9 @@ export default function MessageFeed({
       <div
         ref={scrollRef}
         tabIndex={0}
-        className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-2.5 custom-scrollbar focus:outline-none focus:ring-0"
-        style={{ scrollBehavior: 'smooth', overscrollBehavior: 'contain' }}
+        onWheel={(e) => e.stopPropagation()}
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4 space-y-2.5 custom-scrollbar focus:outline-none focus:ring-0"
+        style={{ scrollBehavior: 'smooth', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
       >
         {isLoading ? (
           <div className="py-12 text-center text-xs text-[var(--color-text-muted)]">
@@ -110,30 +130,14 @@ export default function MessageFeed({
             const isBot = msg.sender === 'bot';
 
             return (
-              <div
+              <MessageItem
                 key={msg.id || idx}
-                className={`flex items-end gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}
-              >
-                {!isUser && (
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[var(--color-surface-hover)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text-muted)] flex-shrink-0">
-                    {isBot ? <Bot className="w-3.5 h-3.5 text-sky-400" /> : <User className="w-3.5 h-3.5" />}
-                  </div>
-                )}
-
-                <div
-                  className={`max-w-[75%] p-2.5 sm:p-3 rounded-2xl text-xs leading-relaxed ${
-                    isUser
-                      ? 'bg-sky-500 text-white rounded-br-none'
-                      : 'bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-primary)] rounded-bl-none'
-                  }`}
-                >
-                  <p className="break-words">{msg.content || msg.text}</p>
-                  <div className="flex items-center justify-end gap-1 mt-1 text-[10px] opacity-75">
-                    <span>{new Date(msg.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                    {isUser && <CheckCheck className="w-3 h-3" />}
-                  </div>
-                </div>
-              </div>
+                msg={msg}
+                isUser={isUser}
+                isBot={isBot}
+                customerAvatar={customerAvatar}
+                customerName={conversation.customer_name}
+              />
             );
           })
         )}

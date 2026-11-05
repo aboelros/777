@@ -100,7 +100,7 @@ export default function Messages() {
   };
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col p-3 sm:p-4 overflow-hidden space-y-3">
+    <div className="h-full max-h-full w-full flex-1 min-h-0 flex flex-col p-2.5 sm:p-4 overflow-hidden space-y-2.5 sm:space-y-3">
       {/* Title */}
       <div className="flex-shrink-0">
         <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2.5 text-[var(--color-text-primary)]">
@@ -113,8 +113,8 @@ export default function Messages() {
       </div>
 
       {/* Main Inbox Panels */}
-      <div className="flex-1 min-h-0 flex flex-row gap-3 overflow-hidden">
-        <div className="w-64 sm:w-72 md:w-80 flex-shrink-0 h-full min-h-0 flex flex-col overflow-hidden">
+      <div className="flex-1 min-h-0 h-full max-h-full flex flex-row gap-2.5 sm:gap-3 overflow-hidden">
+        <div className="w-56 sm:w-64 md:w-72 lg:w-80 flex-shrink-0 h-full min-h-0 flex flex-col overflow-hidden">
           <ConversationList
             conversations={conversations}
             isLoading={isLoading}

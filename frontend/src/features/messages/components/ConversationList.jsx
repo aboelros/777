@@ -119,11 +119,23 @@ export default function ConversationList({
                       : 'border-transparent hover:bg-[var(--color-surface-hover)]'
                   }`}
                 >
-                  <div className="relative">
-                    <div className="w-10 h-10 rounded-xl bg-[var(--color-surface-hover)] border border-[var(--color-border)] flex items-center justify-center font-bold text-sm text-[var(--color-text-primary)]">
-                      {conv.customer_name?.charAt(0)?.toUpperCase() || 'U'}
+                  <div className="relative flex-shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-[var(--color-surface-hover)] border border-[var(--color-border)] flex items-center justify-center font-bold text-sm text-[var(--color-text-primary)] overflow-hidden relative">
+                      <span className="select-none">
+                        {conv.customer_name?.charAt(0)?.toUpperCase() || 'U'}
+                      </span>
+                      {(conv.customer_avatar || conv.avatar_url) && (
+                        <img
+                          src={conv.customer_avatar || conv.avatar_url}
+                          alt={conv.customer_name || 'Customer'}
+                          className="absolute inset-0 w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      )}
                     </div>
-                    <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] flex items-center justify-center">
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] flex items-center justify-center shadow-sm">
                       <ChannelIcon className={`w-2.5 h-2.5 ${chColor}`} />
                     </div>
                   </div>

@@ -139,7 +139,10 @@ class WebhookProcessor:
                     "created_at": message.created_at.isoformat() if message.created_at else datetime.now().isoformat(),
                     "customer_id": str(customer.id),
                     "customer_name": customer.name,
-                    "customer_avatar": customer.avatar_url
+                    "customer_avatar": customer.avatar_url,
+                    "attachments": message.attachments or ([{"url": data.media_url, "type": data.media_type or "image"}] if data.media_url else None),
+                    "media_url": data.media_url,
+                    "media_type": data.media_type or ("image" if data.media_url else "text")
                 }
             })
         except Exception as ws_err:
@@ -307,11 +310,10 @@ class WebhookProcessor:
 
                 if pic_url and "http" in str(pic_url) and pic_url != customer.avatar_url:
                     persistent_url = await self._persist_avatar(context.project_id, customer.id, str(pic_url))
-                    if persistent_url:
-                        customer.avatar_url = persistent_url
-                        customer.last_sync = datetime.now(timezone.utc)
-                        self.db.add(customer)
-                        await self.db.commit()
+                    customer.avatar_url = persistent_url or str(pic_url)
+                    customer.last_sync = datetime.now(timezone.utc)
+                    self.db.add(customer)
+                    await self.db.commit()
 
         return customer
 

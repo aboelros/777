@@ -139,7 +139,26 @@ class WebhookGateway:
             media_type = "comment"
 
         final_content = content.strip() if content else ""
-        if not final_content:
+
+        # Extract media attachments (Instagram, Facebook, etc.)
+        media_attachments = event.payload.get("media") or event.payload.get("attachments") or []
+        media_url = event.payload.get("media_url")
+        if not media_url and isinstance(media_attachments, list) and len(media_attachments) > 0:
+            first_att = media_attachments[0]
+            if isinstance(first_att, dict):
+                att_payload = first_att.get("payload")
+                if isinstance(att_payload, dict):
+                    media_url = att_payload.get("url")
+                elif isinstance(first_att.get("url"), str):
+                    media_url = first_att.get("url")
+                if first_att.get("type"):
+                    media_type = first_att.get("type")
+
+        # If message has no text caption but has a media attachment, supply default descriptive text
+        if not final_content and media_url:
+            final_content = f"[{media_type.capitalize()} Attachment]" if media_type else "[Photo Attachment]"
+
+        if not final_content and not media_url:
             logger.warning("Empty content in webhook event, skipping", event_id=event.event_id, sender_id=event.sender_id)
             return
 
@@ -150,7 +169,7 @@ class WebhookGateway:
             sender_name=event.sender_name,
             platform=event.channel,
             provider=event.platform,
-            media_url=None,
+            media_url=media_url,
             media_type=media_type,
             extra_data=event.raw_data,
             is_from_me=event.payload.get("is_echo", False)
