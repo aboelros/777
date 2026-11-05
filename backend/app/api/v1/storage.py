@@ -35,3 +35,33 @@ async def get_storage_image(
     
     # Fallback/Default behavior if not using Postgres
     raise HTTPException(status_code=404, detail="Image retrieval not supported through this endpoint for current provider")
+
+
+@router.get("/images/avatars/{project_id}/{key:path}")
+async def get_avatar_image(
+    project_id: UUID,
+    key: str
+) -> Response:
+    """
+    Fetch avatar image from storage and serve it publicly.
+    Accessible by <img> tags directly without authorization headers.
+    """
+    provider = FileStorageService._get_storage_provider()
+    full_key = f"avatars/{project_id}/{key}"
+    
+    if isinstance(provider, PostgresStorageService):
+        image = await provider.get_image(full_key)
+        if not image:
+            raise HTTPException(status_code=404, detail="Avatar image not found")
+        
+        return Response(
+            content=image["data"],
+            media_type=image["content_type"],
+            headers={
+                "Cache-Control": "public, max-age=86400",
+                "Access-Control-Allow-Origin": "*"
+            }
+        )
+    
+    raise HTTPException(status_code=404, detail="Image retrieval not supported for current provider")
+
