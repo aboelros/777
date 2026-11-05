@@ -135,7 +135,7 @@ class WebhookGateway:
             media_type = "event_customer"
 
         elif event.event_type == EventType.COMMENT_CREATED:
-            content = f"New Comment on {event.platform}: {event.payload.get('text') or ''}"
+            content = event.payload.get("text") or ""
             media_type = "comment"
 
         final_content = content.strip() if content else ""

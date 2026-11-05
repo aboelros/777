@@ -204,7 +204,7 @@ class FacebookClient:
         url = f"{self.api_base}/{target_id}/subscribed_apps"
         params = {
             "access_token": self.access_token,
-            "subscribed_fields": "messages,messaging_postbacks,messaging_optins,message_deliveries,message_reads,standby"
+            "subscribed_fields": "messages,messaging_postbacks,messaging_optins,message_deliveries,message_reads,standby,feed"
         }
         
         timeout = aiohttp.ClientTimeout(total=5)

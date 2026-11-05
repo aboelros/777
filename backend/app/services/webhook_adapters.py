@@ -125,6 +125,11 @@ class MetaAdapter(BaseAdapter):
                 value = change.get("value", {})
                 if field == "comments":
                     from_user = value.get("from", {})
+                    sender_id = from_user.get("id")
+                    ig_id = str(entry.get("id") or "")
+                    if sender_id and str(sender_id) == ig_id:
+                        print("DEBUG: Skipping Instagram comment from account itself")
+                        return None
                     return WebhookEvent(
                         event_id=value.get("id", "unknown_comment"),
                         event_type=EventType.COMMENT_CREATED,
@@ -224,24 +229,37 @@ class MetaAdapter(BaseAdapter):
         )
 
     def _normalize_facebook(self, payload: Dict[str, Any]) -> Optional[WebhookEvent]:
-        entry = payload.get("entry", [])[0]
+        entries = payload.get("entry", [])
+        if not entries:
+            return None
+        entry = entries[0]
 
-        if "changes" in entry:
+        if "changes" in entry and entry.get("changes"):
             change = entry["changes"][0]
             if change.get("field") == "feed" and change.get("value", {}).get("item") == "comment":
                 value = change.get("value", {})
+                if value.get("verb") and value.get("verb") != "add":
+                    return None
+
+                sender_id = value.get("from", {}).get("id")
+                page_id = str(entry.get("id") or "")
+                if sender_id and str(sender_id) == page_id:
+                    print("DEBUG: Skipping Facebook comment from page itself")
+                    return None
+
                 return WebhookEvent(
                     event_id=value.get("comment_id", "unknown_comment"),
                     event_type=EventType.COMMENT_CREATED,
                     timestamp=datetime.now(),
                     platform="meta",
                     channel="facebook",
-                    sender_id=value.get("from", {}).get("id"),
+                    sender_id=sender_id,
                     sender_name=value.get("from", {}).get("name"),
                     payload={
                         "text": value.get("message"),
                         "is_comment": True,
-                        "post_id": value.get("post_id")
+                        "post_id": value.get("post_id"),
+                        "page_id": page_id
                     },
                     raw_data=payload
                 )
