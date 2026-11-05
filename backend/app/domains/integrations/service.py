@@ -34,7 +34,12 @@ class IntegrationService:
             provider = integration_data.provider.value
             
             if provider == "whatsapp":
-                whatsapp_provider = config_payload.get("whatsapp_provider", "business_api")
+                phone_num = config_payload.get("phone_number") or config_payload.get("whatsappPhoneNumber")
+                whatsapp_provider = config_payload.get("whatsapp_provider")
+                if not whatsapp_provider:
+                    whatsapp_provider = "business_api" if phone_num else "baileys"
+                    config_payload["whatsapp_provider"] = whatsapp_provider
+
                 if whatsapp_provider in ("go_whatsapp", "baileys", "wa_gateway"):
                     from app.services.whatsapp_gateway_client import resolve_gateway_url, resolve_gateway_api_key
                     config_payload["base_url"] = resolve_gateway_url(config_payload.get("base_url"))
@@ -42,10 +47,12 @@ class IntegrationService:
                     if resolved_key:
                         config_payload["api_key"] = resolved_key
                 else:
-                    phone_number = config_payload.get("phone_number") or config_payload.get("whatsappPhoneNumber")
-                    if not phone_number:
-                        raise HTTPException(status_code=400, detail="WhatsApp phone number is required for Business API setup")
-                    config_payload["phone_number"] = phone_number
+                    if not phone_num:
+                        raise HTTPException(
+                            status_code=400,
+                            detail="WhatsApp phone number is required for official Business API setup. Alternatively, select Baileys Gateway."
+                        )
+                    config_payload["phone_number"] = phone_num
             else:
                 if not config_payload.get("api_key"):
                     raise HTTPException(status_code=400, detail="API key is required in config")
@@ -183,6 +190,3 @@ class IntegrationService:
                 raise HTTPException(status_code=404, detail="Integration not found")
                 
             await uow.commit()
-
-
-

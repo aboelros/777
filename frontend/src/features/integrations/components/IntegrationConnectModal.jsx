@@ -17,7 +17,7 @@ export default function IntegrationConnectModal({
 
   const isMeta = selectedProvider.id === 'facebook' || selectedProvider.id === 'instagram';
   const isWhatsApp = selectedProvider.id === 'whatsapp';
-  const whatsappMode = credentials.whatsapp_provider || 'business_api';
+  const whatsappMode = credentials.whatsapp_provider || 'baileys';
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4">
@@ -80,20 +80,6 @@ export default function IntegrationConnectModal({
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
-                      onClick={() => setCredentials({ ...credentials, whatsapp_provider: 'business_api' })}
-                      className={`p-3 rounded-xl border text-left transition-all ${
-                        whatsappMode === 'business_api'
-                          ? 'border-emerald-500 bg-emerald-500/10 text-text-primary'
-                          : 'border-border bg-bg-surface/50 text-text-muted hover:border-border-hover'
-                      }`}
-                    >
-                      <div className="font-semibold text-xs flex items-center justify-between">
-                        Official Cloud API
-                      </div>
-                      <p className="text-[11px] text-text-secondary mt-1">Official Meta Business API</p>
-                    </button>
-                    <button
-                      type="button"
                       onClick={() => setCredentials({ ...credentials, whatsapp_provider: 'baileys' })}
                       className={`p-3 rounded-xl border text-left transition-all ${
                         whatsappMode === 'baileys'
@@ -105,6 +91,20 @@ export default function IntegrationConnectModal({
                         Baileys Gateway
                       </div>
                       <p className="text-[11px] text-text-secondary mt-1">Unofficial / Self-hosted</p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCredentials({ ...credentials, whatsapp_provider: 'business_api' })}
+                      className={`p-3 rounded-xl border text-left transition-all ${
+                        whatsappMode === 'business_api'
+                          ? 'border-emerald-500 bg-emerald-500/10 text-text-primary'
+                          : 'border-border bg-bg-surface/50 text-text-muted hover:border-border-hover'
+                      }`}
+                    >
+                      <div className="font-semibold text-xs flex items-center justify-between">
+                        Official Cloud API
+                      </div>
+                      <p className="text-[11px] text-text-secondary mt-1">Meta Business API</p>
                     </button>
                   </div>
                 </div>
@@ -133,20 +133,20 @@ export default function IntegrationConnectModal({
                         Unofficial Gateway Notice
                       </div>
                       <p className="text-[11px] text-amber-300/80 leading-relaxed">
-                        Baileys is an unofficial self-hosted WhatsApp gateway. Unofficial connections carry account restriction risks. Only use for legitimate, consent-based messaging.
+                        Baileys is an unofficial self-hosted WhatsApp gateway. Pair via QR code to automate chats directly with customers.
                       </p>
                     </div>
                     <Input
                       label="WhatsApp Phone Number (Optional)"
                       placeholder="+1234567890"
                       value={credentials.whatsappPhoneNumber || ''}
-                      onChange={(e) => setCredentials({ ...credentials, whatsappPhoneNumber: e.target.value })}
+                      onChange={(e) => setCredentials({ ...credentials, whatsappPhoneNumber: e.target.value, whatsapp_provider: 'baileys' })}
                     />
                     <Input
                       label="Gateway Service URL (Optional)"
-                      placeholder="http://localhost:3000"
+                      placeholder="https://ai-sales-bot-whatsapp-vdr6.onrender.com"
                       value={credentials.base_url || ''}
-                      onChange={(e) => setCredentials({ ...credentials, base_url: e.target.value })}
+                      onChange={(e) => setCredentials({ ...credentials, base_url: e.target.value, whatsapp_provider: 'baileys' })}
                     />
                   </div>
                 )}

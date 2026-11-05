@@ -637,6 +637,7 @@ async def _setup_whatsapp_integration(integration: Integration, db: AsyncSession
             "last_status": "pending"
         }
         integration.status = IntegrationStatus.PENDING
+        await db.commit()
         
         logger.info(
             "WhatsApp Baileys gateway integration setup",
@@ -910,8 +911,21 @@ async def start_wa_gateway_session(
     """
     from app.api.v1.whatsapp_session_helpers import get_whatsapp_integration, ensure_linked_device_session
 
-    integration = await get_whatsapp_integration(db, project_id, integration_id)
-    return await ensure_linked_device_session(db, integration)
+    try:
+        integration = await get_whatsapp_integration(db, project_id, integration_id)
+        return await ensure_linked_device_session(db, integration)
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.warning("Failed to start WA gateway session", error=str(e), integration_id=str(integration_id))
+        return {
+            "status": "loading",
+            "session_id": str(integration_id),
+            "connected": False,
+            "qr_url": None,
+            "message": "Gateway starting up, generating QR code..."
+        }
 
 
 @router.get("/{project_id}/whatsapp/{integration_id}/wa-gateway/qr", status_code=status.HTTP_200_OK)
@@ -931,8 +945,21 @@ async def get_wa_gateway_qr(
         resolve_session_id
     )
 
-    integration = await get_whatsapp_integration(db, project_id, integration_id)
-    session_id = resolve_session_id(integration)
+    try:
+        integration = await get_whatsapp_integration(db, project_id, integration_id)
+        session_id = resolve_session_id(integration)
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error("Failed fetching integration for QR", error=str(e), integration_id=str(integration_id))
+        return {
+            "status": "loading",
+            "session_id": str(integration_id),
+            "connected": False,
+            "qr_url": None,
+            "message": "Loading integration session..."
+        }
 
     # 1. First attempt to sync live session from gateway
     try:
@@ -950,7 +977,7 @@ async def get_wa_gateway_qr(
                 "status": "connecting",
                 "session_id": session_id,
                 "connected": False,
-                "qr_url": sync_result.get("qr_code"),
+                "qr_url": sync_result.get("qr_code") or (integration.extra_data or {}).get("qr_url"),
                 "message": "Connecting to WhatsApp..."
             }
         if sync_result.get("qr_code"):
@@ -961,7 +988,17 @@ async def get_wa_gateway_qr(
                 "qr_url": sync_result.get("qr_code"),
                 "message": "Scan QR code with WhatsApp mobile app"
             }
+        if sync_result.get("status") == "loading":
+            cached_qr = sync_result.get("qr_code") or (integration.extra_data or {}).get("qr_url")
+            return {
+                "status": "success" if cached_qr else "loading",
+                "session_id": session_id,
+                "connected": False,
+                "qr_url": cached_qr,
+                "message": "Scan QR code with WhatsApp mobile app" if cached_qr else "Gateway starting up, generating QR code..."
+            }
     except Exception as e:
+        await db.rollback()
         logger.warning("Could not sync live session status", error=str(e), session_id=session_id)
 
     # 2. Check cached QR code in extra_data
@@ -979,20 +1016,22 @@ async def get_wa_gateway_qr(
     try:
         init_res = await ensure_linked_device_session(db, integration)
         is_conn = init_res.get("status") == "connected" or bool(init_res.get("connected"))
+        qr = init_res.get("qr_url") or init_res.get("qr_code") or (integration.extra_data or {}).get("qr_url")
         return {
-            "status": "connected" if is_conn else init_res.get("status", "success"),
+            "status": "connected" if is_conn else ("success" if qr else init_res.get("status", "loading")),
             "session_id": session_id,
             "connected": is_conn,
-            "qr_url": None if is_conn else (init_res.get("qr_url") or init_res.get("qr_code")),
-            "message": "WhatsApp connected successfully" if is_conn else init_res.get("message", "Scan QR code with WhatsApp mobile app")
+            "qr_url": None if is_conn else qr,
+            "message": "WhatsApp connected successfully" if is_conn else "Scan QR code with WhatsApp mobile app"
         }
     except Exception as e:
+        await db.rollback()
         logger.warning("WhatsApp session auto-init pending gateway startup", error=str(e), session_id=session_id)
         return {
             "status": "loading",
             "session_id": session_id,
             "connected": False,
-            "qr_url": None,
+            "qr_url": (integration.extra_data or {}).get("qr_url"),
             "message": "Gateway starting up, generating QR code..."
         }
 

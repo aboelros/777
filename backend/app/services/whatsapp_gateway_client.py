@@ -3,12 +3,17 @@ HTTP client for WhatsApp Baileys Gateway microservice.
 """
 
 import os
-from typing import Dict, Any, Optional
+import time
+from typing import Dict, Any, Optional, Tuple
 import httpx
 import structlog
 from app.core.config import settings
 
 logger = structlog.get_logger(__name__)
+
+# In-memory TTL cache to prevent rapid polling from hammering the gateway
+_STATUS_CACHE: Dict[str, Tuple[float, Dict[str, Any]]] = {}
+CACHE_TTL_SECONDS = 4.0
 
 
 def resolve_gateway_url(configured_url: Optional[str] = None) -> str:
@@ -65,6 +70,7 @@ class WhatsAppGatewayClient:
 
         headers = {
             "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 AutomioBackend/1.0",
             "X-Internal-Secret": INTERNAL_GATEWAY_SECRET,
             "Authorization": f"Bearer {self.api_key}"
         }
@@ -120,9 +126,18 @@ class WhatsAppGatewayClient:
         }
         try:
             resp = await self._client.post(f"{self.base_url}/sessions", json=payload)
+            if resp.status_code == 429:
+                logger.warning("Gateway rate-limit on create_session, cool down", session_id=session_id)
+                if session_id in _STATUS_CACHE:
+                    return _STATUS_CACHE[session_id][1]
+                return {"status": "loading", "message": "Rate limit cool-down"}
             resp.raise_for_status()
-            return resp.json()
+            data = resp.json()
+            _STATUS_CACHE[session_id] = (time.time(), data)
+            return data
         except httpx.HTTPStatusError as e:
+            if e.response.status_code == 429:
+                return {"status": "loading", "message": "Rate limit cool-down"}
             msg = self._sanitize_message(e.response.text)
             logger.error("Failed to create session on gateway", status=e.response.status_code, error=msg)
             raise WhatsAppGatewayError(f"Gateway returned {e.response.status_code}: {msg}") from e
@@ -132,14 +147,31 @@ class WhatsAppGatewayClient:
             raise WhatsAppGatewayError(f"Could not connect to WhatsApp Gateway: {msg}") from e
 
     async def get_session_status(self, session_id: str) -> Dict[str, Any]:
-        """Fetch current session pairing/connection status."""
+        """Fetch current session pairing/connection status with TTL caching and 429 backoff."""
+        now = time.time()
+        if session_id in _STATUS_CACHE:
+            cached_time, cached_val = _STATUS_CACHE[session_id]
+            if now - cached_time < CACHE_TTL_SECONDS:
+                return cached_val
+
         try:
             resp = await self._client.get(f"{self.base_url}/sessions/{session_id}")
+            if resp.status_code == 429:
+                logger.warning("Gateway rate-limit encountered, cooling down", session_id=session_id)
+                if session_id in _STATUS_CACHE:
+                    return _STATUS_CACHE[session_id][1]
+                return {"status": "loading", "message": "Rate limit cool-down"}
             resp.raise_for_status()
-            return resp.json()
+            data = resp.json()
+            _STATUS_CACHE[session_id] = (time.time(), data)
+            return data
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:
                 return {"status": "not_found", "message": "Session not registered"}
+            if e.response.status_code == 429:
+                if session_id in _STATUS_CACHE:
+                    return _STATUS_CACHE[session_id][1]
+                return {"status": "loading", "message": "Rate limit cool-down"}
             msg = self._sanitize_message(e.response.text)
             raise WhatsAppGatewayError(f"Failed to query session: {msg}") from e
         except Exception as e:
@@ -175,6 +207,7 @@ class WhatsAppGatewayClient:
 
     async def close_session(self, session_id: str) -> Dict[str, Any]:
         """Terminate and clean up session on gateway."""
+        _STATUS_CACHE.pop(session_id, None)
         try:
             resp = await self._client.post(f"{self.base_url}/sessions/{session_id}/close", json={})
             if resp.status_code in (200, 201, 204):

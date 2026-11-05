@@ -96,7 +96,7 @@ async def ensure_linked_device_session(
             **extra,
             "session_id": session_id,
             "provider": "baileys",
-            "qr_url": None if is_conn else qr_code,
+            "qr_url": None if is_conn else (qr_code or extra.get("qr_url")),
             "last_status": "connected" if is_conn else res.get("status", "pending")
         }
         integration.extra_data = new_extra
@@ -107,20 +107,21 @@ async def ensure_linked_device_session(
             "status": "connected" if is_conn else "success",
             "connected": is_conn,
             "session_id": session_id,
-            "qr_code": None if is_conn else qr_code,
-            "qr_url": None if is_conn else qr_code,
+            "qr_code": None if is_conn else (qr_code or extra.get("qr_url")),
+            "qr_url": None if is_conn else (qr_code or extra.get("qr_url")),
             "pairing_code": res.get("pairing_code"),
             "integration_status": "connected" if is_conn else "pending",
             "message": "WhatsApp connected successfully" if is_conn else "Scan QR code to connect"
         })
     except Exception as e:
+        await db.rollback()
         logger.warning("WhatsApp session start pending gateway startup", error=str(e), integration_id=str(integration.id))
         return {
             "status": "loading",
             "session_id": session_id,
             "connected": False,
-            "qr_code": None,
-            "qr_url": None,
+            "qr_code": extra.get("qr_url"),
+            "qr_url": extra.get("qr_url"),
             "message": "Gateway starting up, generating QR code..."
         }
     finally:
@@ -152,18 +153,34 @@ async def sync_linked_device_session(
         if is_conn:
             integration.status = IntegrationStatus.CONNECTED
             extra["qr_url"] = None
+            extra["last_status"] = "connected"
+            integration.extra_data = extra
+            await db.commit()
         elif raw_status in ("qr_ready", "connecting"):
             if integration.status != IntegrationStatus.CONNECTED:
                 integration.status = IntegrationStatus.PENDING
             if status_res.get("qr_code"):
                 extra["qr_url"] = status_res.get("qr_code")
+            extra["last_status"] = raw_status
+            integration.extra_data = extra
+            await db.commit()
+        elif raw_status == "loading":
+            # Gateway in cool-down or startup; keep current integration status
+            return _sanitize_session_response({
+                "session_id": session_id,
+                "status": "loading",
+                "connected": False,
+                "integration_status": integration.status.value,
+                "qr_code": extra.get("qr_url"),
+                "pairing_code": status_res.get("pairing_code"),
+                "message": status_res.get("message", "Loading session status...")
+            })
         elif raw_status in ("disconnected", "not_found"):
             if integration.status != IntegrationStatus.CONNECTED:
                 integration.status = IntegrationStatus.DISCONNECTED
-
-        extra["last_status"] = "connected" if is_conn else raw_status
-        integration.extra_data = extra
-        await db.commit()
+            extra["last_status"] = raw_status
+            integration.extra_data = extra
+            await db.commit()
 
         return _sanitize_session_response({
             "session_id": session_id,
@@ -174,13 +191,15 @@ async def sync_linked_device_session(
             "pairing_code": status_res.get("pairing_code"),
         })
     except Exception as e:
+        await db.rollback()
         logger.error("Failed syncing Baileys session", error=str(e), session_id=session_id)
         return {
             "session_id": session_id,
-            "status": "error",
+            "status": "loading" if (integration.extra_data or {}).get("qr_url") else "error",
             "connected": integration.status == IntegrationStatus.CONNECTED,
             "integration_status": integration.status.value,
-            "message": "Unable to contact gateway"
+            "qr_code": (integration.extra_data or {}).get("qr_url"),
+            "message": "Syncing with gateway..."
         }
     finally:
         await service.aclose()
@@ -209,12 +228,15 @@ async def close_linked_device_session(
     finally:
         await service.aclose()
 
-    integration.status = IntegrationStatus.DISCONNECTED
-    extra = integration.extra_data or {}
-    extra["qr_url"] = None
-    extra["last_status"] = "disconnected"
-    integration.extra_data = extra
-    await db.commit()
+    try:
+        integration.status = IntegrationStatus.DISCONNECTED
+        extra = integration.extra_data or {}
+        extra["qr_url"] = None
+        extra["last_status"] = "disconnected"
+        integration.extra_data = extra
+        await db.commit()
+    except Exception:
+        await db.rollback()
 
     return {
         "status": "success",

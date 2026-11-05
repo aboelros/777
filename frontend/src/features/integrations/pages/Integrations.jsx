@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ShoppingBag, MessageCircle, Send, Facebook, Instagram,
-  MessageSquare, Video, RefreshCw, Settings as SettingsIcon, Sparkles,
-  Plug
+  MessageSquare, Video, Settings as SettingsIcon, Sparkles, Plug
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/services/api';
@@ -35,7 +34,7 @@ export default function Integrations() {
     shopDomain: '',
     whatsappPhoneNumber: '',
     whatsappBusinessAccountId: '',
-    whatsapp_provider: 'business_api',
+    whatsapp_provider: 'baileys',
   });
 
   const availableIntegrations = [
@@ -48,7 +47,7 @@ export default function Integrations() {
     { id: 'tiktok', name: 'TikTok Shop', icon: Video, description: 'Live shopping inquiries, creator messaging, and order tracking.', color: 'from-slate-800 to-cyan-700' },
   ];
 
-  const { data: connectedIntegrations, isLoading } = useQuery({
+  const { data: connectedIntegrations } = useQuery({
     queryKey: ['integrations', currentProject?.id],
     queryFn: () => api.integrations.list(currentProject?.id),
     enabled: !!currentProject?.id,
@@ -69,9 +68,9 @@ export default function Integrations() {
         setActiveWhatsAppIntegrationId(data.id);
         setQrModalOpen(true);
       }
-      setCredentials({ apiKey: '', shopDomain: '', whatsappPhoneNumber: '', whatsappBusinessAccountId: '', whatsapp_provider: 'business_api' });
+      setCredentials({ apiKey: '', shopDomain: '', whatsappPhoneNumber: '', whatsappBusinessAccountId: '', whatsapp_provider: 'baileys' });
     },
-    onError: (err) => toast.error(err.response?.data?.detail || 'Connection failed'),
+    onError: (err) => toast.error(err.response?.data?.detail || err.message || 'Connection failed'),
   });
 
   const syncMutation = useMutation({
@@ -127,7 +126,6 @@ export default function Integrations() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3 text-text-primary tracking-tight">
@@ -148,7 +146,6 @@ export default function Integrations() {
         </div>
       </div>
 
-      {/* Integration Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {availableIntegrations.map((integration) => {
           const status = getStatus(integration.id);
@@ -185,7 +182,6 @@ export default function Integrations() {
         })}
       </div>
 
-      {/* Connected Integrations List */}
       <ConnectedIntegrationsList
         integrations={connectedIntegrations}
         onDelete={(id) => deleteMutation.mutate(id)}
@@ -195,7 +191,6 @@ export default function Integrations() {
         onManage={() => navigate('/integrations/manage')}
       />
 
-      {/* Modals */}
       <IntegrationConnectModal
         show={showModal}
         selectedProvider={selectedProvider}
@@ -218,6 +213,7 @@ export default function Integrations() {
         onClose={() => setQrModalOpen(false)}
         projectId={currentProject?.id}
         integrationId={activeWhatsAppIntegrationId}
+        initialQRCode={rawList.find((i) => i.id === activeWhatsAppIntegrationId)?.extra_data?.qr_url}
       />
     </div>
   );
