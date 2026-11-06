@@ -118,4 +118,16 @@ admin-panel/dist/
 scripts/check_*.py
 scripts/create_reviewer_user.py
 scripts/deep_check_reviewer_activity.py
+scripts/render_*.py
+scripts/record_*.py
+scripts/test_*.py
+scripts/*.html
+scripts/run_marketing_*.py
+scripts/finish_marketing_*.py
+scripts/patch_gemini_persona.py
+scripts/prepare_*_audio.py
+scripts/inspect_ig_html.py
+scripts/preview_desktop_chrome.py
+scripts/verify_extracted_frames.py
+scripts/automate_and_record_meta_test.py
 
