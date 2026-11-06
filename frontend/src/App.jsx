@@ -26,6 +26,7 @@ const MetaCallback = lazy(() => import('./features/social/pages/MetaCallback'));
 const TikTokCallback = lazy(() => import('./features/integrations/pages/TikTokCallback'));
 const ShopifyCallback = lazy(() => import('./features/integrations/pages/ShopifyCallback'));
 const PrivacyPolicy = lazy(() => import('./features/common/pages/PrivacyPolicy'));
+const TermsOfService = lazy(() => import('./features/common/pages/TermsOfService'));
 const Messages = lazy(() => import('./features/messages/pages/Messages'));
 const Orders = lazy(() => import('./features/orders/pages/Orders'));
 const OrderTracking = lazy(() => import('./features/orders/pages/OrderTracking'));
@@ -144,6 +145,8 @@ function App() {
             {/* Public Routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
 
             {/* Protected Routes */}
             <Route
