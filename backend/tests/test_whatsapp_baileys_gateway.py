@@ -147,3 +147,53 @@ def test_jid_normalization():
     assert WhatsAppBaileysService.normalize_jid("201012345678@s.whatsapp.net") == "201012345678@s.whatsapp.net"
     assert WhatsAppBaileysService.normalize_jid("201012345678@c.us") == "201012345678@s.whatsapp.net"
     assert WhatsAppBaileysService.normalize_jid("") == ""
+
+
+def test_format_status_safe_handling():
+    """Verify _format_status gracefully handles Enums, strings, and None."""
+    from app.api.v1.whatsapp_session_helpers import _format_status
+    from app.domains.integrations.models import IntegrationStatus
+
+    assert _format_status(IntegrationStatus.CONNECTED) == "connected"
+    assert _format_status(IntegrationStatus.DISCONNECTED) == "disconnected"
+    assert _format_status("connected") == "connected"
+    assert _format_status("PENDING") == "pending"
+    assert _format_status(None) == "disconnected"
+
+
+@pytest.mark.asyncio
+async def test_get_whatsapp_integration_fallback_to_connected():
+    """Verify stale integration IDs resolve to active connected integration."""
+    from app.api.v1.whatsapp_session_helpers import get_whatsapp_integration
+    from app.domains.integrations.models import Integration, IntegrationStatus
+
+    proj_id = uuid4()
+    stale_id = uuid4()
+    active_id = uuid4()
+
+    stale_int = MagicMock(spec=Integration)
+    stale_int.id = stale_id
+    stale_int.project_id = proj_id
+    stale_int.provider = "whatsapp"
+    stale_int.status = IntegrationStatus.DISCONNECTED
+
+    active_int = MagicMock(spec=Integration)
+    active_int.id = active_id
+    active_int.project_id = proj_id
+    active_int.provider = "whatsapp"
+    active_int.status = IntegrationStatus.CONNECTED
+
+    db = AsyncMock()
+    # First query for stale_id returns stale_int
+    mock_res_1 = MagicMock()
+    mock_res_1.scalar_one_or_none.return_value = stale_int
+    # Second query for connected integration returns active_int
+    mock_res_2 = MagicMock()
+    mock_res_2.scalars().first.return_value = active_int
+
+    db.execute.side_effect = [mock_res_1, mock_res_2]
+
+    resolved = await get_whatsapp_integration(db, proj_id, stale_id)
+    assert resolved.id == active_id
+    assert resolved.status == IntegrationStatus.CONNECTED
+

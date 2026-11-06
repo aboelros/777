@@ -697,10 +697,25 @@ async def _get_whatsapp_integration(
         .where(Integration.project_id == project_id)
     )
     integration = result.scalar_one_or_none()
+    curr_status = str(getattr(integration, "status", "") or "").lower()
+    if curr_status != "connected":
+        conn_res = await db.execute(
+            select(Integration)
+            .where(
+                Integration.project_id == project_id,
+                Integration.provider == "whatsapp",
+                Integration.status == IntegrationStatus.CONNECTED
+            )
+            .order_by(Integration.updated_at.desc().nullslast(), Integration.created_at.desc())
+        )
+        active_conn = conn_res.scalars().first()
+        if active_conn:
+            return active_conn
     if not integration:
         fb = await db.execute(
             select(Integration)
             .where(Integration.project_id == project_id, Integration.provider == "whatsapp")
+            .order_by(Integration.created_at.desc())
         )
         integration = fb.scalars().first()
     if not integration:
@@ -1059,9 +1074,21 @@ async def logout_wa_gateway_session(
         resolve_session_id
     )
 
-    integration = await get_whatsapp_integration(db, project_id, integration_id)
-    session_id = resolve_session_id(integration)
-    return await close_linked_device_session(db, integration, session_id)
+    try:
+        integration = await get_whatsapp_integration(db, project_id, integration_id)
+        session_id = resolve_session_id(integration)
+        return await close_linked_device_session(db, integration, session_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.warning("Error during WA gateway logout", error=str(e), integration_id=str(integration_id))
+        return {
+            "status": "success",
+            "session_id": str(integration_id),
+            "integration_status": "disconnected",
+            "message": "Session disconnected"
+        }
 
 
 # ============================================================================

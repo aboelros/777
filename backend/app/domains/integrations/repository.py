@@ -28,7 +28,7 @@ class IntegrationRepository(BaseRepository[Integration]):
     ) -> List[Integration]:
         query = select(self.model).where(
             self.model.project_id == project_id
-        )
+        ).order_by(self.model.created_at.desc())
         result = await self.session.execute(query)
         return list(result.scalars().all())
 

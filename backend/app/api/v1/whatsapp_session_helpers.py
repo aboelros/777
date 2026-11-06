@@ -1,7 +1,4 @@
-"""
-Session management helpers for WhatsApp Baileys gateway integration.
-"""
-
+"""Session management helpers for WhatsApp Baileys gateway integration."""
 from typing import Dict, Any, Optional
 from uuid import UUID
 from fastapi import HTTPException, status
@@ -16,43 +13,66 @@ logger = structlog.get_logger(__name__)
 
 
 def _sanitize_session_response(data: Dict[str, Any]) -> Dict[str, Any]:
-    """Ensure no credentials or raw secrets leak in session status responses."""
+    """Ensure no credentials or raw secrets leak in session responses."""
     sanitized = dict(data)
-    for sensitive_key in ("api_key", "access_token", "token", "secret", "password"):
-        sanitized.pop(sensitive_key, None)
+    for k in ("api_key", "access_token", "token", "secret", "password"):
+        sanitized.pop(k, None)
     if "metadata" in sanitized and isinstance(sanitized["metadata"], dict):
         clean_meta = dict(sanitized["metadata"])
-        for sensitive_key in ("api_key", "access_token", "token", "secret"):
-            clean_meta.pop(sensitive_key, None)
+        for k in ("api_key", "access_token", "token", "secret"):
+            clean_meta.pop(k, None)
         sanitized["metadata"] = clean_meta
     return sanitized
+
+
+def _format_status(status_val: Any) -> str:
+    """Safely format status to lowercase string."""
+    return str(getattr(status_val, "value", status_val or "disconnected")).lower()
+
 
 def resolve_session_id(integration: Integration) -> str:
     """Ensure a deterministic per-tenant unique session ID."""
     extra = integration.extra_data or {}
     config = integration.config or {}
     sid = extra.get("session_id") or config.get("session_id")
-    if not sid or sid == "default":
-        return str(integration.id)
-    return sid
+    return str(integration.id) if (not sid or sid == "default") else str(sid)
+
 
 async def get_whatsapp_integration(
     db: AsyncSession,
     project_id: UUID,
     integration_id: UUID,
 ) -> Integration:
-    """Fetch and validate WhatsApp integration ownership with resilient fallback."""
+    """Fetch WhatsApp integration, auto-resolving to active connected channel if caller ID is stale."""
     result = await db.execute(
-        select(Integration)
-        .where(Integration.id == integration_id, Integration.project_id == project_id)
+        select(Integration).where(Integration.id == integration_id, Integration.project_id == project_id)
     )
     integration = result.scalar_one_or_none()
+
+    # If requested integration is disconnected or not found, check if an active connected one exists
+    is_conn = integration and _format_status(integration.status) == "connected"
+    if not is_conn:
+        conn_res = await db.execute(
+            select(Integration)
+            .where(
+                Integration.project_id == project_id,
+                Integration.provider == "whatsapp",
+                Integration.status == IntegrationStatus.CONNECTED
+            )
+            .order_by(Integration.updated_at.desc().nullslast(), Integration.created_at.desc())
+        )
+        active_conn = conn_res.scalars().first()
+        if active_conn:
+            return active_conn
+
     if not integration:
         fb = await db.execute(
             select(Integration)
             .where(Integration.project_id == project_id, Integration.provider == "whatsapp")
+            .order_by(Integration.created_at.desc())
         )
         integration = fb.scalars().first()
+
     if not integration:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Integration not found")
     if integration.provider != "whatsapp":
@@ -69,15 +89,11 @@ async def ensure_linked_device_session(
     extra = integration.extra_data or {}
     config = integration.config or {}
     session_id = resolve_session_id(integration)
-    base_url = config.get("base_url")
-    api_key = config.get("api_key")
-
     service = WhatsAppBaileysService(
         session_id=session_id,
-        base_url=base_url,
-        api_key=api_key
+        base_url=config.get("base_url"),
+        api_key=config.get("api_key")
     )
-
     try:
         session_meta = {
             "project_id": str(integration.project_id),
@@ -85,18 +101,16 @@ async def ensure_linked_device_session(
             **(metadata or {})
         }
         res = await service.start_session(project_id=str(integration.project_id), metadata=session_meta)
-        
         qr_code = res.get("qr_code") or res.get("qr")
         is_conn = res.get("status") == "connected" or bool(res.get("connected"))
 
-        new_extra = {
+        integration.extra_data = {
             **extra,
             "session_id": session_id,
             "provider": "baileys",
             "qr_url": None if is_conn else (qr_code or extra.get("qr_url")),
             "last_status": "connected" if is_conn else res.get("status", "pending")
         }
-        integration.extra_data = new_extra
         integration.status = IntegrationStatus.CONNECTED if is_conn else IntegrationStatus.PENDING
         await db.commit()
 
@@ -132,15 +146,11 @@ async def sync_linked_device_session(
 ) -> Dict[str, Any]:
     """Query gateway status and synchronize integration model state."""
     config = integration.config or {}
-    base_url = config.get("base_url")
-    api_key = config.get("api_key")
-
     service = WhatsAppBaileysService(
         session_id=session_id,
-        base_url=base_url,
-        api_key=api_key
+        base_url=config.get("base_url"),
+        api_key=config.get("api_key")
     )
-
     try:
         status_res = await service.get_status()
         raw_status = status_res.get("status")
@@ -161,12 +171,11 @@ async def sync_linked_device_session(
             integration.extra_data = extra
             await db.commit()
         elif raw_status == "loading":
-            # Gateway in cool-down or startup; keep current integration status
             return _sanitize_session_response({
                 "session_id": session_id,
                 "status": "loading",
                 "connected": False,
-                "integration_status": integration.status.value,
+                "integration_status": _format_status(integration.status),
                 "qr_code": extra.get("qr_url"),
                 "pairing_code": status_res.get("pairing_code"),
                 "message": status_res.get("message", "Loading session status...")
@@ -182,7 +191,7 @@ async def sync_linked_device_session(
             "session_id": session_id,
             "status": "connected" if is_conn else raw_status,
             "connected": is_conn,
-            "integration_status": integration.status.value,
+            "integration_status": _format_status(integration.status),
             "qr_code": None if is_conn else (status_res.get("qr_code") or extra.get("qr_url")),
             "pairing_code": status_res.get("pairing_code"),
         })
@@ -192,8 +201,8 @@ async def sync_linked_device_session(
         return {
             "session_id": session_id,
             "status": "loading" if (integration.extra_data or {}).get("qr_url") else "error",
-            "connected": integration.status == IntegrationStatus.CONNECTED,
-            "integration_status": integration.status.value,
+            "connected": _format_status(integration.status) == "connected",
+            "integration_status": _format_status(integration.status),
             "qr_code": (integration.extra_data or {}).get("qr_url"),
             "message": "Syncing with gateway..."
         }
@@ -208,15 +217,11 @@ async def close_linked_device_session(
 ) -> Dict[str, Any]:
     """Terminate Baileys session and update integration status."""
     config = integration.config or {}
-    base_url = config.get("base_url")
-    api_key = config.get("api_key")
-
     service = WhatsAppBaileysService(
         session_id=session_id,
-        base_url=base_url,
-        api_key=api_key
+        base_url=config.get("base_url"),
+        api_key=config.get("api_key")
     )
-
     try:
         await service.logout_session()
     except Exception as e:

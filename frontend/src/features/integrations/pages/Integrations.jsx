@@ -99,11 +99,15 @@ export default function Integrations() {
   }
 
   const rawList = Array.isArray(connectedIntegrations) ? connectedIntegrations : (connectedIntegrations?.data || []);
-  const getStatus = (providerId) => {
-    const item = rawList.find((i) => i.provider === providerId);
-    return item?.status || 'disconnected';
+  const getProviderIntegration = (providerId) => {
+    const matches = rawList.filter((i) => i.provider === providerId);
+    if (!matches.length) return null;
+    return matches.find((i) => i.status === 'connected') ||
+           matches.find((i) => i.status === 'pending') ||
+           matches[0];
   };
-  const getIntegrationId = (providerId) => rawList.find((i) => i.provider === providerId)?.id;
+  const getStatus = (providerId) => getProviderIntegration(providerId)?.status || 'disconnected';
+  const getIntegrationId = (providerId) => getProviderIntegration(providerId)?.id;
 
   const handleMetaConnect = async () => {
     try {
@@ -161,10 +165,10 @@ export default function Integrations() {
               onSync={() => extId && syncMutation.mutate(extId)}
               onVerify={() => {
                 if (integration.id === 'whatsapp' && extId) {
-                  const waItem = rawList.find((i) => i.id === extId);
-                  const isBaileys = waItem?.config?.whatsapp_provider === 'baileys' || waItem?.extra_data?.provider === 'baileys';
-                  if (isBaileys) {
-                    setActiveWhatsAppIntegrationId(extId);
+                  const waItem = rawList.find((i) => i.id === extId) || getProviderIntegration('whatsapp');
+                  const isBaileys = waItem?.config?.whatsapp_provider === 'baileys' || waItem?.extra_data?.provider === 'baileys' || !waItem?.config?.access_token;
+                  if (isBaileys && waItem?.id) {
+                    setActiveWhatsAppIntegrationId(waItem.id);
                     setQrModalOpen(true);
                     return;
                   }
@@ -213,7 +217,7 @@ export default function Integrations() {
         onClose={() => setQrModalOpen(false)}
         projectId={currentProject?.id}
         integrationId={activeWhatsAppIntegrationId || getIntegrationId('whatsapp')}
-        initialQRCode={rawList.find((i) => i.id === (activeWhatsAppIntegrationId || getIntegrationId('whatsapp')))?.extra_data?.qr_url}
+        initialQRCode={getProviderIntegration('whatsapp')?.extra_data?.qr_url}
       />
     </div>
   );

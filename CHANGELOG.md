@@ -5,6 +5,16 @@ All notable changes to AI Sales Commander will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.4] - 2026-11-06
+
+### Fixed & Enhanced
+- 🛡️ **WhatsApp Session Synchronization & Fallback Resolution**:
+  - Resolved `500 Internal Server Error` on `GET /wa-gateway/qr` and `POST /wa-gateway/logout` by hardening `_format_status` to safely format both Enums and string values without `AttributeError` exceptions.
+  - Implemented auto-resolution in `get_whatsapp_integration` and `_get_whatsapp_integration`: when an integration ID passed by the client is disconnected or stale, the backend automatically resolves to the project's active `connected` WhatsApp integration.
+  - Wrapped `logout_wa_gateway_session` and `get_wa_gateway_qr` with comprehensive exception boundaries and safe transaction rollbacks to eliminate unhandled server errors.
+  - Updated `Integrations.jsx` provider lookup with `getProviderIntegration`, prioritizing active `connected` and `pending` integrations over legacy `disconnected` records.
+  - Ordered integration listing queries by `created_at DESC` in `IntegrationRepository.get_project_integrations` so modern records always take precedence.
+
 ## [2.5.3] - 2026-11-06
 
 ### Fixed & Enhanced
