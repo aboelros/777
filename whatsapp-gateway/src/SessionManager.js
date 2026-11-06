@@ -193,7 +193,9 @@ class SessionManager {
         if (!session) throw new Error('Session not found');
         if (session.status !== 'connected') throw new Error(`Session is ${session.status}, not connected`);
 
-        const jid = to.includes('@') ? to : `${to}@s.whatsapp.net`;
+        const cleanTo = String(to || '').trim();
+        const digits = cleanTo.replace(/\D/g, '');
+        const jid = cleanTo.includes("@") ? cleanTo : (digits.length >= 15 ? (digits + "@lid") : (digits + "@s.whatsapp.net"));
         if (messageType !== 'text') throw new Error(`Unsupported message type: ${messageType}`);
 
         const result = await session.socket.sendMessage(jid, { text: message });

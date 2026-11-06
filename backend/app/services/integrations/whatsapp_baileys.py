@@ -29,8 +29,16 @@ class WhatsAppBaileysService:
 
     @staticmethod
     def normalize_jid(to: str) -> str:
-        """Format number into standard WhatsApp recipient address."""
-        clean = to.replace("@s.whatsapp.net", "").replace("@c.us", "").lstrip("+").strip()
+        """Format number or LID into standard WhatsApp recipient address."""
+        if not to:
+            return ""
+        to_str = str(to).strip()
+        if to_str.endswith("@lid") or to_str.endswith("@s.whatsapp.net") or to_str.endswith("@g.us"):
+            return to_str
+        digits = "".join(c for c in to_str if c.isdigit())
+        if len(digits) >= 15:
+            return f"{digits}@lid"
+        clean = to_str.replace("@c.us", "").lstrip("+").strip()
         return f"{clean}@s.whatsapp.net" if clean else ""
 
     async def start_session(
@@ -125,7 +133,12 @@ class WhatsAppBaileysService:
             msg_obj = payload.get("message", payload)
             key = msg_obj.get("key", {})
             remote_jid = key.get("remoteJid", "")
-            from_number = remote_jid.split("@")[0] if remote_jid else ""
+            if remote_jid and "@lid" in remote_jid:
+                from_number = remote_jid
+            elif remote_jid:
+                from_number = remote_jid.split("@")[0]
+            else:
+                from_number = ""
             msg_id = key.get("id", "")
             push_name = msg_obj.get("pushName") or payload.get("pushName") or "WhatsApp User"
             timestamp = msg_obj.get("messageTimestamp", 0)

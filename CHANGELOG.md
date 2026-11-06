@@ -5,6 +5,15 @@ All notable changes to AI Sales Commander will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.3] - 2026-11-06
+
+### Fixed & Enhanced
+- 📱 **WhatsApp Linked Identity (LID) Routing & Delivery**:
+  - Resolved outbound messaging failure where responses sent to WhatsApp Linked Identity (LID) users were routed to `{digits}@s.whatsapp.net` instead of `{digits}@lid`, causing silent drop by WhatsApp servers.
+  - Updated `WhatsAppBaileysService.normalize_jid` and `parse_webhook` to detect and preserve `@lid` domains and 15-digit LIDs.
+  - Updated `whatsapp-gateway/src/SessionManager.js` to normalize and route recipient addresses to `@lid` when length $\ge 15$ digits or when domain is specified.
+  - Verified live delivery to user LID accounts directly via the gateway and updated historical customer records.
+
 ## [2.5.2] - 2026-11-06
 
 ### Fixed & Enhanced
