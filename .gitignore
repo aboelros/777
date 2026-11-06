@@ -130,4 +130,6 @@ scripts/inspect_ig_html.py
 scripts/preview_desktop_chrome.py
 scripts/verify_extracted_frames.py
 scripts/automate_and_record_meta_test.py
+scripts/execute_required_app_review_test_calls.py
+scripts/inspect_meta_config.py
 

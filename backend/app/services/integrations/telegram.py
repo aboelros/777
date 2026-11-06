@@ -2,7 +2,7 @@
 Telegram Bot API integration service.
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union
 import structlog
 import httpx
 from app.core.config import settings
@@ -13,10 +13,13 @@ logger = structlog.get_logger(__name__)
 class TelegramService:
     """Service for Telegram Bot API integration."""
     
-    def __init__(self, bot_token: str):
-        """Initialize Telegram service with bot token."""
-        self.bot_token = bot_token
-        self.api_url = f"https://api.telegram.org/bot{bot_token}"
+    def __init__(self, bot_token: Union[str, Dict[str, Any]]):
+        """Initialize Telegram service with bot token or config dict."""
+        if isinstance(bot_token, dict):
+            self.bot_token = str(bot_token.get("bot_token") or bot_token.get("api_key") or "")
+        else:
+            self.bot_token = str(bot_token or "")
+        self.api_url = f"https://api.telegram.org/bot{self.bot_token}"
     
     async def send_message(
         self,

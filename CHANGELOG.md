@@ -5,6 +5,17 @@ All notable changes to AI Sales Commander will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.1] - 2026-11-06
+
+### Fixed & Enhanced
+- 📱 **WhatsApp Baileys AI Orchestrator & Outbound Messaging**:
+  - Resolved `WhatsAppService.__init__() missing 1 required positional argument: 'access_token'` by dynamically resolving `WhatsAppBaileysService` for unofficial self-hosted Baileys sessions vs `WhatsAppService` for official Cloud API in `AIOrchestrator._get_integration_client`.
+  - Added on-demand lazy loading fallback in `AIOrchestrator._send_message` ensuring outbound client resolution never fails even when webhook processing immediately follows QR linking.
+  - Hardened `WhatsAppService` and `TelegramService` constructors to defensively accept both dictionary configuration payloads and positional parameter arguments.
+  - Updated `WhatsAppBaileysService.send_message` to absorb `**kwargs` (e.g. `messaging_type`, `quick_replies`) without throwing type errors, and properly recorded outbound message IDs from gateway response bodies (`message_id` and `id`).
+  - Added support for `"baileys"` and `"wa_gateway"` providers in `ServiceFactory.get_whatsapp_gateway_service`.
+  - Expanded test coverage across `backend/tests/test_whatsapp_orchestrator.py` verifying full end-to-end integration client instantiation and outbound payload delivery.
+
 ## [2.5.0] - 2026-11-06
 
 ### Added & Compliance

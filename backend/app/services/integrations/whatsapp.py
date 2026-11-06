@@ -2,7 +2,7 @@
 WhatsApp Business API integration service.
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, Union, Optional
 import structlog
 import httpx
 from app.core.config import settings
@@ -13,10 +13,15 @@ logger = structlog.get_logger(__name__)
 class WhatsAppService:
     """Service for WhatsApp Business API integration."""
     
-    def __init__(self, business_id: str, access_token: str):
-        """Initialize WhatsApp service with credentials."""
-        self.business_id = business_id
-        self.access_token = access_token
+    def __init__(self, business_id: Union[str, Dict[str, Any]], access_token: Optional[str] = None):
+        """Initialize WhatsApp service with credentials or config dict."""
+        if isinstance(business_id, dict):
+            cfg = business_id
+            self.business_id = str(cfg.get("phone_number_id") or cfg.get("business_id") or cfg.get("business_account_id") or "")
+            self.access_token = str(cfg.get("access_token") or cfg.get("api_key") or "")
+        else:
+            self.business_id = str(business_id or "")
+            self.access_token = str(access_token or "")
         self.api_url = "https://graph.facebook.com/v18.0"
     
     async def send_message(

@@ -116,22 +116,47 @@ class AIOrchestrator:
 
     def _get_integration_client(self, integration: Integration):
         """Create appropriate client for integration provider."""
-        clients = {
-            "shopify": ShopifyService,
-            "telegram": TelegramService,
-            "whatsapp": WhatsAppService,
-            "instagram": InstagramClient,
-            "facebook": FacebookClient
-        }
+        provider = integration.provider
+        cfg = self._build_client_config(integration)
+        extra = integration.extra_data or {}
 
-        client_class = clients.get(integration.provider)
-        if client_class:
-            cfg = self._build_client_config(integration)
-            try:
-                return client_class(cfg)
-            except Exception as err:
-                logger.error("Failed instantiating integration client", provider=integration.provider, error=str(err))
-                return None
+        try:
+            if provider == "whatsapp":
+                wa_provider = cfg.get("whatsapp_provider") or extra.get("provider")
+                is_baileys = (
+                    wa_provider in ("baileys", "wa_gateway", "go_whatsapp")
+                    or bool(cfg.get("base_url") or extra.get("base_url"))
+                    or not bool(cfg.get("access_token"))
+                )
+                if is_baileys:
+                    from app.services.integrations.whatsapp_baileys import WhatsAppBaileysService
+                    from app.api.v1.whatsapp_session_helpers import resolve_session_id
+                    session_id = resolve_session_id(integration)
+                    base_url = cfg.get("base_url") or extra.get("base_url")
+                    api_key = cfg.get("api_key") or extra.get("api_key")
+                    return WhatsAppBaileysService(session_id=session_id, base_url=base_url, api_key=api_key)
+                else:
+                    business_id = cfg.get("phone_number_id") or cfg.get("business_account_id") or cfg.get("business_id") or ""
+                    access_token = cfg.get("access_token") or cfg.get("api_key") or ""
+                    return WhatsAppService(business_id=business_id, access_token=access_token)
+
+            if provider == "telegram":
+                bot_token = cfg.get("bot_token") or cfg.get("api_key") or ""
+                return TelegramService(bot_token=bot_token)
+
+            if provider == "shopify":
+                return ShopifyService(cfg)
+
+            if provider == "instagram":
+                return InstagramClient(cfg)
+
+            if provider == "facebook":
+                return FacebookClient(cfg)
+
+        except Exception as err:
+            logger.error("Failed instantiating integration client", provider=provider, error=str(err))
+            return None
+
         return None
     
     async def process_customer_message(
@@ -977,6 +1002,22 @@ DO NOT repeat the previous text. Just give the answer.
         """Send message via appropriate integration."""
         client = self.integration_clients.get(channel)
         if not client:
+            try:
+                context = self._resolve_context(project_id)
+                from app.domains.integrations.repository import IntegrationRepository
+                int_repo = IntegrationRepository(self.db)
+                integrations = await int_repo.get_project_integrations(context.project_id)
+                for item in integrations:
+                    if item.provider == channel or (channel in ["instagram", "facebook"] and item.provider in ["meta", "facebook"]):
+                        lazy_client = self._get_integration_client(item)
+                        if lazy_client:
+                            self.integration_clients[channel] = lazy_client
+                            client = lazy_client
+                            break
+            except Exception as lazy_err:
+                logger.warning("Failed lazy-loading integration client in _send_message", channel=channel, error=str(lazy_err))
+
+        if not client:
             logger.error("No integration client found for channel", channel=channel)
             return {"status": "error", "message": f"No client for channel: {channel}"}
         
@@ -1052,6 +1093,8 @@ DO NOT repeat the previous text. Just give the answer.
             if channel in ["instagram", "facebook", "whatsapp"]:
                 provider = "meta"
 
+            outbound_msg_id = result.get("id") or result.get("message_id")
+
             if existing_message_id:
                 # Update existing record
                 stmt = select(Message).where(Message.id == existing_message_id)
@@ -1059,7 +1102,7 @@ DO NOT repeat the previous text. Just give the answer.
                 db_msg = res.scalar_one_or_none()
                 if db_msg:
                     db_msg.status = "sent"
-                    db_msg.external_id = result.get("id")
+                    db_msg.external_id = outbound_msg_id
                     db_msg.sent_at = datetime.utcnow()
                     db_msg.provider = provider
                     db_msg.platform = channel
@@ -1073,7 +1116,7 @@ DO NOT repeat the previous text. Just give the answer.
                     direction=MessageDirection.OUTBOUND,
                     platform=channel,
                     provider=provider,
-                    external_id=result.get("id"),
+                    external_id=outbound_msg_id,
                     status="sent",
                     created_at=datetime.utcnow()
                 )
@@ -1089,7 +1132,7 @@ DO NOT repeat the previous text. Just give the answer.
                 await ws_manager.broadcast_to_project(project_id or customer.project_id, {
                     "type": "new_message",
                     "message": {
-                        "id": str(existing_message_id) if existing_message_id else str(result.get("id")),
+                        "id": str(existing_message_id) if existing_message_id else str(outbound_msg_id or ""),
                         "content": message,
                         "direction": "outbound",
                         "platform": channel,
@@ -1102,7 +1145,7 @@ DO NOT repeat the previous text. Just give the answer.
             except Exception as ws_err:
                 logger.warning("WebSocket outbound broadcast failed", error=str(ws_err))
             
-            return {"status": "success", "id": result.get("id")}
+            return {"status": "success", "id": outbound_msg_id}
             
         except Exception as e:
             logger.error("Failed to send message", 

@@ -73,18 +73,23 @@ class WhatsAppBaileysService:
         to: str,
         message: str,
         message_type: str = "text",
-        extra: Optional[Dict[str, Any]] = None
+        extra: Optional[Dict[str, Any]] = None,
+        **kwargs: Any
     ) -> Dict[str, Any]:
         """Send outbound text message through Baileys gateway."""
         if not self.session_id:
             raise ValueError("Cannot send message without an active session_id")
         jid = self.normalize_jid(to)
+        merged_extra = dict(extra or {})
+        for k, v in kwargs.items():
+            if k not in merged_extra:
+                merged_extra[k] = v
         return await self.client.send_message(
             session_id=self.session_id,
             to=jid,
             message=message,
             message_type=message_type,
-            extra=extra
+            extra=merged_extra
         )
 
     async def send_media(

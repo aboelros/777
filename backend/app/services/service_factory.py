@@ -113,11 +113,14 @@ class ServiceFactory:
                 "Please set WA_GATEWAY_BASE_URL environment variable."
             )
             
-        if provider == "go_whatsapp":
+        if provider in ("baileys", "wa_gateway"):
+            from app.services.integrations.whatsapp_baileys import WhatsAppBaileysService
+            return WhatsAppBaileysService(base_url=base_url, api_key=api_key)
+        elif provider == "go_whatsapp":
             from app.services.integrations.go_whatsapp_service import GoWhatsAppService
             return GoWhatsAppService(base_url=base_url, api_key=api_key)
         else:
-            raise ValueError(f"Unsupported WhatsApp gateway provider: {provider}. Only 'go_whatsapp' is supported.")
+            raise ValueError(f"Unsupported WhatsApp gateway provider: {provider}")
 
 
 # Convenience functions
