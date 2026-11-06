@@ -14,6 +14,7 @@ import enum
 class ProjectRole(str, enum.Enum):
     """Project-specific roles for RBAC."""
     OWNER = "owner"
+    ADMIN = "admin"
     MODERATOR = "moderator"
     WORKER = "worker"
     

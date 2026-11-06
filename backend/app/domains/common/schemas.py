@@ -13,6 +13,7 @@ class UserRole(str, Enum):
 
 class ProjectRole(str, Enum):
     OWNER = "owner"
+    ADMIN = "admin"
     MODERATOR = "moderator"
     WORKER = "worker"
 
