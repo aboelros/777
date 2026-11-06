@@ -5,6 +5,27 @@ All notable changes to AI Sales Commander will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-11-06
+
+### Added & Compliance
+- 🛡️ **Meta App Review 2026 Compliance Suite**:
+  - Integrated full permission suite: `pages_read_user_content`, `pages_manage_engagement`, `pages_messaging`, `instagram_manage_messages`, `instagram_manage_comments`, `catalog_management`, `ads_read`, `leads_retrieval`, `ads_management`.
+  - Added public `TermsOfService` page (`/terms`, `/terms-of-service`) and explicit User Data Deletion callback instructions (`/privacy-policy#data-deletion`).
+  - Generated official 1024x1024 square App Icon (`Automio_App_Icon_1024x1024.png`) conforming to Meta Developer Asset Guidelines.
+  - Produced 6 studio-narrated dual-screen screencasts with synchronized English subtitles, glass HUD telemetry badges, and reviewer verification checklists.
+
+### Fixed & Enhanced
+- 💬 **Social Media & Feed Ingestion Engine**:
+  - Resolved customer author name resolution in Social Media Comments tab by harmonizing `author_name` and `author_username` across API and UI layers.
+  - Added dedicated "Sent Reply:" visual cards displaying auto-drafted and published AI responses underneath each customer comment.
+  - Implemented self-echo webhook filtering for Facebook (`page_id`) and Instagram (`ig_id`), preventing automated self-reply feedback loops.
+  - Stripped artificial telemetry prefixes (`"New Comment on meta:"`) from incoming comment streams.
+- 🔐 **RBAC & Authorization Hardening**:
+  - Added `ADMIN` role to `ProjectRole` enum schema and domain models, enabling multi-tier administrative governance.
+  - Configured project memberships for test reviewer credentials (`reviewer@automio.io`).
+- ⚡ **Infrastructure & High Availability**:
+  - Deployed continuous background keep-alive daemon for Render microservices to eliminate cold-start latencies during review evaluations.
+
 ## [2.4.0] - 2026-10-21
 
 ### Added & Enhanced
