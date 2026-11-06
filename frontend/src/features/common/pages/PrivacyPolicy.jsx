@@ -65,11 +65,17 @@ const PrivacyPolicy = () => {
                             </p>
                         </section>
 
-                        <section>
-                            <h2 className="text-2xl font-semibold text-white mb-3">6. Your Rights</h2>
-                            <p>
-                                You have the right to access, correct, or delete your personal information. You can manage your connected accounts and data directly within the application settings or by contacting us.
+                        <section id="data-deletion">
+                            <h2 className="text-2xl font-semibold text-white mb-3">6. User Data Deletion Instructions</h2>
+                            <p className="mb-2">
+                                In compliance with Meta Platform policies and international privacy standards, users and merchants have the right to request deletion of their data ingested via Facebook, Messenger, and Instagram.
                             </p>
+                            <p className="mb-2">To request data deletion, you can:</p>
+                            <ul className="list-disc pl-5 space-y-2 text-text-secondary">
+                                <li><strong>Via Meta Settings:</strong> Go to your Facebook Settings &amp; Privacy &gt; Settings &gt; Apps and Websites &gt; Select <em>AI Sales Commander</em> &gt; Click <em>Remove</em> &gt; Request Data Deletion.</li>
+                                <li><strong>Via Dashboard:</strong> Log in to Automio, navigate to <em>Integrations</em>, disconnect your Meta account, and select <em>Purge Synced Data</em>.</li>
+                                <li><strong>Via Direct Email:</strong> Email your deletion request with your Page or Account ID to <a href="mailto:support@aisalescommander.com" className="text-sky-400 hover:underline">support@aisalescommander.com</a>. Requests are completed within 48 hours.</li>
+                            </ul>
                         </section>
 
                         <section>
