@@ -212,8 +212,8 @@ export default function Integrations() {
         isOpen={qrModalOpen}
         onClose={() => setQrModalOpen(false)}
         projectId={currentProject?.id}
-        integrationId={activeWhatsAppIntegrationId}
-        initialQRCode={rawList.find((i) => i.id === activeWhatsAppIntegrationId)?.extra_data?.qr_url}
+        integrationId={activeWhatsAppIntegrationId || getIntegrationId('whatsapp')}
+        initialQRCode={rawList.find((i) => i.id === (activeWhatsAppIntegrationId || getIntegrationId('whatsapp')))?.extra_data?.qr_url}
       />
     </div>
   );

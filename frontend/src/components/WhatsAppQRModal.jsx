@@ -44,6 +44,7 @@ export default function WhatsAppQRModal({
       }
     },
     onError: (err) => {
+      queryClient.invalidateQueries(['integrations', projectId]);
       if (!qrCode) {
         const sanitized = (err.response?.data?.detail || err.message || 'Unable to load QR')
           .replace(/Bearer\s+[^\s]+/gi, '[REDACTED]')

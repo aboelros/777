@@ -698,6 +698,12 @@ async def _get_whatsapp_integration(
     )
     integration = result.scalar_one_or_none()
     if not integration:
+        fb = await db.execute(
+            select(Integration)
+            .where(Integration.project_id == project_id, Integration.provider == "whatsapp")
+        )
+        integration = fb.scalars().first()
+    if not integration:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Integration not found",
@@ -1001,9 +1007,10 @@ async def get_wa_gateway_qr(
         await db.rollback()
         logger.warning("Could not sync live session status", error=str(e), session_id=session_id)
 
-    # 2. Check cached QR code in extra_data
+    # 2. Check cached QR code in extra_data (only if recent/not disconnected)
     qr_url = (integration.extra_data or {}).get("qr_url")
-    if qr_url:
+    last_stat = (integration.extra_data or {}).get("last_status")
+    if qr_url and last_stat not in ("disconnected", "not_found"):
         return {
             "status": "success",
             "session_id": session_id,

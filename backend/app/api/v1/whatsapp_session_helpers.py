@@ -27,7 +27,6 @@ def _sanitize_session_response(data: Dict[str, Any]) -> Dict[str, Any]:
         sanitized["metadata"] = clean_meta
     return sanitized
 
-
 def resolve_session_id(integration: Integration) -> str:
     """Ensure a deterministic per-tenant unique session ID."""
     extra = integration.extra_data or {}
@@ -37,29 +36,27 @@ def resolve_session_id(integration: Integration) -> str:
         return str(integration.id)
     return sid
 
-
 async def get_whatsapp_integration(
     db: AsyncSession,
     project_id: UUID,
     integration_id: UUID,
 ) -> Integration:
-    """Fetch and validate WhatsApp integration ownership."""
+    """Fetch and validate WhatsApp integration ownership with resilient fallback."""
     result = await db.execute(
         select(Integration)
-        .where(Integration.id == integration_id)
-        .where(Integration.project_id == project_id)
+        .where(Integration.id == integration_id, Integration.project_id == project_id)
     )
     integration = result.scalar_one_or_none()
     if not integration:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Integration not found",
+        fb = await db.execute(
+            select(Integration)
+            .where(Integration.project_id == project_id, Integration.provider == "whatsapp")
         )
+        integration = fb.scalars().first()
+    if not integration:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Integration not found")
     if integration.provider != "whatsapp":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Integration is not a WhatsApp provider",
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Integration is not a WhatsApp provider")
     return integration
 
 
@@ -157,8 +154,7 @@ async def sync_linked_device_session(
             integration.extra_data = extra
             await db.commit()
         elif raw_status in ("qr_ready", "connecting"):
-            if integration.status != IntegrationStatus.CONNECTED:
-                integration.status = IntegrationStatus.PENDING
+            integration.status = IntegrationStatus.PENDING
             if status_res.get("qr_code"):
                 extra["qr_url"] = status_res.get("qr_code")
             extra["last_status"] = raw_status
@@ -176,9 +172,9 @@ async def sync_linked_device_session(
                 "message": status_res.get("message", "Loading session status...")
             })
         elif raw_status in ("disconnected", "not_found"):
-            if integration.status != IntegrationStatus.CONNECTED:
-                integration.status = IntegrationStatus.DISCONNECTED
+            integration.status = IntegrationStatus.DISCONNECTED
             extra["last_status"] = raw_status
+            extra["qr_url"] = None
             integration.extra_data = extra
             await db.commit()
 

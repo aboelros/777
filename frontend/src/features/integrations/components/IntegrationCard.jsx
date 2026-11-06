@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Settings as SettingsIcon, RefreshCw, CheckCircle, Trash2, BookOpen } from 'lucide-react';
+import { Settings as SettingsIcon, RefreshCw, CheckCircle, Trash2, BookOpen, Smartphone } from 'lucide-react';
 import GlassCard from '@/components/ui/GlassCard';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -47,6 +47,17 @@ export default function IntegrationCard({
         <div className="flex gap-2">
           {isConnected ? (
             <>
+              {integration.id === 'whatsapp' && (
+                <Button
+                  onClick={() => onVerify(integration.id)}
+                  variant="secondary"
+                  size="sm"
+                  className="px-3"
+                  title="Device Status / QR"
+                >
+                  <Smartphone className="w-4 h-4" />
+                </Button>
+              )}
               <Button
                 onClick={() => onSync(integration.id)}
                 disabled={isSyncing}

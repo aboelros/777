@@ -5,6 +5,16 @@ All notable changes to AI Sales Commander will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.2] - 2026-11-06
+
+### Fixed & Enhanced
+- 🔄 **WhatsApp QR & Session Resiliency**:
+  - Implemented automatic fallback in `get_whatsapp_integration` and `_get_whatsapp_integration` so stale integration IDs from cached browser tabs gracefully resolve to the active project WhatsApp integration instead of failing with 404 or 500 errors.
+  - Enhanced `get_wa_gateway_qr` to bypass expired cached QR codes and automatically invoke `ensure_linked_device_session` whenever the gateway reports `not_found` or `disconnected`.
+  - Updated `Integrations.jsx` to dynamically fallback to `getIntegrationId('whatsapp')` if `activeWhatsAppIntegrationId` is unset or stale.
+  - Added direct "Device" status modal launcher to `IntegrationCard.jsx` even when in connected state, allowing instant QR re-inspection and pairing verification.
+  - Added automated query cache invalidation on QR load errors in `WhatsAppQRModal.jsx` to prevent stuck loading states.
+
 ## [2.5.1] - 2026-11-06
 
 ### Fixed & Enhanced
