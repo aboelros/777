@@ -1,37 +1,44 @@
-// Session Manager - Handles WhatsApp session lifecycle and socket events
+// WhatsApp Session Manager - Supabase persistence, distributed locking, lifecycle
 
-const { default: makeWASocket, DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, Browsers } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, DisconnectReason, fetchLatestBaileysVersion, Browsers } = require('@whiskeysockets/baileys');
 const pino = require('pino');
-const fs = require('fs');
-const path = require('path');
 const QRCode = require('qrcode');
-const { sendWebhook, resolveBackendUrl } = require('./webhook');
+const { useSupabaseAuthState } = require('./auth/supabaseAuthState');
+const { DistributedLock } = require('./db/lock');
+const { migrateFilesystemSession } = require('./auth/migration');
+const RestorationQueue = require('./auth/queue');
+const { query } = require('./db/pool');
+const { sendSessionMessage, handleIncomingMessage } = require('./handlers/messageHandler');
+const { dispatchSessionStatus } = require('./handlers/statusDispatcher');
 
 class SessionManager {
     constructor(sessionDir = './sessions') {
         this.sessions = new Map();
         this.sessionDir = sessionDir;
         this.logger = pino({ level: process.env.LOG_LEVEL || 'info' });
-
-        if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
+        this.restorationQueue = new RestorationQueue({ concurrency: 2, maxRetries: 3 });
     }
 
     async createSession(sessionId, metadata = {}) {
         if (this.sessions.has(sessionId)) {
             const existing = this.sessions.get(sessionId);
-            if (existing.status === 'connected') {
-                return { session_id: sessionId, status: 'connected', qr_code: null, pairing_code: null, created_at: existing.createdAt };
-            }
-            if (existing.status === 'qr_ready' && existing.qr) {
-                return { session_id: sessionId, status: 'qr_ready', qr_code: existing.qr, pairing_code: existing.pairingCode, created_at: existing.createdAt };
-            }
-            if (existing.status === 'connecting') {
-                return { session_id: sessionId, status: 'connecting', qr_code: existing.qr, pairing_code: existing.pairingCode, created_at: existing.createdAt };
+            if (['connected', 'qr_ready', 'connecting'].includes(existing.status)) {
+                return { session_id: sessionId, status: existing.status, qr_code: existing.qr, created_at: existing.createdAt };
             }
             if (existing.socket) {
                 try { existing.socket.end(new Error('Refreshing socket')); } catch (_) {}
             }
         }
+
+        const lock = new DistributedLock(sessionId);
+        const acquired = await lock.acquire();
+        if (!acquired) {
+            return { session_id: sessionId, status: 'locked', message: 'Socket locked by another gateway instance' };
+        }
+
+        await migrateFilesystemSession(this.sessionDir, sessionId, metadata.project_id).catch((err) => {
+            this.logger.warn({ sessionId, error: err.message }, 'Filesystem migration check note');
+        });
 
         const session = {
             id: sessionId,
@@ -39,48 +46,37 @@ class SessionManager {
             status: 'connecting',
             qr: null,
             socket: null,
+            lock,
+            authAdapter: null,
             createdAt: new Date(),
             lastActivity: new Date()
         };
         this.sessions.set(sessionId, session);
 
         let qrResolve, qrReject;
-        const qrPromise = new Promise((resolve, reject) => {
-            qrResolve = resolve;
-            qrReject = reject;
-        });
-
-        const timeout = setTimeout(() => {
-            qrReject(new Error('QR code generation timeout'));
-        }, 60000);
+        const qrPromise = new Promise((res, rej) => { qrResolve = res; qrReject = rej; });
+        const timeout = setTimeout(() => qrReject(new Error('QR generation timeout')), 60000);
 
         await this.startSocket(sessionId, metadata, qrResolve, qrReject, timeout);
 
         try {
             await qrPromise;
         } catch (error) {
-            if (!session.pairingCode && session.status !== 'connected') {
-                this.logger.warn({ sessionId, error: error.message }, 'QR wait completed with note');
+            if (session.status !== 'connected') {
+                this.logger.warn({ sessionId, error: error.message }, 'QR wait notice');
             }
         }
 
-        return {
-            session_id: sessionId,
-            status: session.status,
-            qr_code: session.qr,
-            pairing_code: session.pairingCode,
-            created_at: session.createdAt
-        };
+        return { session_id: sessionId, status: session.status, qr_code: session.qr, created_at: session.createdAt };
     }
 
     async startSocket(sessionId, metadata, qrResolve, qrReject, timeout) {
         const session = this.sessions.get(sessionId);
         if (!session) return;
 
-        const sessionPath = path.join(this.sessionDir, sessionId);
-        if (!fs.existsSync(sessionPath)) fs.mkdirSync(sessionPath, { recursive: true });
+        const authAdapter = await useSupabaseAuthState(sessionId, metadata.project_id);
+        session.authAdapter = authAdapter;
 
-        const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
         let version = [2, 3000, 1015901307];
         try {
             const vInfo = await fetchLatestBaileysVersion();
@@ -89,7 +85,7 @@ class SessionManager {
 
         const sock = makeWASocket({
             version,
-            auth: state,
+            auth: authAdapter.state,
             printQRInTerminal: false,
             logger: pino({ level: 'silent' }),
             browser: Browsers.ubuntu('Chrome'),
@@ -97,17 +93,14 @@ class SessionManager {
             retryRequestDelayMs: 5000,
             markOnlineOnConnect: false
         });
-
         session.socket = sock;
 
         sock.ev.on('connection.update', async (update) => {
             const { connection, lastDisconnect, qr } = update;
-
             if (qr) {
                 try {
                     session.qr = await QRCode.toDataURL(qr);
                     session.status = 'qr_ready';
-                    this.logger.info({ sessionId }, 'QR code generated');
                     if (timeout) clearTimeout(timeout);
                     if (qrResolve) qrResolve();
                 } catch (e) {
@@ -117,62 +110,47 @@ class SessionManager {
 
             if (connection === 'close') {
                 const statusCode = lastDisconnect?.error?.output?.statusCode;
-                const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+                const isLoggedOut = statusCode === DisconnectReason.loggedOut;
+                this.logger.warn({ sessionId, isLoggedOut, statusCode }, 'Socket connection closed');
 
-                this.logger.warn({ sessionId, shouldReconnect, statusCode, error: lastDisconnect?.error?.message }, 'Connection closed');
-
-                if (!shouldReconnect) {
+                if (isLoggedOut) {
                     session.status = 'disconnected';
+                    await authAdapter.invalidateAuth();
+                    if (session.lock) await session.lock.release();
                     this.sessions.delete(sessionId);
-                    this.cleanupSessionFiles(sessionId);
-                    this.dispatchStatus(sessionId, 'disconnected');
+                    await dispatchSessionStatus(sessionId, metadata, 'disconnected', this.logger);
                 } else {
                     session.status = 'connecting';
+                    await authAdapter.markSessionStatus('connecting');
                     const delay = statusCode === DisconnectReason.restartRequired ? 1000 : 3000;
-                    this.logger.info({ sessionId, statusCode, delay }, 'Reconnecting session...');
                     setTimeout(() => {
-                        this.startSocket(sessionId, metadata).catch(err => {
-                            this.logger.error({ sessionId, error: err.message }, 'Failed reconnecting socket');
-                        });
+                        if (this.sessions.has(sessionId)) this.startSocket(sessionId, metadata);
                     }, delay);
                 }
             } else if (connection === 'open') {
                 session.status = 'connected';
                 session.qr = null;
-                this.logger.info({ sessionId }, 'WhatsApp connection opened successfully');
                 if (timeout) clearTimeout(timeout);
                 if (qrResolve) qrResolve();
-                this.dispatchStatus(sessionId, 'connected');
+                const phone = sock.user?.id ? sock.user.id.split(':')[0].split('@')[0] : null;
+                await authAdapter.markSessionStatus('connected', phone);
+                await dispatchSessionStatus(sessionId, metadata, 'connected', this.logger);
             }
         });
 
-        sock.ev.on('creds.update', async (creds) => {
-            try {
-                if (fs.existsSync(sessionPath)) await saveCreds(creds);
-            } catch (err) {
-                if (err.code !== 'ENOENT') this.logger.error({ sessionId, error: err.message }, 'Failed saving creds');
-            }
+        sock.ev.on('creds.update', async () => {
+            await authAdapter.saveCreds().catch((e) => this.logger.error({ error: e.message }, 'Creds save failed'));
         });
 
         sock.ev.on('messages.upsert', async ({ messages, type }) => {
             if (type === 'notify') {
                 for (const msg of messages) {
                     if (!msg.key.fromMe && msg.message) {
-                        await this.handleIncomingMessage(sessionId, msg);
+                        await handleIncomingMessage(sessionId, session.metadata, msg, this.logger);
                     }
                 }
             }
         });
-    }
-    async dispatchStatus(sessionId, status) {
-        const session = this.sessions.get(sessionId);
-        await sendWebhook(
-            resolveBackendUrl(),
-            '/api/v1/webhooks/wa_gateway',
-            { session_id: sessionId, event: 'connection.update', status, metadata: session?.metadata || {} },
-            process.env.CALLBACK_SECRET,
-            this.logger
-        );
     }
 
     getSessionStatus(sessionId) {
@@ -181,7 +159,6 @@ class SessionManager {
         return {
             status: session.status,
             qr_code: session.qr,
-            pairing_code: session.pairingCode,
             created_at: session.createdAt,
             last_activity: session.lastActivity,
             metadata: session.metadata
@@ -192,58 +169,65 @@ class SessionManager {
         const session = this.sessions.get(sessionId);
         if (!session) throw new Error('Session not found');
         if (session.status !== 'connected') throw new Error(`Session is ${session.status}, not connected`);
-
-        const cleanTo = String(to || '').trim();
-        const digits = cleanTo.replace(/\D/g, '');
-        const jid = cleanTo.includes("@") ? cleanTo : (digits.length >= 15 ? (digits + "@lid") : (digits + "@s.whatsapp.net"));
-        if (messageType !== 'text') throw new Error(`Unsupported message type: ${messageType}`);
-
-        const result = await session.socket.sendMessage(jid, { text: message });
+        const result = await sendSessionMessage(session.socket, to, message, messageType);
         session.lastActivity = new Date();
-        return { message_id: result.key.id, status: 'sent', timestamp: new Date() };
+        return result;
     }
 
     async closeSession(sessionId) {
         const session = this.sessions.get(sessionId);
-        if (!session) {
-            this.cleanupSessionFiles(sessionId);
-            return { status: 'closed', session_id: sessionId };
-        }
+        if (!session) return { status: 'closed', session_id: sessionId };
         if (session.socket) {
             try { await session.socket.logout(); } catch (_) {}
             try { session.socket.end(new Error('Session closed')); } catch (_) {}
         }
+        if (session.authAdapter) await session.authAdapter.invalidateAuth();
+        if (session.lock) await session.lock.release();
         this.sessions.delete(sessionId);
-        this.cleanupSessionFiles(sessionId);
-        this.logger.info({ sessionId }, 'Session logged out and files removed');
+        await dispatchSessionStatus(sessionId, session.metadata, 'disconnected', this.logger);
         return { status: 'closed', session_id: sessionId };
     }
 
-    async handleIncomingMessage(sessionId, msg) {
-        const session = this.sessions.get(sessionId);
-        if (!session) return;
-        await sendWebhook(
-            resolveBackendUrl(),
-            '/api/v1/webhooks/wa_gateway',
-            { session_id: sessionId, message: msg, metadata: session.metadata },
-            process.env.CALLBACK_SECRET,
-            this.logger
-        );
-        session.lastActivity = new Date();
-    }
-    cleanupSessionFiles(sessionId) {
-        const sessionPath = path.join(this.sessionDir, sessionId);
-        if (fs.existsSync(sessionPath)) {
-            fs.rmSync(sessionPath, { recursive: true, force: true });
-            this.logger.info({ sessionId }, 'Session directory removed');
+    async restoreActiveSessions() {
+        try {
+            const res = await query(
+                `SELECT integration_id, project_id, phone_number 
+                 FROM whatsapp_gateway_sessions 
+                 WHERE auth_valid = TRUE`
+            );
+            this.logger.info({ count: res.rows.length }, 'Found active sessions in Supabase to restore');
+            for (const row of res.rows) {
+                this.restorationQueue.add(async () => {
+                    this.logger.info({ integrationId: row.integration_id }, 'Auto-restoring session from Supabase');
+                    await this.createSession(row.integration_id, { project_id: row.project_id, auto_restored: true });
+                }).catch((err) => {
+                    this.logger.error({ integrationId: row.integration_id, error: err.message }, 'Failed auto-restoring session');
+                });
+            }
+        } catch (err) {
+            this.logger.error({ error: err.message }, 'Error fetching active sessions for restoration');
         }
     }
+
+    async shutdown() {
+        this.logger.info('Shutting down session manager, releasing locks...');
+        for (const [sessionId, session] of this.sessions.entries()) {
+            if (session.socket) {
+                try { session.socket.end(new Error('Gateway shutdown')); } catch (_) {}
+            }
+            if (session.lock) {
+                await session.lock.release().catch(() => {});
+            }
+        }
+        this.sessions.clear();
+    }
+
     getAllSessions() {
-        const sessions = [];
-        for (const [id, session] of this.sessions.entries()) {
-            sessions.push({ id, status: session.status, created_at: session.createdAt, last_activity: session.lastActivity });
+        const list = [];
+        for (const [id, s] of this.sessions.entries()) {
+            list.push({ id, status: s.status, created_at: s.createdAt, last_activity: s.lastActivity });
         }
-        return sessions;
+        return list;
     }
 }
 

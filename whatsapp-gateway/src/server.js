@@ -1,6 +1,4 @@
-/**
- * Express Server - WhatsApp Baileys Gateway
- */
+// Express Server - WhatsApp Baileys Gateway
 
 require('dotenv').config();
 const express = require('express');
@@ -9,12 +7,12 @@ const pino = require('pino');
 const { v4: uuidv4 } = require('uuid');
 const SessionManager = require('./SessionManager');
 const authMiddleware = require('./middleware/auth');
+const { runMigrations } = require('./db/migrate');
 
 const app = express();
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 const sessionManager = new SessionManager(process.env.SESSION_DIR || './sessions');
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
@@ -41,26 +39,14 @@ app.get('/', (req, res) => {
     });
 });
 
-// ============================================================================
-// Session Management Endpoints
-// ============================================================================
-
-/**
- * Create a new session
- * POST /sessions
- */
+// Create a new session
 app.post('/sessions', authMiddleware, async (req, res) => {
     const startTime = Date.now();
     try {
         const { project_id, integration_id, metadata } = req.body;
-
         logger.info({ project_id, integration_id }, 'Received session creation request');
 
-        // Generate session ID
         const sessionId = integration_id || uuidv4();
-
-        logger.info({ sessionId }, 'Starting session creation...');
-
         const sessionData = await sessionManager.createSession(sessionId, {
             project_id,
             integration_id,
@@ -69,101 +55,54 @@ app.post('/sessions', authMiddleware, async (req, res) => {
 
         const duration = Date.now() - startTime;
         logger.info({ sessionId, duration }, 'Session created via API');
-
-        res.json({
-            status: 'success',
-            ...sessionData
-        });
+        res.json({ status: 'success', ...sessionData });
     } catch (error) {
-        const duration = Date.now() - startTime;
-        logger.error({ error: error.message, stack: error.stack, duration }, 'Failed to create session');
-        res.status(500).json({
-            status: 'error',
-            message: error.message
-        });
+        logger.error({ error: error.message, stack: error.stack }, 'Failed to create session');
+        res.status(500).json({ status: 'error', message: error.message });
     }
 });
 
-/**
- * Get session status
- * GET /sessions/:sessionId
- */
+// Get session status
 app.get('/sessions/:sessionId', authMiddleware, (req, res) => {
     try {
         const { sessionId } = req.params;
         const status = sessionManager.getSessionStatus(sessionId);
-
-        res.json({
-            status: 'success',
-            ...status
-        });
+        res.json({ status: 'success', ...status });
     } catch (error) {
         logger.error({ error: error.message }, 'Failed to get session status');
-        res.status(500).json({
-            status: 'error',
-            message: error.message
-        });
+        res.status(500).json({ status: 'error', message: error.message });
     }
 });
 
-/**
- * Get all sessions
- * GET /sessions
- */
+// Get all sessions
 app.get('/sessions', authMiddleware, (req, res) => {
     try {
         const sessions = sessionManager.getAllSessions();
-
-        res.json({
-            status: 'success',
-            sessions,
-            count: sessions.length
-        });
+        res.json({ status: 'success', sessions, count: sessions.length });
     } catch (error) {
         logger.error({ error: error.message }, 'Failed to get sessions');
-        res.status(500).json({
-            status: 'error',
-            message: error.message
-        });
+        res.status(500).json({ status: 'error', message: error.message });
     }
 });
 
-/**
- * Close a session
- * POST /sessions/:sessionId/close
- */
+// Close a session
 app.post('/sessions/:sessionId/close', authMiddleware, async (req, res) => {
     try {
         const { sessionId } = req.params;
         const result = await sessionManager.closeSession(sessionId);
-
         logger.info({ sessionId }, 'Session closed via API');
-
-        res.json({
-            status: 'success',
-            ...result
-        });
+        res.json({ status: 'success', ...result });
     } catch (error) {
         logger.error({ error: error.message }, 'Failed to close session');
-        res.status(500).json({
-            status: 'error',
-            message: error.message
-        });
+        res.status(500).json({ status: 'error', message: error.message });
     }
 });
 
-// ============================================================================
-// Message Endpoints
-// ============================================================================
-
-/**
- * Send a message
- * POST /sessions/:sessionId/messages
- */
+// Send a message
 app.post('/sessions/:sessionId/messages', authMiddleware, async (req, res) => {
     try {
         const { sessionId } = req.params;
-        const { to, message, message_type = 'text', extra = {} } = req.body;
+        const { to, message, message_type = 'text' } = req.body;
 
         if (!to || !message) {
             return res.status(400).json({
@@ -173,54 +112,51 @@ app.post('/sessions/:sessionId/messages', authMiddleware, async (req, res) => {
         }
 
         const result = await sessionManager.sendMessage(sessionId, to, message, message_type);
-
         logger.info({ sessionId, to }, 'Message sent via API');
-
-        res.json({
-            status: 'success',
-            ...result
-        });
+        res.json({ status: 'success', ...result });
     } catch (error) {
         logger.error({ error: error.message }, 'Failed to send message');
-        res.status(500).json({
-            status: 'error',
-            message: error.message
-        });
+        res.status(500).json({ status: 'error', message: error.message });
     }
 });
 
-// ============================================================================
-// Error Handling
-// ============================================================================
-
+// Error handling middleware
 app.use((err, req, res, next) => {
     logger.error({ error: err.message, stack: err.stack }, 'Unhandled error');
-    res.status(500).json({
-        status: 'error',
-        message: 'Internal server error'
-    });
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
 });
 
-// ============================================================================
-// Start Server
-// ============================================================================
-
-// Railway sets PORT automatically, fallback to 3000 for local development
+// Start Server with Database Migrations and Auto-Restoration
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, '0.0.0.0', () => {
-    logger.info({ port: PORT }, 'WhatsApp Baileys Gateway started');
-    console.log(`\n🚀 WhatsApp Baileys Gateway running on port ${PORT}`);
-    console.log(`📱 Ready to accept connections\n`);
-});
+async function start() {
+    try {
+        await runMigrations();
+        logger.info('Database migrations verified on gateway boot');
+    } catch (err) {
+        logger.error({ error: err.message }, 'Database migration check error during boot');
+    }
 
-// Graceful shutdown
-process.on('SIGINT', async () => {
-    logger.info('Shutting down gracefully...');
-    process.exit(0);
-});
+    const server = app.listen(PORT, '0.0.0.0', async () => {
+        logger.info({ port: PORT }, 'WhatsApp Baileys Gateway started');
+        console.log(`\n🚀 WhatsApp Baileys Gateway running on port ${PORT}`);
+        await sessionManager.restoreActiveSessions();
+    });
 
-process.on('SIGTERM', async () => {
-    logger.info('Shutting down gracefully...');
-    process.exit(0);
-});
+    const shutdown = async (signal) => {
+        logger.info({ signal }, 'Shutting down gracefully...');
+        server.close(async () => {
+            await sessionManager.shutdown();
+            process.exit(0);
+        });
+        setTimeout(() => {
+            logger.warn('Forced shutdown timeout triggered');
+            process.exit(1);
+        }, 10000);
+    };
+
+    process.on('SIGINT', () => shutdown('SIGINT'));
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+}
+
+start();

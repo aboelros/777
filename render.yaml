@@ -108,8 +108,8 @@ services:
 
   # ─────────────────────────────────────────────
   # 3. WhatsApp Gateway (Baileys)
-  # Note: Render Free plan has ephemeral storage. Sessions will reset on deploy.
-  # Upgrade to a paid plan and add a disk for persistent sessions.
+  # WhatsApp sessions are durably persisted in Supabase PostgreSQL (APP_DATABASE_URL)
+  # with AES-256-GCM encryption, surviving restarts and redeployments.
   # ─────────────────────────────────────────────
   - type: web
     name: ai-sales-bot-whatsapp
@@ -128,6 +128,12 @@ services:
       - key: BACKEND_URL
         # Replace with your actual backend URL once deployed
         value: https://ai-sales-bot-api-vdr6.onrender.com
+      - key: DATABASE_URL
+        sync: false
+      - key: APP_DATABASE_URL
+        sync: false
+      - key: SESSION_ENCRYPTION_KEY
+        sync: false
       - key: SESSION_DIR
         value: ./sessions
       - key: LOG_LEVEL
